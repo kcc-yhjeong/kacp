@@ -59,6 +59,8 @@ spikes/           # 1단계 검증용 버리는 코드 (NN-이름/)
 
 `apps/{web,api,orchestrator,proxy}`, `packages/shared`, `deploy/{openclaw-image,infra}`는 2단계에서 만들었다. `packages/platform-mcp`·`create-platform-mcp`는 5·6단계에서 만든다.
 
+VM 배포: VM SSH에서 `curl -fsSL https://raw.githubusercontent.com/kcc-yhjeong/kacp/main/deploy/infra/vm-deploy.sh | bash`(여러 번 실행해도 됨, 팀 컨테이너 설정이 바뀌면 관리자 화면에서 재시작).
+
 로컬 실행: `deploy/infra/.env.example`을 `.env`로 복사 → `docker compose -f deploy/infra/docker-compose.yml --profile build build openclaw-image` → `docker compose -f deploy/infra/docker-compose.yml up -d --build` → `... exec api node dist/cli.js demo`. 주소는 `http://app.kacp.localhost`, 팀은 `http://team1.kacp.localhost`.
 
 ## 기술 스택 (확정 2026-10-01)
@@ -102,7 +104,7 @@ spikes/           # 1단계 검증용 버리는 코드 (NN-이름/)
 
 ## 개발 단계
 
-0 설계(**완료 2026-10-02**) → 1 기술 검증(**완료 2026-10-01**, `docs/README.md` "1단계 결론") → 2 뼈대(**완료 2026-10-02**) → 3 관리자 기본(**완료 2026-10-02**) → 4 드라이브 → 5 앱 배포 → 6 MCP 마켓 → 7 마감.
+0 설계(**완료 2026-10-02**) → 1 기술 검증(**완료 2026-10-01**, `docs/README.md` "1단계 결론") → 2 뼈대(**완료 2026-10-02**) → 3 관리자 기본(**완료 2026-10-02**) → 4 드라이브(**완료 2026-10-02**) → 5 앱 배포 → 6 MCP 마켓 → 7 마감.
 각 단계의 통과 조건은 `docs/README.md` 참고. 1단계 검증 결과가 설계를 바꾸면 해당 문서를 먼저 고친다.
 
 - `spikes/`는 1단계 검증용 버리는 코드다. 질문 하나에 답하는 게 목적이고 품질 규칙을 적용하지 않는다.

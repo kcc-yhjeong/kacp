@@ -1,4 +1,5 @@
 import { config, sandboxEnabled, TEAM_DRIVE_PATH, teamSharedDir } from './config.js';
+import { SANDBOX_PRUNE } from './apply-config.js';
 
 // openclaw.json seed (06-auth.md §6, spikes 01–04). Written once, before the first start, only if
 // the file is absent; later changes go through config.patch (stage 3 apply-config).
@@ -50,6 +51,7 @@ export function sandboxConfig(team: string) {
     backend: 'docker',
     scope: 'session',
     workspaceAccess: 'rw',
+    prune: SANDBOX_PRUNE,
     docker: {
       image: config.sandboxImage,
       containerPrefix: `kacp-sbx-${team}-`,

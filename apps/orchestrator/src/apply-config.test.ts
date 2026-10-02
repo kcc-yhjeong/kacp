@@ -60,3 +60,15 @@ describe('withPlatformBlock', () => {
     expect(withPlatformBlock(null)).toContain(PLATFORM_INSTRUCTIONS);
   });
 });
+
+describe('sandbox prune', () => {
+  it('enforces the prune policy only when asked and only if different', async () => {
+    const { computePatch, SANDBOX_PRUNE } = await import('./apply-config.js');
+    const empty = { agents: [], adminEmails: [] };
+    expect(computePatch({}, empty)).toBeNull();
+    const plan = computePatch({}, empty, { sandbox: true });
+    expect(plan?.patch).toEqual({ agents: { defaults: { sandbox: { prune: SANDBOX_PRUNE } } } });
+    expect(plan?.replacePaths).toEqual(['agents.defaults.sandbox.prune']);
+    expect(computePatch({ agents: { defaults: { sandbox: { prune: { maxAgeDays: 1, idleHours: 1 } } } } }, empty, { sandbox: true })).toBeNull();
+  });
+});

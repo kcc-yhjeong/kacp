@@ -405,7 +405,7 @@ export function applyConfig(team: string, desired: DesiredConfig) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const got = await gatewayRpc(team, 'config.get') as { payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown>; hash?: string } };
       const current = got.payload?.config ?? got.payload?.parsed ?? {};
-      const plan = computePatch(current, desired);
+      const plan = computePatch(current, desired, { sandbox: sandboxEnabled() });
       if (!plan) return { changed: false };
       try {
         await gatewayRpc(team, 'config.patch', {

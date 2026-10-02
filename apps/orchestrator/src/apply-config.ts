@@ -57,10 +57,13 @@ export interface PatchPlan {
   replacePaths: string[];
 }
 
-/** Returns null when the current config already matches. */
-export function computePatch(current: Record<string, unknown>, desired: DesiredConfig): PatchPlan | null {
+/** Idle sandboxes are pruned after an hour (OpenClaw default: 24 h — too much memory per session). */
+export const SANDBOX_PRUNE = { idleHours: 1, maxAgeDays: 1 };
+
+/** Returns null when the current config already matches. `sandbox` = also enforce the prune policy. */
+export function computePatch(current: Record<string, unknown>, desired: DesiredConfig, opts: { sandbox?: boolean } = {}): PatchPlan | null {
   const cur = current as {
-    agents?: { entries?: Record<string, unknown> };
+    agents?: { entries?: Record<string, unknown>; defaults?: { sandbox?: { prune?: unknown } } };
     gateway?: { auth?: { identityScopes?: Record<string, unknown> } };
   };
   const entries: Record<string, unknown> = {};
@@ -97,9 +100,17 @@ export function computePatch(current: Record<string, unknown>, desired: DesiredC
     }
   }
 
+  const prune = opts.sandbox && stable(cur.agents?.defaults?.sandbox?.prune) !== stable(SANDBOX_PRUNE);
+  if (prune) replacePaths.push('agents.defaults.sandbox.prune');
+
   if (replacePaths.length === 0) return null;
   const patch: Record<string, unknown> = {};
-  if (Object.keys(entries).length) patch.agents = { entries };
+  if (Object.keys(entries).length || prune) {
+    patch.agents = {
+      ...(Object.keys(entries).length ? { entries } : {}),
+      ...(prune ? { defaults: { sandbox: { prune: SANDBOX_PRUNE } } } : {}),
+    };
+  }
   if (Object.keys(scopes).length) patch.gateway = { auth: { identityScopes: scopes } };
   return { patch, replacePaths };
 }
