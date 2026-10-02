@@ -44,6 +44,7 @@ export async function runtimeSpec(team: TeamRow): Promise<TeamRuntimeSpec> {
     adminEmails: await adminEmails(team.id),
     resourceLimits: team.resourceLimits ?? (await getSetting('limits.team_default')),
     env: envFromApiKeys(await getApiKeys()),
+    linuxGid: team.linuxGid,
   };
 }
 

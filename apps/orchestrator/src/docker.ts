@@ -89,6 +89,36 @@ export const docker = {
     return r.body as ContainerStats;
   },
 
+  // Networks (bind/VM mode only: per-team sandbox network). Needs NETWORKS=1 on the socket proxy.
+  async networkEnsure(name: string, internal: boolean) {
+    const r = await request('GET', `/networks/${name}`);
+    if (r.status === 200) return;
+    const c = await request('POST', '/networks/create', { json: { Name: name, Internal: internal, Labels: { 'kacp.kind': 'sbx-network' } } });
+    if (c.status !== 201 && c.status !== 409) throw new DockerError(c.status, c.body, 'network create');
+  },
+
+  async networkConnect(network: string, container: string) {
+    const r = await request('POST', `/networks/${network}/connect`, { json: { Container: container } });
+    // 403 "already exists in network" is fine.
+    if (r.status !== 200 && !(r.status === 403 && /already exists/i.test(r.text))) throw new DockerError(r.status, r.body, 'network connect');
+  },
+
+  async networkRemove(name: string) {
+    const r = await request('DELETE', `/networks/${name}`);
+    if (r.status !== 204 && r.status !== 404) throw new DockerError(r.status, r.body, 'network remove');
+  },
+
+  /** Contents of one regular file via GET /archive (a tar with a single entry), or null if missing. */
+  async readFile(name: string, path: string): Promise<string | null> {
+    const res = await fetch(`${config.dockerUrl}${API}/containers/${name}/archive?path=${encodeURIComponent(path)}`);
+    if (res.status === 404) return null;
+    if (res.status !== 200) throw new DockerError(res.status, await res.text(), 'archive get');
+    const tar = Buffer.from(await res.arrayBuffer());
+    // ustar size field: 12 bytes of NUL/space-terminated octal at offset 124.
+    const size = parseInt(tar.subarray(124, 136).toString('ascii').split(String.fromCharCode(0))[0]!.trim() || '0', 8);
+    return tar.subarray(512, 512 + size).toString('utf8');
+  },
+
   async fileExists(name: string, path: string): Promise<boolean> {
     const r = await request('HEAD', `/containers/${name}/archive?path=${encodeURIComponent(path)}`);
     return r.status === 200;

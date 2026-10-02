@@ -208,3 +208,36 @@ export const usageSamples = pgTable('usage_samples', {
   diskBytes: bigint('disk_bytes', { mode: 'number' }),
   diskLimitBytes: bigint('disk_limit_bytes', { mode: 'number' }),
 }, (t) => [index('usage_samples_target_ts').on(t.targetType, t.targetId, t.ts)]);
+
+// ── drive (03-data-model.md 드라이브) — files live on disk, the DB only keeps records ──
+
+export const driveEvents = pgTable('drive_events', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  teamId: uuid('team_id').notNull(),
+  space: text('space').notNull(),
+  ownerUserId: uuid('owner_user_id'),
+  path: text('path').notNull(),
+  prevPath: text('prev_path'),
+  action: text('action').notNull(),
+  actorKind: text('actor_kind').notNull(),
+  actorUserId: uuid('actor_user_id'),
+  createdAt: createdAt(),
+}, (t) => [
+  index('drive_events_path').on(t.teamId, t.space, t.path),
+  check('drive_events_space_check', sql`${t.space} in ('me', 'shared')`),
+  check('drive_events_action_check', sql`${t.action} in ('create', 'update', 'rename', 'move', 'copy', 'trash', 'restore', 'delete')`),
+  check('drive_events_actor_check', sql`${t.actorKind} in ('user', 'agent', 'system')`),
+]);
+
+export const trashItems = pgTable('trash_items', {
+  id: uuid('id').primaryKey(),
+  teamId: uuid('team_id').notNull(),
+  space: text('space').notNull(),
+  ownerUserId: uuid('owner_user_id'),
+  originalPath: text('original_path').notNull(),
+  isDir: boolean('is_dir').notNull(),
+  sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+  deletedBy: uuid('deleted_by').notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }).notNull().defaultNow(),
+  purgeAfter: timestamp('purge_after', { withTimezone: true }).notNull(),
+}, (t) => [index('trash_items_team').on(t.teamId), check('trash_items_space_check', sql`${t.space} in ('me', 'shared')`)]);

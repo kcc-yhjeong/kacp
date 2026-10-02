@@ -125,15 +125,15 @@
 | 컨테이너 | 마운트 | 모드 |
 |---|---|---|
 | 팀 컨테이너 | `teams/{team}/openclaw` → `/home/node/.openclaw` | rw, **bind mount**(named volume은 샌드박스 경로 변환에 못 씀). 모든 팀 컨테이너는 공식 이미지 기본 `node`(uid 1000)로 실행하고 폴더는 `1000:1000 0700`(spike 06 결정 — 팀별 UID도 `XDG_CACHE_HOME`을 상태 폴더 안으로 두면 가능하지만 v1은 쓰지 않는다). 엔트리포인트가 기동마다 doctor를 돌려 openclaw.json을 다시 쓰고 JSON5 주석을 지운다. orchestrator는 openclaw.json을 **프로비저닝 때 한 번만, 파일이 없을 때만 시드**하고, 이후 변경은 `config.patch`로 한다. 첫 기동 이후 파일을 통째로 바꾸면 OpenClaw가 백업(`openclaw.json.last-good`, `.bak*`)으로 되돌리는데, 그 백업이 최신이 아니어서 hot reload로 바꾼 최근 설정을 잃을 수 있다(spike 02·03). **로컬**(Windows Docker Desktop)은 bind mount chmod가 안 돼 named volume `kacp-team-{team}-state`를 쓴다(`STATE_MODE=volume`, 시드는 Engine API archive 업로드, `kacp/openclaw` 이미지에 상태 폴더를 `node:node 0700`으로 만들어 첫 마운트가 소유권을 물려받게 함) |
-| 팀 컨테이너 | `teams/{team}/drive/shared` → 에이전트 워크스페이스 | rw. 개인 폴더(`personal/`)는 팀 컨테이너에 넣지 않는다(에이전트는 팀 공유 드라이브만 — spike 05). 정확한 마운트 지점(워크스페이스 안 하위 폴더 bind)은 4단계에서 정한다 |
-| 샌드박스 | OpenClaw가 에이전트 워크스페이스를 `/workspace`로 bind(rw) | Gateway 안 경로를 호스트 `/data/...` 경로로 OpenClaw가 바꿔 붙인다(spike 06 실측). 요청자 개인 폴더는 넣지 않는다. 설정: `agents.defaults.sandbox = {mode: "all", backend: "docker", scope: "session", workspaceAccess: "rw", docker: {image: "openclaw-sandbox:bookworm-slim", containerPrefix: "kacp-sbx-{team}-", network: "none", user: "1000:1000", readOnlyRoot: true, capDrop: ["ALL"], pidsLimit: 256, memory: "1g", cpus: 1}}` |
+| 팀 컨테이너 | `teams/{team}/drive/shared` → `/team-drive` **와** `/home/node/.openclaw/workspace/team-drive` | rw, 같은 원본을 두 곳에(4단계 결정). `/team-drive`는 모든 에이전트 공통 경로(템플릿 AGENTS.md에 안내), 워크스페이스 안 폴더는 기본 에이전트 `main`이 바로 보게. 개인 폴더(`personal/`)는 넣지 않는다(spike 05). 로컬은 named volume `kacp-data`의 subpath, VM은 bind |
+| 샌드박스 (VM만) | 에이전트 워크스페이스 → `/workspace`, 팀 공유 드라이브는 `docker.binds`로 `/team-drive`(`dangerouslyAllowExternalBindSources: true`, 원본은 호스트 경로 그대로) | 원본이 bind mount여야 샌드박스로 비춰진다(OpenClaw docker-backend 문서) — 로컬(named volume)에서는 샌드박스를 끈다. OpenClaw가 에이전트 워크스페이스를 `/workspace`로 bind(rw) | Gateway 안 경로를 호스트 `/data/...` 경로로 OpenClaw가 바꿔 붙인다(spike 06 실측). 요청자 개인 폴더는 넣지 않는다. 설정: `agents.defaults.sandbox = {mode: "all", backend: "docker", scope: "session", workspaceAccess: "rw", docker: {image: "openclaw-sandbox:bookworm-slim", containerPrefix: "kacp-sbx-{team}-", network: "none", user: "1000:1000", readOnlyRoot: true, capDrop: ["ALL"], pidsLimit: 256, memory: "1g", cpus: 1}}` |
 | 작업본 컨테이너 | 원본 폴더 → `/app` | ro |
 | 작업본 컨테이너 | `apps/{appId}/work-data` → `/app-data` | rw (`APP_DATA_DIR`) |
 | 공개본 컨테이너 | `apps/{appId}/snapshots/{version}` → `/app` | ro |
 | 공개본 컨테이너 | `apps/{appId}/public-data` → `/app-data` | rw (`APP_DATA_DIR`) |
 | MCP 컨테이너 | 없음(기본). 필요 시 `teams/{team}/mcp/{server_key}` | rw |
-| api | `teams/*/drive`, `teams/*/.trash` | rw (드라이브 API) |
-| orchestrator | `teams`, `apps`, `mcp` | rw (프로비저닝·스냅샷·빌드) |
+| api | `teams/*/drive`, `teams/*/.trash` | rw (드라이브 API). 로컬은 `kacp-data` 볼륨 전체를 `/data`로. 소유권: 팀 공유 `1000:{linux_gid}` 폴더 `2770`·파일 `0660`, 개인 `{linux_uid}` `0700`. 경로는 `realpath`가 공간 루트 안일 때만, 심볼릭 링크는 따라가지 않음 |
+| orchestrator | `teams`, `apps`, `mcp` | rw (프로비저닝·스냅샷·빌드). 로컬은 `kacp-data` 볼륨을 `/data`로 |
 
 ## 6. 컨테이너·이미지·네트워크 이름
 

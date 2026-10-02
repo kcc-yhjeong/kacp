@@ -1,5 +1,7 @@
-import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigate, Outlet } from '@tanstack/react-router';
+import { lazy, Suspense } from 'react';
 import { ForbiddenPage, NotFoundPage } from '@/components/message-page';
+import { PageLoader } from '@/components/page-loader';
 import { currentHost } from '@/lib/host';
 import { HomePage } from '@/pages/home';
 import { LoginPage } from '@/pages/login';
@@ -55,6 +57,33 @@ const notFoundRoute = createRoute({
 });
 
 const profileRoute = createRoute({ getParentRoute: () => rootRoute, path: '/me', component: ProfilePage });
+
+// ── /t/{team}/drive/* (U-04 · U-05 · U-06). One splat route; the page parses `{me|shared}/{...path}` or `trash`.
+// The drive code is its own lazy chunk.
+
+const DrivePage = lazy(() => import('@/pages/drive/drive-page').then((m) => ({ default: m.DrivePage })));
+
+const driveRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/drive/$',
+  component: function DriveRoute() {
+    const { team, _splat } = driveRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <DrivePage team={team} splat={_splat ?? ''} />
+      </Suspense>
+    );
+  },
+});
+
+const driveRootRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/drive',
+  component: function DriveRootRoute() {
+    const { team } = driveRootRoute.useParams();
+    return <Navigate to="/t/$team/drive/$" params={{ team, _splat: 'shared' }} replace />;
+  },
+});
 
 // ── /admin (A-*). Every screen is its own lazy chunk so the employee shell does not load admin code.
 
@@ -116,6 +145,8 @@ const routeTree = rootRoute.addChildren([
   forbiddenRoute,
   notFoundRoute,
   profileRoute,
+  driveRootRoute,
+  driveRoute,
 ]);
 
 export const appRouter = createRouter({ routeTree });

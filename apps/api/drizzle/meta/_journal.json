@@ -15,6 +15,13 @@
       "when": 1790915065735,
       "tag": "0001_stage3",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790921780161,
+      "tag": "0002_stage4_drive",
+      "breakpoints": true
     }
   ]
 }

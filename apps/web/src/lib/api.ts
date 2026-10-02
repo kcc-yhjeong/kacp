@@ -19,6 +19,11 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
+/** For requests that cannot go through `request` (XHR uploads with progress, blob downloads). */
+export function getCsrfToken(): string | null {
+  return csrfToken;
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {

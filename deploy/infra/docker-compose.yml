@@ -26,6 +26,9 @@ networks:
 
 volumes:
   postgres-data:
+  # /data locally (drive, trash). Fixed name: orchestrator mounts subpaths of it into team containers.
+  kacp-data:
+    name: kacp-data
 
 services:
   traefik:
@@ -99,8 +102,11 @@ services:
       PUBLIC_SCHEME: ${PUBLIC_SCHEME}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      DATA_ROOT: /data
       # core-only alias: the orchestrator refuses requests that arrive over kacp-edge
       ORCHESTRATOR_URL: http://orchestrator-core:4000
+    volumes:
+      - kacp-data:/data
     networks: [kacp-core, kacp-edge]
 
   orchestrator:
@@ -125,6 +131,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       EDGE_SUBNET_PREFIX: "172.30."
       GWAGENT_IMAGE: kacp/orchestrator:dev
+      DATA_ROOT: /data
+      DATA_VOLUME: kacp-data
+    volumes:
+      - kacp-data:/data
     networks:
       kacp-core:
         aliases: [orchestrator-core]

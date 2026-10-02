@@ -35,6 +35,11 @@ export const ERROR_MESSAGES = {
   TEMPLATE_NOT_FOUND: '에이전트 템플릿을 찾을 수 없어요.',
   TEMPLATE_IN_USE: '할당된 팀이 있어 삭제할 수 없어요. 먼저 할당을 해제하세요.',
   MODEL_NOT_ALLOWED: '허용되지 않은 모델이에요.',
+  DRIVE_PATH_INVALID: '경로가 올바르지 않아요.',
+  DRIVE_NOT_FOUND: '파일이나 폴더를 찾을 수 없어요.',
+  DRIVE_EXISTS: '같은 이름이 이미 있어요.',
+  DRIVE_QUOTA_EXCEEDED: '팀 드라이브 용량이 부족해요.',
+  DRIVE_TOO_LARGE: '업로드하지 못했어요. 파일이 500MB를 넘어요.',
   ORCHESTRATOR_UNAVAILABLE: '지금은 팀 에이전트를 켤 수 없어요. 잠시 후 다시 시도하세요.',
   INTERNAL: '문제가 생겼어요. 잠시 후 다시 시도하세요.',
 } as const;

@@ -48,3 +48,15 @@ describe('computePatch', () => {
     expect(plan?.replacePaths).toEqual(['agents.entries.kacp-a']);
   });
 });
+
+describe('withPlatformBlock', () => {
+  it('adds the block on top once and refreshes it in place', async () => {
+    const { withPlatformBlock, PLATFORM_INSTRUCTIONS } = await import('./apply-config.js');
+    const original = '# AGENTS.md\n\nOpenClaw defaults\n';
+    const once = withPlatformBlock(original);
+    expect(once.startsWith('<!-- KACP:BEGIN')).toBe(true);
+    expect(once.endsWith(original)).toBe(true);
+    expect(withPlatformBlock(once)).toBe(once);
+    expect(withPlatformBlock(null)).toContain(PLATFORM_INSTRUCTIONS);
+  });
+});

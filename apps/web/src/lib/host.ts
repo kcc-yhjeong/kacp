@@ -49,6 +49,12 @@ export function teamRoot(url: string): string {
   return new URL('/', url).href;
 }
 
+/** U-04/U-06 on the app host. `splat` = `shared` | `me/…` | `trash` (each segment is URL-encoded here). */
+export function driveUrl(team: string, splat = 'shared'): string {
+  const tail = splat.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  return `${appOrigin}/t/${encodeURIComponent(team)}/drive/${tail}`;
+}
+
 export function hostOf(url: string): string {
   try {
     return new URL(url).host;

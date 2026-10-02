@@ -11,6 +11,8 @@ export interface TeamRuntimeSpec {
   resourceLimits: { cpu: number; memoryMb: number; diskGb: number };
   /** Extra container env (model provider keys from A-10). */
   env: Record<string, string>;
+  /** Group of the team shared drive (teams.linux_gid). */
+  linuxGid: number;
 }
 
 /** One assigned template as the orchestrator turns it into `agents.entries.<id>` + AGENTS.md. */

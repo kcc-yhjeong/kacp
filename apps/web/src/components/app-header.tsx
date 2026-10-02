@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { errorMessage } from '@/lib/api';
 import { initialOf } from '@/lib/format';
-import { appOrigin, hostOf, teamRoot } from '@/lib/host';
+import { appOrigin, driveUrl, hostOf, teamRoot } from '@/lib/host';
 import { logoutAndLeave, useMe, useMyTeams } from '@/lib/queries';
 
 interface AppHeaderProps {
@@ -26,14 +26,23 @@ interface AppHeaderProps {
   currentTeam?: string;
   /** Live status of the current team (the shell knows it better than /me/teams). */
   currentStatus?: TeamContainerStatus;
-  active?: 'agent';
+  active?: 'agent' | 'drive';
+  /** Where the team switcher goes for another team (drive pages keep the same drive page). Default: team root. */
+  teamHref?: (team: MyTeam) => string;
 }
 
+const navClass = (on: boolean) =>
+  on
+    ? 'rounded-md px-2.5 py-1.5 font-medium text-foreground'
+    : 'rounded-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground';
+
 /** C-00 header. Values from 02-design-system.md "헤더·셸 확정값". */
-export function AppHeader({ variant = 'full', currentTeam, currentStatus, active }: AppHeaderProps) {
+export function AppHeader({ variant = 'full', currentTeam, currentStatus, active, teamHref }: AppHeaderProps) {
   const teams = useMyTeams().data ?? [];
   const current = teams.find((t) => t.name === currentTeam);
   const homeHref = current ? teamRoot(current.url) : `${appOrigin}/`;
+  // Team-scoped menus fall back to the first team on pages without a team (e.g. /me).
+  const scopeTeam = current ?? teams[0];
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b bg-background pr-3 pl-4 text-sm">
@@ -42,20 +51,22 @@ export function AppHeader({ variant = 'full', currentTeam, currentStatus, active
         {variant === 'full' && (
           <>
             <Separator orientation="vertical" />
-            <TeamSwitcher teams={teams} current={current} currentStatus={currentStatus} />
+            <TeamSwitcher teams={teams} current={current} currentStatus={currentStatus} teamHref={teamHref} />
             <nav className="flex items-center gap-0.5">
-              <a
-                href={homeHref}
-                className={
-                  active === 'agent'
-                    ? 'rounded-md px-2.5 py-1.5 font-medium text-foreground'
-                    : 'rounded-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground'
-                }
-                aria-current={active === 'agent' ? 'page' : undefined}
-              >
+              <a href={homeHref} className={navClass(active === 'agent')} aria-current={active === 'agent' ? 'page' : undefined}>
                 에이전트
               </a>
-              <ComingSoon>드라이브</ComingSoon>
+              {scopeTeam ? (
+                <a
+                  href={driveUrl(scopeTeam.name)}
+                  className={navClass(active === 'drive')}
+                  aria-current={active === 'drive' ? 'page' : undefined}
+                >
+                  드라이브
+                </a>
+              ) : (
+                <ComingSoon>드라이브</ComingSoon>
+              )}
               <ComingSoon>배포관리</ComingSoon>
             </nav>
           </>
@@ -90,10 +101,12 @@ function TeamSwitcher({
   teams,
   current,
   currentStatus,
+  teamHref,
 }: {
   teams: MyTeam[];
   current: MyTeam | undefined;
   currentStatus?: TeamContainerStatus;
+  teamHref?: (team: MyTeam) => string;
 }) {
   const statusOf = (t: MyTeam) => (t === current && currentStatus ? currentStatus : t.containerStatus);
   return (
@@ -113,7 +126,7 @@ function TeamSwitcher({
         <DropdownMenuLabel>내 팀</DropdownMenuLabel>
         {teams.length === 0 && <div className="px-2 py-1.5 text-sm text-muted-foreground">소속된 팀이 없어요</div>}
         {teams.map((t) => (
-          <DropdownMenuItem key={t.name} onSelect={() => location.assign(teamRoot(t.url))} className="gap-2.5">
+          <DropdownMenuItem key={t.name} onSelect={() => location.assign(teamHref ? teamHref(t) : teamRoot(t.url))} className="gap-2.5">
             <TeamStatusDot status={statusOf(t)} />
             <span className="flex min-w-0 flex-1 flex-col gap-px">
               <span className="truncate">{t.displayName}</span>

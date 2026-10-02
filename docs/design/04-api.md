@@ -93,6 +93,14 @@
 | DELETE | `/teams/{team}/drive/trash/{id}` | 본인·팀관리 | 영구 삭제(팀 관리자는 팀 공유 항목만) | U-06 |
 | DELETE | `/teams/{team}/drive/trash` | 멤버 | 휴지통 비우기 — 지운 사람 본인 항목만, 팀 관리자는 팀 공유 항목 전부 `204` | U-06 |
 
+드라이브 세부 규칙(4단계):
+- 데이터 API라 **멤버만** 부른다. 멤버가 아닌 플랫폼 관리자도 `403`(`06-auth.md` §7).
+- `upload`: multipart 순서대로 스트리밍한다. 폴더 업로드는 파일마다 `relativePaths`(예 `photos/2026/a.jpg`)를 **그 `files` 앞에** 붙인다. 중간 폴더는 api가 만든다(만든 폴더도 `create` 기록). 파일당 500MB 넘으면 `413 DRIVE_TOO_LARGE`, 팀 한도(`diskGb`, 휴지통 포함) 넘으면 `413 DRIVE_QUOTA_EXCEEDED`.
+- `download?inline=1`: 이미지·PDF·텍스트만 inline. HTML·SVG는 스크립트가 돌 수 있어 `text/plain`으로 준다. 모든 파일 응답에 `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; …; sandbox`.
+- `move`·`copy`: 같은 공간에서 자기 하위로 옮기거나 복사하면 `400`. 도착 폴더에 같은 이름이 있으면 `(n)`을 붙인다. 공간 간 이동이면 소유권을 도착 공간 규칙으로 바꾼다.
+- `GET /drive/trash` 항목에는 `canPurge`(지운 사람이거나, 팀 공유 항목이고 팀 관리자)가 붙는다.
+- 심볼릭 링크는 목록에서 숨기고, 경로에 링크가 끼면 `400 DRIVE_PATH_INVALID`.
+
 ### 앱·배포
 
 앱은 작업본(`work`)과 공개본(`public`) 두 사본을 가진다. 제어 API는 사본별로 나뉜다.

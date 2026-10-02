@@ -273,7 +273,9 @@ erDiagram
 | created_at | timestamptz | 인덱스 (team_id, space, path) |
 
 "만든 사람" = 해당 path의 가장 이른 `create` 이벤트. 없으면 "기록 없음".
-⚠️ 샌드박스가 직접 쓴 파일은 API를 거치지 않으므로, 4단계에서 파일 감시(inotify) 또는 주기 스캔으로 `actor_kind=agent` 이벤트를 만들지 결정.
+샌드박스·에이전트가 직접 쓴 파일(4단계 결정 — **지연 조정**): API를 거치지 않으므로, api가 `list`·`meta` 때 팀 공유 공간에서 이벤트가 하나도 없는 파일에 `create`(`actor_kind=agent`), 마지막 이벤트 시각보다 mtime이 새로운 파일에 `update`(`actor_kind=agent`)를 만든다. 감시(inotify)는 쓰지 않는다(팀 컨테이너 밖에서 볼 수 없고 OpenClaw를 고치지 않음). 개인 공간은 에이전트가 쓰지 않으므로 조정하지 않는다.
+
+이동·이름 변경 때는 그 경로와 하위의 기존 이벤트 `path`도 새 경로로 바꾼다(기록이 파일을 따라감).
 
 #### `trash_items`
 

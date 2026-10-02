@@ -1,7 +1,8 @@
 import type { FastifyBaseLogger } from 'fastify';
 import { and, eq, lt, notExists, or, isNull, sql } from 'drizzle-orm';
 import { db } from './db/client.js';
-import { teamPresence, teams, usageSamples } from './db/schema.js';
+import { loginAttempts, teamPresence, teams, usageSamples } from './db/schema.js';
+import { purgeExpiredTrash } from './drive/routes.js';
 import { getSetting } from './settings.js';
 import { requestStop, setStatus } from './teams/runtime.js';
 
@@ -40,7 +41,16 @@ async function idleStop(log: FastifyBaseLogger) {
   await db.delete(usageSamples).where(lt(usageSamples.ts, sql`now() - interval '7 days'`));
 }
 
+async function daily(log: FastifyBaseLogger) {
+  const purged = await purgeExpiredTrash();
+  if (purged) log.info({ purged }, 'trash purged');
+  await db.delete(loginAttempts).where(lt(loginAttempts.createdAt, sql`now() - interval '30 days'`));
+}
+
 export function startWorkers(log: FastifyBaseLogger) {
+  const runDaily = () => daily(log).catch((err) => log.error({ err }, 'daily worker failed'));
+  setTimeout(runDaily, 30_000).unref();
+  setInterval(runDaily, 24 * 60 * 60 * 1000).unref();
   const tick = () => idleStop(log).catch((err) => log.error({ err }, 'idle stop worker failed'));
   const timer = setInterval(tick, 60_000);
   timer.unref();

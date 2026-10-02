@@ -1,4 +1,4 @@
-import { config } from './config.js';
+import { config, sandboxEnabled, TEAM_DRIVE_PATH, teamSharedDir } from './config.js';
 
 // openclaw.json seed (06-auth.md §6, spikes 01–04). Written once, before the first start, only if
 // the file is absent; later changes go through config.patch (stage 3 apply-config).
@@ -33,7 +33,35 @@ export function seedConfig(team: string, adminEmails: string[]) {
         },
       },
     },
-    tools: { sessions: { visibility: 'tree' } },
+    tools: {
+      sessions: { visibility: 'tree' },
+      // Without this, MCP tools vanish from sandboxed turns (spike 06).
+      ...(sandboxEnabled() ? { sandbox: { tools: { alsoAllow: ['bundle-mcp'] } } } : {}),
+    },
     plugins: { entries: { 'admin-http-rpc': { enabled: true } } },
+    ...(sandboxEnabled() ? { agents: { defaults: { sandbox: sandboxConfig(team) } } } : {}),
+  };
+}
+
+/** 05-urls-and-storage.md §5 sandbox values + the shared drive bind (host path as-is, docs/README.md 4단계). */
+export function sandboxConfig(team: string) {
+  return {
+    mode: 'all',
+    backend: 'docker',
+    scope: 'session',
+    workspaceAccess: 'rw',
+    docker: {
+      image: config.sandboxImage,
+      containerPrefix: `kacp-sbx-${team}-`,
+      network: 'none',
+      user: '1000:1000',
+      readOnlyRoot: true,
+      capDrop: ['ALL'],
+      pidsLimit: 256,
+      memory: '1g',
+      cpus: 1,
+      binds: [`${teamSharedDir(team)}:${TEAM_DRIVE_PATH}:rw`],
+      dangerouslyAllowExternalBindSources: true,
+    },
   };
 }

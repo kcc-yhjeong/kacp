@@ -18,6 +18,8 @@ export const config = {
   internalToken: required('INTERNAL_TOKEN'),
   /** 32 bytes, base64. AES-256-GCM for `*_enc` columns and the CSRF HMAC key derivation. */
   encryptionKey: Buffer.from(required('APP_ENCRYPTION_KEY'), 'base64'),
+  /** Data disk root (/data/teams/{team}/drive …). Locally the kacp-data volume. */
+  dataRoot: process.env.DATA_ROOT ?? '/data',
   orchestratorUrl: process.env.ORCHESTRATOR_URL ?? 'http://orchestrator:4000',
   logLevel: process.env.LOG_LEVEL ?? 'info',
 };

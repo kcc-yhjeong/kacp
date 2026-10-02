@@ -175,6 +175,30 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - 확인 중 고친 것: 관리자 시작 직후 유휴 정지(시작 시 `last_active_at` 갱신), 비활성 계정 로그인을 실패로 기록, `default: true` 마커 미사용(2026.9.7 레거시 — 기본 에이전트는 `main`).
 - 4단계 이후로 넘긴 것: 템플릿 스킬 업로드·기본 MCP 설치(6단계), A-05 MCP·앱 탭(5·6단계), VM용 compose 오버레이.
 
+## 4단계 통과 조건 (드라이브)
+
+목표: 데모 장면 3의 앞부분 — **결과물이 드라이브에 쌓인다.** 사원은 웹에서 내 드라이브·팀 공유를 쓰고, 팀 에이전트는 팀 공유 드라이브를 자기 폴더처럼 쓴다. 장소는 로컬, 샌드박스만 VM.
+
+범위 밖: platform-mcp 드라이브 도구(`drive_list`·`read`·`write`, 5단계 platform-mcp와 함께), 앱 실행(5단계).
+
+결정(문서 반영):
+- **파일 위치**: `/data/teams/{team}/drive/{shared|personal/u{uid}}`, 휴지통 `/data/teams/{team}/.trash/{id}`. 로컬은 named volume `kacp-data`(api·orchestrator가 `/data`로 마운트), VM은 bind `/data`.
+- **에이전트가 보는 곳**: 팀 공유 드라이브를 팀 컨테이너에 두 번 붙인다 — `/team-drive`(모든 에이전트 공통 경로)와 `main` 워크스페이스 안 `team-drive/`(기본 에이전트가 폴더로 바로 봄). 플랫폼 지시문("팀 드라이브·공유 드라이브·팀 공유 = `/team-drive`, 내 드라이브는 에이전트가 볼 수 없음")을 템플릿 에이전트 AGENTS.md 앞과 **기본 에이전트 `main`의 AGENTS.md 맨 위 표식 블록**(`<!-- KACP:BEGIN -->`…`<!-- KACP:END -->`, 기동마다 갱신, OpenClaw 기본 내용은 그대로)에 넣는다 — 브라우저 확인에서 `main`이 "팀 드라이브"를 못 알아들어 추가. 개인 드라이브는 붙이지 않는다(spike 05).
+- **샌드박스(VM만)**: 원본이 bind mount여야 샌드박스로 비춰진다(OpenClaw docker-backend 문서). 그래서 `STATE_MODE=bind`에서만 켠다 — `agents.defaults.sandbox`(`05` §5 값) + `docker.binds: ["/data/teams/{team}/drive/shared:/team-drive:rw"]` + `dangerouslyAllowExternalBindSources: true`, 팀별 sandbox socket-proxy·네트워크. 로컬(volume)은 샌드박스 끔.
+- **소유권**: 팀 공유는 `1000:{teams.linux_gid}`, 폴더 `2770`·파일 `0660`(OpenClaw uid 1000이 쓰고 api(root)가 읽음). 개인은 `{users.linux_uid}` `0700`.
+- **⚠️ 해소 — 샌드박스·에이전트가 직접 쓴 파일 기록**: 감시(inotify) 대신 **지연 조정**. api가 `list`·`meta` 때 팀 공유 폴더에서 이벤트가 없는 파일에 `create`(actor `agent`), 마지막 이벤트보다 mtime이 새로운 파일에 `update`(actor `agent`)를 만든다. API를 거친 변경은 그 자리에서 `user` 이벤트로 남는다.
+- **경로 안전**: `..`·NUL·절대 경로 거부, 모든 접근은 `realpath`가 공간 루트 안일 때만, 심볼릭 링크는 따라가지 않는다(에이전트가 만든 링크로 api 컨테이너 파일을 읽는 것 방지).
+- **이동·이름 변경**: 그 경로(와 하위)의 기존 `drive_events.path`도 새 경로로 옮겨 "만든 사람"·변경 기록이 파일을 따라간다.
+
+- [ ] 문서: 위 결정을 `03`(drive_events 조정 규칙), `05`(§5 마운트·소유권), `04`(드라이브 API 세부)에 반영, ⚠️ 해소
+- [ ] api: 경로 검사·realpath 가드, `list`·`search`·`meta`·`download`(파일 스트리밍·폴더 zip, 미리보기 inline)·`download-zip`·`usage`(1분 캐시)·`upload`(multipart 스트리밍, 파일당 500MB, 같은 이름 `(1)`, 한도 초과 413)·`folder`·`rename`·`move`·`copy`(공간 간 허용)·`trash`·휴지통 목록·복원(충돌 시 이름 변경)·영구 삭제·비우기(권한 규칙), `drive_events`·`trash_items`, 휴지통 정리 워커(보관 일수)
+- [ ] api 권한: `space=me`는 본인만(팀 관리자·플랫폼 관리자도 불가), 휴지통 영구 삭제는 지운 사람·팀 관리자(팀 공유), 팀 공유는 멤버
+- [ ] orchestrator: 프로비저닝 때 드라이브 폴더·소유권, 팀 컨테이너에 팀 공유 드라이브 두 곳 마운트(volume subpath / bind), 설정 해시에 마운트 포함(다음 기동 때 재생성), 템플릿 지시문에 `/team-drive`
+- [ ] web: U-04(트리·목록/격자·브레드크럼·검색·업로드 진행 패널·드래그 앤 드롭·새 폴더·여러 개 선택 다운로드·이동·복사·휴지통·행 메뉴·미리보기), U-05(상세·변경 기록·에이전트 배지), U-06(휴지통·복원·영구 삭제·비우기), 헤더 "드라이브" 연결
+- [ ] 테스트: 경로 검사(`..`, 심볼릭 링크 탈출, 공간 밖), 이름 충돌 `(1)`, 지연 조정 판정, 휴지통 권한
+- [ ] 데모(브라우저, 사용자 확인): 업로드(여러 파일·폴더) → 미리보기 → 이름 변경·이동(공간 간) → 셸에서 에이전트에게 "team-drive에 보고서.md 만들어줘" → 드라이브에 "에이전트 · 팀" 배지로 보임 → 휴지통 → 복원 → 영구 삭제, 다른 팀원이 내 드라이브를 못 봄, 한도 초과 안내
+- [ ] VM(사용자가 VM을 켠 뒤): VM compose 오버레이(bind `/data`, TLS, `STATE_MODE=bind`) + 샌드박스 켜고 에이전트 명령이 샌드박스에서 돌며 `/team-drive`에 쓴 파일이 드라이브에 보임
+
 ## 다음 단계와의 연결
 
 | 단계 | 이 문서 세트에서 쓰는 부분 |

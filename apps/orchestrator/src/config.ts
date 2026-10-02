@@ -29,6 +29,11 @@ export const config = {
   edgeSubnetPrefix: process.env.EDGE_SUBNET_PREFIX ?? '172.30.',
   /** Image that runs the Gateway sidecar (this orchestrator image, `node dist/gwagent.js`). */
   gwagentImage: process.env.GWAGENT_IMAGE ?? 'kacp/orchestrator:dev',
+  /** Volume mode: the named volume that holds /data (drive). Bind mode uses dataRoot host paths. */
+  dataVolume: process.env.DATA_VOLUME ?? 'kacp-data',
+  /** Bind mode only: sandbox image and the per-team sandbox socket proxy image (05 §6). */
+  sandboxImage: process.env.SANDBOX_IMAGE ?? 'openclaw-sandbox:bookworm-slim',
+  socketProxyImage: process.env.SOCKET_PROXY_IMAGE ?? 'tecnativa/docker-socket-proxy:v0.5.0',
 };
 
 export const GATEWAY_PORT = 18789;
@@ -41,3 +46,13 @@ export const teamContainer = (team: string) => `kacp-team-${team}`;
 export const gwagentContainer = (team: string) => `kacp-gwagent-${team}`;
 export const teamStateVolume = (team: string) => `kacp-team-${team}-state`;
 export const teamStateHostDir = (team: string) => `${config.dataRoot}/teams/${team}/openclaw`;
+/** Team shared drive, relative to the data root (volume subpath) and absolute (bind / inside this container). */
+export const teamSharedRel = (team: string) => `teams/${team}/drive/shared`;
+export const teamSharedDir = (team: string) => `${config.dataRoot}/${teamSharedRel(team)}`;
+/** Where agents see the shared drive (docs/README.md 4단계). */
+export const TEAM_DRIVE_PATH = '/team-drive';
+export const MAIN_WORKSPACE_DRIVE = `${'/home/node/.openclaw'}/workspace/team-drive`;
+export const sbxProxyContainer = (team: string) => `kacp-sbx-proxy-${team}`;
+export const sbxNetwork = (team: string) => `kacp-sbx-${team}`;
+/** Sandboxes need bind-mounted sources (OpenClaw docker-backend), so only the VM (bind) mode enables them. */
+export const sandboxEnabled = () => config.stateMode === 'bind';

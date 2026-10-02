@@ -1,12 +1,13 @@
-import { chown, mkdir, rename, stat, writeFile } from 'node:fs/promises';
+import { chmod, chown, mkdir, rename, stat, writeFile } from 'node:fs/promises';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import {
-  config, GATEWAY_PORT, GWAGENT_PORT, gwagentContainer, OPENCLAW_UID, STATE_DIR, teamContainer, teamStateHostDir, teamStateVolume,
+  config, GATEWAY_PORT, GWAGENT_PORT, gwagentContainer, MAIN_WORKSPACE_DRIVE, OPENCLAW_UID, sandboxEnabled, sbxNetwork,
+  sbxProxyContainer, STATE_DIR, TEAM_DRIVE_PATH, teamContainer, teamSharedDir, teamSharedRel, teamStateHostDir, teamStateVolume,
 } from './config.js';
 import { docker, DockerError } from './docker.js';
 import { notifyProvision, notifyTeamStatus } from './events.js';
 import { seedConfig } from './openclaw-config.js';
-import { agentsMd, computePatch, workspaceFor, type DesiredConfig } from './apply-config.js';
+import { agentsMd, computePatch, withPlatformBlock, workspaceFor, type DesiredConfig } from './apply-config.js';
 import { tar, tarFile } from './tar.js';
 
 // Team container lifecycle (04-api.md §3: provision / ensure-running / stop / restart / apply-config /
@@ -18,6 +19,8 @@ export interface TeamRuntimeSpec {
   resourceLimits: { cpu: number; memoryMb: number; diskGb: number };
   /** Extra env (model provider keys from A-10). */
   env: Record<string, string>;
+  /** Group of the shared drive (teams.linux_gid). */
+  linuxGid: number;
 }
 
 const START_TIMEOUT_MS = 120_000;
@@ -49,9 +52,26 @@ function teamEnv(spec: TeamRuntimeSpec): string[] {
   ];
 }
 
+/** Bumped when the mount layout changes, so stopped containers are recreated with it. */
+const LAYOUT_VERSION = 'drive-v1';
+
+function sandboxEnv(team: string): string[] {
+  return sandboxEnabled() ? [`DOCKER_HOST=tcp://${sbxProxyContainer(team)}:2375`] : [];
+}
+
 /** Changes that need a new container (env, image). Limits are applied in place with docker update. */
-const configHash = (spec: TeamRuntimeSpec) =>
-  createHash('sha256').update(JSON.stringify([config.openclawImage, teamEnv(spec).sort()])).digest('hex').slice(0, 16);
+const configHash = (team: string, spec: TeamRuntimeSpec) =>
+  createHash('sha256')
+    .update(JSON.stringify([config.openclawImage, LAYOUT_VERSION, sandboxEnabled(), teamEnv(spec).sort(), sandboxEnv(team)]))
+    .digest('hex').slice(0, 16);
+
+/** The shared drive is mounted twice: /team-drive for every agent, workspace/team-drive for `main`. */
+function driveMounts(team: string) {
+  const source = config.stateMode === 'bind'
+    ? { Type: 'bind', Source: teamSharedDir(team) }
+    : { Type: 'volume', Source: config.dataVolume, VolumeOptions: { Subpath: teamSharedRel(team) } };
+  return [TEAM_DRIVE_PATH, MAIN_WORKSPACE_DRIVE].map((Target) => ({ ...source, Target }));
+}
 
 const memory = (limits: TeamRuntimeSpec['resourceLimits']) => limits.memoryMb * 1024 * 1024;
 
@@ -62,12 +82,12 @@ function containerSpec(team: string, spec: TeamRuntimeSpec) {
     : { Type: 'volume', Source: teamStateVolume(team), Target: STATE_DIR };
   return {
     Image: config.openclawImage,
-    Env: teamEnv(spec),
+    Env: [...teamEnv(spec), ...sandboxEnv(team)],
     Labels: {
       'kacp.kind': 'team',
       'kacp.team': team,
       'kacp.id': randomUUID(),
-      'kacp.config-hash': configHash(spec),
+      'kacp.config-hash': configHash(team, spec),
       // Dynamic route (apps/proxy/LABELS.md). No tls labels: the wildcard cert lives on the entrypoint (spike 07).
       'traefik.enable': 'true',
       'traefik.docker.network': config.edgeNetwork,
@@ -88,7 +108,7 @@ function containerSpec(team: string, spec: TeamRuntimeSpec) {
       Retries: 3,
     },
     HostConfig: {
-      Mounts: [stateMount],
+      Mounts: [stateMount, ...driveMounts(team)],
       Memory: memory(spec.resourceLimits),
       MemorySwap: memory(spec.resourceLimits),
       NanoCpus: Math.round(spec.resourceLimits.cpu * 1e9),
@@ -123,16 +143,21 @@ async function seedVolume(team: string, spec: TeamRuntimeSpec) {
  * A stopped container whose env/image changed is recreated (safe: no running Gateway, no lease).
  */
 async function ensureCreated(team: string, spec: TeamRuntimeSpec, onStage?: (s: 'container') => Promise<void>) {
+  await ensureDrive(team, spec);
   if (config.stateMode === 'bind') await seedBind(team, spec);
   const name = teamContainer(team);
   let existing = await docker.inspect(name);
-  if (existing && existing.State.Status !== 'running' && existing.Config.Labels['kacp.config-hash'] !== configHash(spec)) {
+  if (existing && existing.State.Status !== 'running' && existing.Config.Labels['kacp.config-hash'] !== configHash(team, spec)) {
     await docker.remove(name);
     existing = null;
   }
   if (!existing) {
     await onStage?.('container');
     await docker.create(name, containerSpec(team, spec));
+    if (sandboxEnabled()) {
+      await docker.networkEnsure(sbxNetwork(team), true);
+      await docker.networkConnect(sbxNetwork(team), name);
+    }
   }
   if (config.stateMode === 'volume') await seedVolume(team, spec);
 }
@@ -171,6 +196,52 @@ async function startAndWait(team: string) {
     }
     throw new Error(result === 'lease' ? '이전 실행이 아직 정리되지 않았어요.' : result);
   }
+}
+
+// ── drive (docs/README.md 4단계) ──
+
+/** /data/teams/{team}/drive/{shared,personal} and .trash. Shared = 1000:{gid} 2770 so OpenClaw can write. */
+async function ensureDrive(team: string, spec: TeamRuntimeSpec) {
+  const base = `${config.dataRoot}/teams/${team}`;
+  const shared = teamSharedDir(team);
+  await mkdir(shared, { recursive: true });
+  await mkdir(`${base}/drive/personal`, { recursive: true });
+  await mkdir(`${base}/.trash`, { recursive: true, mode: 0o700 });
+  await chown(shared, OPENCLAW_UID, spec.linuxGid).catch(() => undefined);
+  await chmod(shared, 0o2770).catch(() => undefined);
+}
+
+// ── sandbox socket proxy (bind/VM mode only — CLAUDE.md exception, spike 06) ──
+
+async function startSandboxProxy(team: string) {
+  if (!sandboxEnabled()) return;
+  const name = sbxProxyContainer(team);
+  await docker.networkEnsure(sbxNetwork(team), true);
+  if (!(await docker.inspect(name))) {
+    await docker.create(name, {
+      Image: config.socketProxyImage,
+      Env: ['CONTAINERS=1', 'POST=1', 'EXEC=1', 'IMAGES=1', 'INFO=1', 'VERSION=1', 'ALLOW_START=1', 'ALLOW_STOP=1', 'ALLOW_RESTARTS=1'],
+      Labels: { 'kacp.kind': 'sbx-proxy', 'kacp.team': team },
+      HostConfig: {
+        Binds: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
+        NetworkMode: sbxNetwork(team),
+        RestartPolicy: { Name: 'no' },
+        Memory: 64 * 1024 * 1024,
+      },
+    });
+  }
+  await docker.start(name);
+}
+
+/** Stops the proxy and removes this team's sandboxes (OpenClaw label + kacp-sbx-{team}- prefix, 05 §6). */
+async function stopSandboxes(team: string) {
+  if (!sandboxEnabled()) return;
+  const prefix = `/kacp-sbx-${team}-`;
+  for (const c of await docker.listByLabel('openclaw.sandbox=1')) {
+    const n = c.Names.find((x) => x.startsWith(prefix));
+    if (n) await docker.remove(n.slice(1)).catch(() => undefined);
+  }
+  await docker.stop(sbxProxyContainer(team), 5);
 }
 
 // ── sidecar ──
@@ -234,6 +305,7 @@ const describe = (err: unknown) =>
 
 async function bringUp(team: string, spec: TeamRuntimeSpec) {
   await ensureCreated(team, spec);
+  await startSandboxProxy(team);
   await startAndWait(team);
   await startSidecar(team, spec);
   watched.add(team);
@@ -269,6 +341,7 @@ async function stopContainers(team: string) {
   watched.delete(team);
   await docker.stop(gwagentContainer(team), 5);
   await docker.stop(teamContainer(team));
+  await stopSandboxes(team);
 }
 
 export function stop(team: string) {
@@ -302,6 +375,17 @@ export function applyConfig(team: string, desired: DesiredConfig) {
   return serial(team, async () => {
     const c = await docker.inspect(teamContainer(team));
     if (c?.State.Status !== 'running') throw new Error('팀 에이전트가 꺼져 있어요.');
+
+    // The default agent `main` keeps OpenClaw's own AGENTS.md; only the platform block on top is ours.
+    const mainMd = `${STATE_DIR}/workspace/AGENTS.md`;
+    const current = await docker.readFile(teamContainer(team), mainMd);
+    const next = withPlatformBlock(current);
+    if (next !== current) {
+      await docker.putArchive(teamContainer(team), STATE_DIR, tar([
+        { name: 'workspace', uid: OPENCLAW_UID, gid: OPENCLAW_UID, mode: 0o700 },
+        { name: 'workspace/AGENTS.md', content: next, uid: OPENCLAW_UID, gid: OPENCLAW_UID, mode: 0o600 },
+      ]));
+    }
 
     if (desired.agents.length) {
       const entries = desired.agents.flatMap((a) => {
@@ -353,6 +437,10 @@ export function removeTeam(team: string) {
     await stopContainers(team);
     await docker.remove(gwagentContainer(team));
     await docker.remove(teamContainer(team));
+    if (sandboxEnabled()) {
+      await docker.remove(sbxProxyContainer(team));
+      await docker.networkRemove(sbxNetwork(team));
+    }
     if (config.stateMode === 'bind') {
       const src = `${config.dataRoot}/teams/${team}`;
       const dst = `${config.dataRoot}/backups/deleted-teams/${team}-${new Date().toISOString().slice(0, 10)}`;

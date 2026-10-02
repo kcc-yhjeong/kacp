@@ -18,6 +18,7 @@ import { templateRoutes } from './admin/templates.js';
 import { opsRoutes } from './admin/ops.js';
 import { orgRoutes } from './org/routes.js';
 import { importRoutes } from './import/routes.js';
+import { driveRoutes } from './drive/routes.js';
 
 // CORS (06-auth.md §3): credentials only for the app origin and existing team hosts.
 // App hosts (`slug--team`, public names) never get CORS, so user-built apps cannot call the API as the user.
@@ -41,7 +42,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     bodyLimit: 1024 * 1024,
   });
   await app.register(cookie);
-  await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
+  // Per-route limits: CSV import 5 MB (req.file), drive upload 500 MB per file (req.parts).
+  await app.register(multipart, { limits: { fileSize: 500 * 1024 * 1024, files: 1000 } });
   // Action endpoints (session, heartbeat, logout) are POSTs without a body; accept an empty JSON body.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
     if (body === '') return done(null, {});
@@ -100,5 +102,6 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(opsRoutes);
   await app.register(orgRoutes);
   await app.register(importRoutes);
+  await app.register(driveRoutes);
   return app;
 }

@@ -17,6 +17,7 @@ const Spec = z.object({
   adminEmails: z.array(z.string()),
   resourceLimits: Limits,
   env: z.record(z.string().regex(/^[A-Z][A-Z0-9_]*$/), z.string()).default({}),
+  linuxGid: z.number().int().positive(),
 });
 const Agent = z.object({
   id: z.string().regex(/^kacp-[a-z0-9]+$/),

@@ -1,0 +1,46 @@
+# VM overlay (GCP n4-standard-8, /data data disk, https, *.kacp.cloud).
+#   docker compose -f docker-compose.yml -f docker-compose.vm.yml --env-file .env.vm --profile build build
+#   docker compose -f docker-compose.yml -f docker-compose.vm.yml --env-file .env.vm up -d
+# Differences from local: bind mounts under /data (sandboxes need bind sources), TLS on websecure,
+# STATE_MODE=bind (sandbox on), socket proxy may create the per-team sandbox networks.
+services:
+  traefik:
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      GCE_PROJECT: ${GCE_PROJECT}
+      HSTS_SECONDS: "31536000"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../../apps/proxy/traefik.vm.yml:/etc/traefik/traefik.yml:ro
+      - /data/traefik:/data
+
+  docker-socket-proxy:
+    environment:
+      NETWORKS: 1   # per-team sandbox network kacp-sbx-{team} (create/connect/remove)
+
+  postgres:
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+
+  api:
+    environment:
+      PUBLIC_SCHEME: https
+    volumes:
+      - /data:/data
+
+  orchestrator:
+    environment:
+      PUBLIC_SCHEME: https
+      STATE_MODE: bind
+      DATA_ROOT: /data
+    volumes:
+      - /data:/data
+
+  sandbox-image:
+    profiles: [build]
+    build:
+      context: ../openclaw-image
+      dockerfile: Dockerfile.sandbox
+    image: openclaw-sandbox:bookworm-slim
