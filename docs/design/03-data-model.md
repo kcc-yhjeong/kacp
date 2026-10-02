@@ -173,6 +173,7 @@ erDiagram
 | name | text unique | 서브도메인. `names`에 `team`으로 등록 |
 | display_name | text | 화면 표시 이름 |
 | container_status | text | `stopped` \| `starting` \| `running` \| `stopping` \| `error` |
+| provision_stage | text | `name` \| `storage` \| `container` \| `default_mcp` \| `done` \| `failed` — A-04 진행 표시(`team.provision` 이벤트로 갱신, 3단계 추가) |
 | container_status_at | timestamptz | 상태가 마지막으로 바뀐 시각(`TeamStatus.since`, 기동 지연 감지) — 2단계 추가 |
 | container_error | text | 마지막 오류 요약 |
 | container_id | text | Docker 컨테이너 ID(참고용) |
@@ -229,7 +230,7 @@ erDiagram
 
 | `spec` | OpenClaw (2026.9.7) | 반영 |
 |---|---|---|
-| (템플릿) | `agents.entries.<agentId>` — agentId는 템플릿 기반 안정 슬러그 | `config.patch` 또는 `agents.create/update` |
+| (템플릿) | `agents.entries.<agentId>` — agentId는 `kacp-` + 템플릿 id 끝 12자. `workspace`는 `<stateDir>/workspace-<agentId>`로 명시 | `config.patch`(3단계 구현). 기본 에이전트는 `main` 그대로 — 2026.9.7에서 `default: true`는 레거시 표시라 doctor가 `talk.agentId` 등 명시 소유자로 바꾼다. 템플릿 에이전트는 Control UI에서 골라 쓴다 |
 | name, icon | `agents.entries.<id>.name`, `.identity.emoji` | config.patch |
 | description | 없음 | DB에만 |
 | `model.id` | `agents.entries.<id>.model` (`"provider/model"`) | config.patch. **provider 접두사 포함**으로 저장 |
@@ -447,7 +448,7 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 |---|---|---|
 | id | bigserial PK | |
 | actor_id | uuid | null = 시스템 |
-| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `settings.update` |
+| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `settings.update` `template.create` `template.delete` `user.update` `department.unarchive` |
 | target_type | text | `user` `department` `team` `app` `mcp_package` `mcp_version` `template` `settings` `import` |
 | target_id | text | |
 | team_id | uuid | 관련 팀(필터용) |

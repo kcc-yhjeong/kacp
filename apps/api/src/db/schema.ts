@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
-  bigserial, boolean, check, customType, index, inet, integer, jsonb, pgTable, primaryKey, text,
+  bigint, bigserial, doublePrecision, boolean, check, customType, index, inet, integer, jsonb, pgTable, primaryKey, text,
   timestamp, uniqueIndex, uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -96,6 +96,7 @@ export const teams = pgTable('teams', {
   name: text('name').notNull().unique(),
   displayName: text('display_name').notNull(),
   containerStatus: text('container_status').notNull().default('stopped'),
+  provisionStage: text('provision_stage').notNull().default('name'),
   containerStatusAt: timestamp('container_status_at', { withTimezone: true }).notNull().defaultNow(),
   containerError: text('container_error'),
   containerId: text('container_id'),
@@ -110,6 +111,8 @@ export const teams = pgTable('teams', {
 }, (t) => [
   check('teams_container_status_check',
     sql`${t.containerStatus} in ('stopped', 'starting', 'running', 'stopping', 'error')`),
+  check('teams_provision_stage_check',
+    sql`${t.provisionStage} in ('name', 'storage', 'container', 'default_mcp', 'done', 'failed')`),
 ]);
 
 export const memberships = pgTable('memberships', {
@@ -150,3 +153,58 @@ export const platformSettings = pgTable('platform_settings', {
   updatedBy: uuid('updated_by'),
   updatedAt: updatedAt(),
 });
+
+export const importJobs = pgTable('import_jobs', {
+  id: uuid('id').primaryKey(),
+  kind: text('kind').notNull(),
+  status: text('status').notNull().default('previewed'),
+  fileName: text('file_name').notNull(),
+  summary: jsonb('summary').notNull(),
+  rows: jsonb('rows').notNull(),
+  /** Fingerprint of the rows the preview was computed against; apply refuses if it changed (409). */
+  baseline: text('baseline').notNull(),
+  createdBy: uuid('created_by'),
+  appliedAt: timestamp('applied_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [
+  check('import_jobs_kind_check', sql`${t.kind} in ('departments', 'users')`),
+  check('import_jobs_status_check', sql`${t.status} in ('previewed', 'applied', 'cancelled')`),
+]);
+
+export const agentTemplates = pgTable('agent_templates', {
+  id: uuid('id').primaryKey(),
+  name: text('name').notNull(),
+  icon: text('icon').notNull().default('🤖'),
+  description: text('description').notNull().default(''),
+  version: integer('version').notNull().default(1),
+  spec: jsonb('spec').notNull(),
+  createdBy: uuid('created_by'),
+  updatedBy: uuid('updated_by'),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const teamAgents = pgTable('team_agents', {
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  templateId: uuid('template_id').notNull().references(() => agentTemplates.id),
+  appliedVersion: integer('applied_version'),
+  applyStatus: text('apply_status').notNull().default('pending'),
+  applyError: text('apply_error'),
+  appliedAt: timestamp('applied_at', { withTimezone: true }),
+  assignedBy: uuid('assigned_by'),
+  createdAt: createdAt(),
+}, (t) => [
+  primaryKey({ columns: [t.teamId, t.templateId] }),
+  check('team_agents_apply_status_check', sql`${t.applyStatus} in ('pending', 'applied', 'failed')`),
+]);
+
+export const usageSamples = pgTable('usage_samples', {
+  ts: timestamp('ts', { withTimezone: true }).notNull().defaultNow(),
+  targetType: text('target_type').notNull(),
+  targetId: text('target_id').notNull(),
+  cpuPct: doublePrecision('cpu_pct').notNull(),
+  memBytes: bigint('mem_bytes', { mode: 'number' }).notNull(),
+  memLimitBytes: bigint('mem_limit_bytes', { mode: 'number' }),
+  diskBytes: bigint('disk_bytes', { mode: 'number' }),
+  diskLimitBytes: bigint('disk_limit_bytes', { mode: 'number' }),
+}, (t) => [index('usage_samples_target_ts').on(t.targetType, t.targetId, t.ts)]);

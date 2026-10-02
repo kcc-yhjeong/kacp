@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Outlet } from '@tanstack/react-router';
 import { ForbiddenPage, NotFoundPage } from '@/components/message-page';
 import { currentHost } from '@/lib/host';
 import { HomePage } from '@/pages/home';
@@ -56,7 +56,59 @@ const notFoundRoute = createRoute({
 
 const profileRoute = createRoute({ getParentRoute: () => rootRoute, path: '/me', component: ProfilePage });
 
+// ── /admin (A-*). Every screen is its own lazy chunk so the employee shell does not load admin code.
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
+  component: lazyRouteComponent(() => import('@/components/admin/admin-layout'), 'AdminLayout'),
+});
+
+const adminChild = <TPath extends string>(path: TPath, load: () => Promise<Record<string, unknown>>, name: string) =>
+  createRoute({ getParentRoute: () => adminRoute, path, component: lazyRouteComponent(load as never, name as never) });
+
+const adminDashboardRoute = adminChild('/', () => import('@/pages/admin/dashboard'), 'DashboardPage');
+const adminOrgRoute = adminChild('/org', () => import('@/pages/admin/org'), 'OrgPage');
+const adminImportRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/import',
+  validateSearch: (search: Record<string, unknown>): { kind?: 'departments' | 'users' } =>
+    search.kind === 'users' || search.kind === 'departments' ? { kind: search.kind } : {},
+  component: lazyRouteComponent(() => import('@/pages/admin/import'), 'ImportPage'),
+});
+const adminUsersRoute = adminChild('/users', () => import('@/pages/admin/users'), 'UsersPage');
+const adminUserNewRoute = adminChild('/users/new', () => import('@/pages/admin/user-new'), 'UserNewPage');
+const adminUserRoute = adminChild('/users/$userId', () => import('@/pages/admin/user-detail'), 'UserDetailPage');
+const adminTeamsRoute = adminChild('/teams', () => import('@/pages/admin/teams'), 'TeamsPage');
+const adminTeamRoute = adminChild('/teams/$team', () => import('@/pages/admin/team-detail'), 'TeamDetailPage');
+const adminAgentsRoute = adminChild('/agents', () => import('@/pages/admin/agents'), 'AgentsPage');
+const adminAgentNewRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/agents/new',
+  validateSearch: (search: Record<string, unknown>): { from?: string } =>
+    typeof search.from === 'string' ? { from: search.from } : {},
+  component: lazyRouteComponent(() => import('@/pages/admin/agent-editor'), 'AgentNewPage'),
+});
+const adminAgentRoute = adminChild('/agents/$templateId', () => import('@/pages/admin/agent-editor'), 'AgentEditPage');
+const adminSettingsRoute = adminChild('/settings', () => import('@/pages/admin/settings'), 'SettingsPage');
+const adminAuditRoute = adminChild('/audit', () => import('@/pages/admin/audit'), 'AuditPage');
+
 const routeTree = rootRoute.addChildren([
+  adminRoute.addChildren([
+    adminDashboardRoute,
+    adminOrgRoute,
+    adminImportRoute,
+    adminUsersRoute,
+    adminUserNewRoute,
+    adminUserRoute,
+    adminTeamsRoute,
+    adminTeamRoute,
+    adminAgentsRoute,
+    adminAgentNewRoute,
+    adminAgentRoute,
+    adminSettingsRoute,
+    adminAuditRoute,
+  ]),
   homeRoute,
   loginRoute,
   passwordSetupRoute,

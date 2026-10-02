@@ -1,19 +1,23 @@
-import { chown, mkdir, stat, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { chown, mkdir, rename, stat, writeFile } from 'node:fs/promises';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
 import {
-  config, GATEWAY_PORT, OPENCLAW_UID, STATE_DIR, teamContainer, teamStateHostDir, teamStateVolume,
+  config, GATEWAY_PORT, GWAGENT_PORT, gwagentContainer, OPENCLAW_UID, STATE_DIR, teamContainer, teamStateHostDir, teamStateVolume,
 } from './config.js';
 import { docker, DockerError } from './docker.js';
-import { notifyTeamStatus } from './events.js';
+import { notifyProvision, notifyTeamStatus } from './events.js';
 import { seedConfig } from './openclaw-config.js';
-import { tarFile } from './tar.js';
+import { agentsMd, computePatch, workspaceFor, type DesiredConfig } from './apply-config.js';
+import { tar, tarFile } from './tar.js';
 
-// Team container lifecycle (04-api.md §3 provision / ensure-running / stop, spike 06).
+// Team container lifecycle (04-api.md §3: provision / ensure-running / stop / restart / apply-config /
+// resources / delete, spike 06) plus the Gateway sidecar kacp-gwagent-{team} (spike 04).
 
 export interface TeamRuntimeSpec {
   gatewayPassword: string;
   adminEmails: string[];
   resourceLimits: { cpu: number; memoryMb: number; diskGb: number };
+  /** Extra env (model provider keys from A-10). */
+  env: Record<string, string>;
 }
 
 const START_TIMEOUT_MS = 120_000;
@@ -32,22 +36,38 @@ function serial<T>(team: string, op: () => Promise<T>): Promise<T> {
   return next;
 }
 
+/** Per-team sidecar token: derived, never stored, useless for other teams (06-auth.md §6). */
+const gwagentToken = (team: string) => createHmac('sha256', config.internalToken).update(`gwagent:${team}`).digest('hex');
+
+function teamEnv(spec: TeamRuntimeSpec): string[] {
+  const passthrough = config.teamEnvPassthrough.filter((k) => process.env[k] && !(k in spec.env))
+    .map((k) => `${k}=${process.env[k]}`);
+  return [
+    `OPENCLAW_GATEWAY_PASSWORD=${spec.gatewayPassword}`,
+    ...Object.entries(spec.env).map(([k, v]) => `${k}=${v}`),
+    ...passthrough,
+  ];
+}
+
+/** Changes that need a new container (env, image). Limits are applied in place with docker update. */
+const configHash = (spec: TeamRuntimeSpec) =>
+  createHash('sha256').update(JSON.stringify([config.openclawImage, teamEnv(spec).sort()])).digest('hex').slice(0, 16);
+
+const memory = (limits: TeamRuntimeSpec['resourceLimits']) => limits.memoryMb * 1024 * 1024;
+
 function containerSpec(team: string, spec: TeamRuntimeSpec) {
-  const name = teamContainer(team);
   const router = `team-claw-${team}`;
   const stateMount = config.stateMode === 'bind'
     ? { Type: 'bind', Source: teamStateHostDir(team), Target: STATE_DIR }
     : { Type: 'volume', Source: teamStateVolume(team), Target: STATE_DIR };
-  const passthrough = config.teamEnvPassthrough
-    .filter((k) => process.env[k])
-    .map((k) => `${k}=${process.env[k]}`);
   return {
     Image: config.openclawImage,
-    Env: [`OPENCLAW_GATEWAY_PASSWORD=${spec.gatewayPassword}`, ...passthrough],
+    Env: teamEnv(spec),
     Labels: {
       'kacp.kind': 'team',
       'kacp.team': team,
       'kacp.id': randomUUID(),
+      'kacp.config-hash': configHash(spec),
       // Dynamic route (apps/proxy/LABELS.md). No tls labels: the wildcard cert lives on the entrypoint (spike 07).
       'traefik.enable': 'true',
       'traefik.docker.network': config.edgeNetwork,
@@ -69,7 +89,8 @@ function containerSpec(team: string, spec: TeamRuntimeSpec) {
     },
     HostConfig: {
       Mounts: [stateMount],
-      Memory: spec.resourceLimits.memoryMb * 1024 * 1024,
+      Memory: memory(spec.resourceLimits),
+      MemorySwap: memory(spec.resourceLimits),
       NanoCpus: Math.round(spec.resourceLimits.cpu * 1e9),
       RestartPolicy: { Name: 'no' },
       // No published ports: the Gateway is reachable only through Traefik on kacp-edge.
@@ -84,8 +105,7 @@ async function seedBind(team: string, spec: TeamRuntimeSpec) {
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await chown(dir, OPENCLAW_UID, OPENCLAW_UID);
   const file = `${dir}/openclaw.json`;
-  const exists = await stat(file).then(() => true, () => false);
-  if (exists) return;
+  if (await stat(file).then(() => true, () => false)) return;
   await writeFile(file, JSON.stringify(seedConfig(team, spec.adminEmails), null, 2), { mode: 0o600 });
   await chown(file, OPENCLAW_UID, OPENCLAW_UID);
 }
@@ -95,16 +115,24 @@ async function seedVolume(team: string, spec: TeamRuntimeSpec) {
   const name = teamContainer(team);
   if (await docker.fileExists(name, `${STATE_DIR}/openclaw.json`)) return;
   const content = JSON.stringify(seedConfig(team, spec.adminEmails), null, 2);
-  await docker.putArchive(name, STATE_DIR, tarFile({
-    name: 'openclaw.json', content, mode: 0o600, uid: OPENCLAW_UID, gid: OPENCLAW_UID,
-  }));
+  await docker.putArchive(name, STATE_DIR, tarFile({ name: 'openclaw.json', content, uid: OPENCLAW_UID, gid: OPENCLAW_UID }));
 }
 
-/** Creates the state and the (stopped) container if missing. Never rewrites an existing openclaw.json. */
-async function ensureCreated(team: string, spec: TeamRuntimeSpec) {
+/**
+ * Creates the state and the (stopped) container if missing. Never rewrites an existing openclaw.json.
+ * A stopped container whose env/image changed is recreated (safe: no running Gateway, no lease).
+ */
+async function ensureCreated(team: string, spec: TeamRuntimeSpec, onStage?: (s: 'container') => Promise<void>) {
   if (config.stateMode === 'bind') await seedBind(team, spec);
-  if (!(await docker.inspect(teamContainer(team)))) {
-    await docker.create(teamContainer(team), containerSpec(team, spec));
+  const name = teamContainer(team);
+  let existing = await docker.inspect(name);
+  if (existing && existing.State.Status !== 'running' && existing.Config.Labels['kacp.config-hash'] !== configHash(spec)) {
+    await docker.remove(name);
+    existing = null;
+  }
+  if (!existing) {
+    await onStage?.('container');
+    await docker.create(name, containerSpec(team, spec));
   }
   if (config.stateMode === 'volume') await seedVolume(team, spec);
 }
@@ -145,32 +173,108 @@ async function startAndWait(team: string) {
   }
 }
 
+// ── sidecar ──
+
+/** (Re)creates the sidecar. It shares the team container's network namespace, so it must be
+ *  recreated whenever the team container starts (a new namespace). It holds no state. */
+async function startSidecar(team: string, spec: TeamRuntimeSpec) {
+  const name = gwagentContainer(team);
+  await docker.remove(name);
+  await docker.create(name, {
+    Image: config.gwagentImage,
+    Cmd: ['node', 'dist/gwagent.js'],
+    Env: [
+      `GWAGENT_PORT=${GWAGENT_PORT}`,
+      `GWAGENT_TOKEN=${gwagentToken(team)}`,
+      `OPENCLAW_GATEWAY_PASSWORD=${spec.gatewayPassword}`,
+    ],
+    Labels: { 'kacp.kind': 'gwagent', 'kacp.team': team },
+    HostConfig: {
+      NetworkMode: `container:${teamContainer(team)}`,
+      Memory: 64 * 1024 * 1024,
+      MemorySwap: 64 * 1024 * 1024,
+      NanoCpus: 0.25e9,
+      RestartPolicy: { Name: 'no' },
+      ReadonlyRootfs: true,
+    },
+  });
+  await docker.start(name);
+}
+
+/** Calls admin-http-rpc through the sidecar (the only path that may use the Gateway password). */
+export async function gatewayRpc(team: string, method: string, params: unknown = {}) {
+  // The sidecar listens inside the team container's namespace, i.e. on the team container's address.
+  const url = `http://${teamContainer(team)}:${GWAGENT_PORT}/rpc`;
+  let last: unknown;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${gwagentToken(team)}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ method, params }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const body = await r.json().catch(() => ({})) as Record<string, unknown>;
+      if (!r.ok) throw Object.assign(new Error(`rpc ${method} → ${r.status}: ${JSON.stringify(body).slice(0, 300)}`), { status: r.status, body });
+      return body;
+    } catch (err) {
+      last = err;
+      // The sidecar may still be starting right after a (re)start.
+      if ((err as { status?: number }).status) throw err;
+      await sleep(1000);
+    }
+  }
+  throw last;
+}
+
+// ── operations ──
+
 const describe = (err: unknown) =>
   err instanceof DockerError ? `Docker 오류 (${err.status})` : err instanceof Error ? err.message : String(err);
 
+async function bringUp(team: string, spec: TeamRuntimeSpec) {
+  await ensureCreated(team, spec);
+  await startAndWait(team);
+  await startSidecar(team, spec);
+  watched.add(team);
+  await notifyTeamStatus(team, 'running');
+}
+
+/** 202 from the handler; stages go to the api as team.provision events (A-04 progress). */
 export function provision(team: string, spec: TeamRuntimeSpec) {
-  return serial(team, () => ensureCreated(team, spec));
+  return serial(team, async () => {
+    try {
+      await ensureCreated(team, spec, (s) => notifyProvision(team, s));
+      // default_mcp: platform-mcp is installed here from stage 5/6 on.
+      await notifyProvision(team, 'default_mcp');
+      await notifyProvision(team, 'done');
+    } catch (err) {
+      await notifyProvision(team, 'failed', describe(err));
+    }
+  });
 }
 
 /** Fire-and-forget from the HTTP handler; the outcome goes to the api as team.status. */
 export function ensureRunning(team: string, spec: TeamRuntimeSpec) {
   return serial(team, async () => {
     try {
-      await ensureCreated(team, spec);
-      await startAndWait(team);
-      watched.add(team);
-      await notifyTeamStatus(team, 'running');
+      await bringUp(team, spec);
     } catch (err) {
       await notifyTeamStatus(team, 'error', describe(err));
     }
   });
 }
 
+async function stopContainers(team: string) {
+  watched.delete(team);
+  await docker.stop(gwagentContainer(team), 5);
+  await docker.stop(teamContainer(team));
+}
+
 export function stop(team: string) {
   return serial(team, async () => {
-    watched.delete(team);
     try {
-      await docker.stop(teamContainer(team));
+      await stopContainers(team);
       await notifyTeamStatus(team, 'stopped');
     } catch (err) {
       await notifyTeamStatus(team, 'error', describe(err));
@@ -178,8 +282,93 @@ export function stop(team: string) {
   });
 }
 
+/** Graceful stop + start. Picks up env changes (recreate) and the current limits. */
+export function restart(team: string, spec: TeamRuntimeSpec) {
+  return serial(team, async () => {
+    try {
+      await stopContainers(team);
+      await bringUp(team, spec);
+    } catch (err) {
+      await notifyTeamStatus(team, 'error', describe(err));
+    }
+  });
+}
+
+/**
+ * Applies assigned agents + team admins to the running Gateway: writes each agent's AGENTS.md,
+ * then config.get → config.patch with baseHash (retried once on a hash conflict).
+ */
+export function applyConfig(team: string, desired: DesiredConfig) {
+  return serial(team, async () => {
+    const c = await docker.inspect(teamContainer(team));
+    if (c?.State.Status !== 'running') throw new Error('팀 에이전트가 꺼져 있어요.');
+
+    if (desired.agents.length) {
+      const entries = desired.agents.flatMap((a) => {
+        const dir = workspaceFor(a.id).slice(STATE_DIR.length + 1);
+        return [
+          { name: dir, uid: OPENCLAW_UID, gid: OPENCLAW_UID, mode: 0o700 },
+          { name: `${dir}/AGENTS.md`, content: agentsMd(a), uid: OPENCLAW_UID, gid: OPENCLAW_UID, mode: 0o600 },
+        ];
+      });
+      await docker.putArchive(teamContainer(team), STATE_DIR, tar(entries));
+    }
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const got = await gatewayRpc(team, 'config.get') as { payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown>; hash?: string } };
+      const current = got.payload?.config ?? got.payload?.parsed ?? {};
+      const plan = computePatch(current, desired);
+      if (!plan) return { changed: false };
+      try {
+        await gatewayRpc(team, 'config.patch', {
+          raw: JSON.stringify(plan.patch),
+          baseHash: got.payload?.hash,
+          replacePaths: plan.replacePaths,
+          note: 'kacp apply-config',
+        });
+        return { changed: true, paths: plan.replacePaths };
+      } catch (err) {
+        if (attempt === 0 && /config changed since last load/i.test(String((err as Error).message))) continue;
+        throw err;
+      }
+    }
+    throw new Error('설정이 계속 바뀌고 있어 반영하지 못했어요.');
+  });
+}
+
+/** docker update on a running container (A-05 리소스). Stopped containers get the limits at next create. */
+export async function updateResources(team: string, limits: TeamRuntimeSpec['resourceLimits']) {
+  const c = await docker.inspect(teamContainer(team));
+  if (!c) return;
+  await docker.update(teamContainer(team), {
+    Memory: memory(limits),
+    MemorySwap: memory(limits),
+    NanoCpus: Math.round(limits.cpu * 1e9),
+  });
+}
+
+/** Team delete: graceful stop, remove containers, keep the data (bind: moved to backups/deleted-teams). */
+export function removeTeam(team: string) {
+  return serial(team, async () => {
+    await stopContainers(team);
+    await docker.remove(gwagentContainer(team));
+    await docker.remove(teamContainer(team));
+    if (config.stateMode === 'bind') {
+      const src = `${config.dataRoot}/teams/${team}`;
+      const dst = `${config.dataRoot}/backups/deleted-teams/${team}-${new Date().toISOString().slice(0, 10)}`;
+      if (await stat(src).then(() => true, () => false)) {
+        await mkdir(`${config.dataRoot}/backups/deleted-teams`, { recursive: true });
+        await rename(src, dst);
+      }
+    }
+    // Volume mode (local): the socket proxy blocks the volume API, so kacp-team-{team}-state stays.
+  });
+}
+
 // Health watch (04-api.md §4, every 30 s): a team we reported running that is no longer healthy → error.
 const watched = new Set<string>();
+export const watchedTeams = () => [...watched];
+
 export function startHealthWatch(log: (msg: string) => void) {
   const timer = setInterval(async () => {
     for (const team of watched) {
@@ -192,4 +381,10 @@ export function startHealthWatch(log: (msg: string) => void) {
     }
   }, 30_000);
   timer.unref();
+}
+
+/** On orchestrator start: re-adopt running teams so health watch and stats include them. */
+export async function adoptRunning() {
+  const list = await docker.listByLabel('kacp.kind=team');
+  for (const c of list) if (c.State === 'running' && c.Labels['kacp.team']) watched.add(c.Labels['kacp.team']);
 }

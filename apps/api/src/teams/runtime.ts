@@ -1,10 +1,11 @@
 import { and, eq, gt, inArray, sql } from 'drizzle-orm';
 import type { TeamContainerStatus, TeamStatus } from '@kacp/shared';
 import { db } from '../db/client.js';
-import { memberships, teamPresence, teams, users } from '../db/schema.js';
+import { agentTemplates, memberships, teamAgents, teamPresence, teams, users } from '../db/schema.js';
 import { decrypt } from '../lib/crypto.js';
-import { orchestrator, type TeamRuntimeSpec } from '../orchestrator.js';
-import { getSetting } from '../settings.js';
+import { orchestrator, type DesiredAgent, type TeamRuntimeSpec } from '../orchestrator.js';
+import { getApiKeys, getSetting } from '../settings.js';
+import type { AgentSpec } from '../agents/spec.js';
 
 // Team container lifecycle as seen from the api (03-data-model.md 상태 전이 — 팀 컨테이너).
 
@@ -24,46 +25,75 @@ export async function teamStatus(team: TeamRow): Promise<TeamStatus> {
   };
 }
 
-export async function runtimeSpec(team: TeamRow): Promise<TeamRuntimeSpec> {
-  const admins = await db
+async function adminEmails(teamId: string) {
+  const rows = await db
     .select({ email: users.email })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
-    .where(and(eq(memberships.teamId, team.id), eq(memberships.teamRole, 'team_admin')));
+    .where(and(eq(memberships.teamId, teamId), eq(memberships.teamRole, 'team_admin'), eq(users.status, 'active')));
+  return rows.map((r) => r.email).sort();
+}
+
+/** Provider keys from A-10 become `{PROVIDER}_API_KEY` env vars of the team container. */
+const envFromApiKeys = (keys: Record<string, string>) =>
+  Object.fromEntries(Object.entries(keys).map(([p, k]) => [`${p.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_API_KEY`, k]));
+
+export async function runtimeSpec(team: TeamRow): Promise<TeamRuntimeSpec> {
   return {
     gatewayPassword: decrypt(team.gatewayPasswordEnc),
-    adminEmails: admins.map((a) => a.email),
+    adminEmails: await adminEmails(team.id),
     resourceLimits: team.resourceLimits ?? (await getSetting('limits.team_default')),
+    env: envFromApiKeys(await getApiKeys()),
   };
 }
 
 /** Moves `stopped`/`error` → `starting` and asks the orchestrator. Only the caller that wins the update calls it. */
-export async function requestStart(team: TeamRow): Promise<void> {
+export async function requestStart(team: TeamRow): Promise<boolean> {
   const won = await db
     .update(teams)
-    .set({ containerStatus: 'starting', containerStatusAt: sql`now()`, containerError: null })
+    // A fresh start gets a full idle window, even when started by an admin without presence.
+    .set({ containerStatus: 'starting', containerStatusAt: sql`now()`, containerError: null, lastActiveAt: sql`now()` })
     .where(and(eq(teams.id, team.id), inArray(teams.containerStatus, ['stopped', 'error'])))
     .returning({ id: teams.id });
-  if (won.length === 0) return;
+  if (won.length === 0) return false;
   try {
     await orchestrator.ensureRunning(team.name, await runtimeSpec(team));
   } catch {
     await setStatus(team.name, 'error', '오케스트레이터에 연결하지 못했어요.');
   }
+  return true;
 }
 
-export async function requestStop(team: TeamRow): Promise<void> {
+export async function requestStop(team: TeamRow): Promise<boolean> {
   const won = await db
     .update(teams)
     .set({ containerStatus: 'stopping', containerStatusAt: sql`now()` })
     .where(and(eq(teams.id, team.id), eq(teams.containerStatus, 'running')))
     .returning({ id: teams.id });
-  if (won.length === 0) return;
+  if (won.length === 0) return false;
   try {
     await orchestrator.stop(team.name);
   } catch {
     await setStatus(team.name, 'error', '오케스트레이터에 연결하지 못했어요.');
   }
+  return true;
+}
+
+/** running/error → starting via a graceful stop + start in the orchestrator (picks up env and limits). */
+export async function requestRestart(team: TeamRow): Promise<boolean> {
+  const won = await db
+    .update(teams)
+    // A fresh start gets a full idle window, even when started by an admin without presence.
+    .set({ containerStatus: 'starting', containerStatusAt: sql`now()`, containerError: null, lastActiveAt: sql`now()` })
+    .where(and(eq(teams.id, team.id), inArray(teams.containerStatus, ['running', 'error', 'stopped'])))
+    .returning({ id: teams.id });
+  if (won.length === 0) return false;
+  try {
+    await orchestrator.restart(team.name, await runtimeSpec(team));
+  } catch {
+    await setStatus(team.name, 'error', '오케스트레이터에 연결하지 못했어요.');
+  }
+  return true;
 }
 
 export async function setStatus(team: string, status: TeamContainerStatus, detail: string | null) {
@@ -71,6 +101,7 @@ export async function setStatus(team: string, status: TeamContainerStatus, detai
     .update(teams)
     .set({ containerStatus: status, containerStatusAt: sql`now()`, containerError: status === 'error' ? detail : null })
     .where(eq(teams.name, team));
+  if (status === 'running') scheduleApply(team);
 }
 
 export async function touchPresence(team: TeamRow, sessionId: string, userId: string) {
@@ -79,4 +110,62 @@ export async function touchPresence(team: TeamRow, sessionId: string, userId: st
     .values({ teamId: team.id, sessionId, userId })
     .onConflictDoUpdate({ target: [teamPresence.teamId, teamPresence.sessionId], set: { lastSeenAt: sql`now()` } });
   await db.update(teams).set({ lastActiveAt: sql`now()` }).where(eq(teams.id, team.id));
+}
+
+// ── apply-config (04-api.md §3): assigned templates + team admins → the running team Gateway ──
+
+/** Stable OpenClaw agent id for a template (uuid v7 tail is random, so unique in practice). */
+export const agentIdFor = (templateId: string) => `kacp-${templateId.replace(/-/g, '').slice(-12)}`;
+
+async function desiredAgents(teamId: string): Promise<{ agents: DesiredAgent[]; versions: Map<string, number> }> {
+  const rows = await db
+    .select({ t: agentTemplates, assignedAt: teamAgents.createdAt })
+    .from(teamAgents)
+    .innerJoin(agentTemplates, eq(agentTemplates.id, teamAgents.templateId))
+    .where(eq(teamAgents.teamId, teamId))
+    .orderBy(teamAgents.createdAt);
+  const versions = new Map(rows.map((r) => [r.t.id, r.t.version]));
+  const agents = rows.map(({ t }): DesiredAgent => {
+    const spec = t.spec as AgentSpec;
+    return {
+      id: agentIdFor(t.id),
+      name: t.name,
+      emoji: t.icon,
+      model: spec.model?.id ?? null,
+      thinking: spec.model?.reasoning ?? null,
+      instructions: spec.instructions ?? '',
+      skills: (spec.skills ?? []).filter((s) => s.source === 'bundled').map((s) => s.name),
+      tools: { allow: spec.tools?.allow ?? [], deny: spec.tools?.deny ?? [] },
+    };
+  });
+  return { agents, versions };
+}
+
+const applying = new Map<string, Promise<void>>();
+
+/** Fire-and-forget; calls for the same team are serialised. Stopped teams are applied on their next start. */
+export function scheduleApply(team: string) {
+  const prev = applying.get(team) ?? Promise.resolve();
+  const next = prev.catch(() => undefined).then(() => applyTeamConfig(team)).catch(() => undefined);
+  applying.set(team, next);
+  return next;
+}
+
+async function applyTeamConfig(teamName: string) {
+  const [team] = await db.select().from(teams).where(eq(teams.name, teamName));
+  if (!team || team.deletedAt || team.containerStatus !== 'running') return;
+  const { agents, versions } = await desiredAgents(team.id);
+  try {
+    await orchestrator.applyConfig(team.name, { agents, adminEmails: await adminEmails(team.id) });
+    for (const [templateId, version] of versions) {
+      await db.update(teamAgents)
+        .set({ applyStatus: 'applied', appliedVersion: version, applyError: null, appliedAt: sql`now()` })
+        .where(and(eq(teamAgents.teamId, team.id), eq(teamAgents.templateId, templateId)));
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await db.update(teamAgents)
+      .set({ applyStatus: 'failed', applyError: message.slice(0, 500) })
+      .where(and(eq(teamAgents.teamId, team.id), eq(teamAgents.applyStatus, 'pending')));
+  }
 }

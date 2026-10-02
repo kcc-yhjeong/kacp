@@ -1849,6 +1849,7 @@ paths:
         - { name: actor, in: query, schema: { type: string, format: uuid } }
         - { name: action, in: query, schema: { type: string } }
         - { name: targetType, in: query, schema: { type: string } }
+        - { name: targetId, in: query, schema: { type: string }, description: "A-03 '이 사람에게 일어난 일'(targetType=user)" }
         - { name: team, in: query, schema: { type: string } }
         - { $ref: '#/components/parameters/Cursor' }
         - { $ref: '#/components/parameters/Limit' }
@@ -2128,6 +2129,7 @@ components:
         appliedVersion: { type: [integer, 'null'] }
         applyStatus: { $ref: '#/components/schemas/ApplyStatus' }
         applyError: { type: [string, 'null'] }
+        appliedAt: { type: [string, 'null'], format: date-time, description: 마지막 반영 시각(A-05) }
     TeamDetail:
       type: object
       properties:
@@ -2312,7 +2314,9 @@ components:
               ts: { type: string, format: date-time }
               cpuPct: { type: number }
               memBytes: { type: integer }
+              memLimitBytes: { type: [integer, 'null'], description: vm은 전체 메모리, 팀은 컨테이너 한도 }
               diskBytes: { type: integer }
+              diskLimitBytes: { type: [integer, 'null'], description: vm만 }
 
     McpTool:
       type: object
@@ -2476,6 +2480,10 @@ components:
           items: { $ref: '#/components/schemas/UserRef' }
         agentCount: { type: integer }
         status: { $ref: '#/components/schemas/TeamStatus' }
+        provisionStage:
+          type: string
+          enum: [name, storage, container, default_mcp, done, failed]
+          description: A-04 진행 표시. 프로비저닝이 끝나면 done
         resourceLimits: { $ref: '#/components/schemas/ResourceLimits' }
         createdAt: { type: string, format: date-time }
     AdminTeamDetail:
@@ -2599,6 +2607,7 @@ components:
             type: object
             properties:
               team: { type: string }
+              displayName: { type: string }
               status: { $ref: '#/components/schemas/TeamContainerStatus' }
               activeUsers: { type: integer }
               cpuPct: { type: number }
@@ -2642,16 +2651,22 @@ components:
             maxRunningWorkAppsPerTeam: { type: integer }
             capacityWarn:
               type: object
+              description: A-01 노랑(warn)·빨강(danger) 두 단계 (03-data-model ops.capacity_warn)
               properties:
-                cpu: { type: integer }
-                memory: { type: integer }
-                disk: { type: integer }
+                warn: { $ref: '#/components/schemas/CapacityThresholds' }
+                danger: { $ref: '#/components/schemas/CapacityThresholds' }
             trashRetentionDays: { type: integer }
         names:
           type: object
           properties:
             reserved: { type: array, items: { type: string }, readOnly: true }
             reservedExtra: { type: array, items: { type: string } }
+    CapacityThresholds:
+      type: object
+      properties:
+        cpu: { type: integer }
+        memory: { type: integer }
+        disk: { type: integer }
     AuditEvent:
       type: object
       properties:

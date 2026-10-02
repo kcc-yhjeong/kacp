@@ -161,6 +161,7 @@
 |---|---|---|
 | `kacp-edge` | traefik, web, api, 모든 팀·앱 컨테이너 | 프록시 → 대상. `172.30.0.0/16`, 동적 컨테이너는 `ip_range 172.30.128.0/17`, Traefik은 범위 밖 고정 `172.30.0.10`(= `trustedProxies`, 다른 컨테이너가 먼저 받을 수 없게) |
 | `kacp-core` | api, orchestrator, postgres, docker-socket-proxy | 내부(`internal: true`). 외부 노출 없음 |
+| (`kacp-edge`에 orchestrator) | orchestrator | 3단계: 사이드카 `kacp-gwagent-{team}:18800` 호출용 **나가는 방향만**. edge로 들어온 요청은 orchestrator가 거부 |
 | `kacp-traefik-sock` | traefik, traefik-socket-proxy | 내부. Traefik Docker provider 전용 |
 | `kacp-team-{team}` | 팀 컨테이너, 그 팀 MCP 컨테이너, api(platform-mcp 경유 호출용 alias) | 팀 안 MCP 호출 격리 |
 

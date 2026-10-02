@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
+    "@fastify/multipart": "^9.4.0",
     "@kacp/shared": "workspace:*",
     "@node-rs/argon2": "^2.2.1",
     "drizzle-orm": "^0.45.3",

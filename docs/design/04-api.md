@@ -214,6 +214,7 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 | `POST /internal/mcp/apps/{appId}/stop` | platform-mcp | |
 | `POST /internal/mcp/apps/{appId}/public-request` | platform-mcp | `deploy_app` |
 | `GET /internal/mcp/drive/list` · `read` · `POST write` | platform-mcp | 드라이브 도구. `actor_kind=agent`로 기록 |
+| `POST /internal/usage` | orchestrator | 1분마다 `{samples: [{targetType: vm\|team, targetId, cpuPct, memBytes, memLimitBytes, diskBytes?}]}` → `usage_samples` (3단계) |
 | `POST /internal/events` | orchestrator | 상태 변경 통지 `{type: team.status\|team.provision\|app.status\|mcp.build\|mcp.install, id, status, detail}`(`team.provision`의 `detail.stage` = `name`→`storage`→`container`→`default_mcp`→`done`, A-04 진행 표시) → DB 반영 + 알림. `app.status`는 `copy: work\|public`, `stopReason`(stopped일 때 `idle`\|`limit`\|`manual`\|`admin`, 아니면 null)을 더 보낸다 |
 
 platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api는 팀까지만 안다. OpenClaw가 호출자 신원을 넘기지 않으므로(spike 05) 사람 단위 권한 검사는 하지 않고, 대상은 팀 공유 드라이브로 제한한다(`06-auth.md` §8).

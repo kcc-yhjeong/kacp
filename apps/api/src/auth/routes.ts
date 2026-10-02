@@ -70,7 +70,8 @@ export async function authRoutes(app: FastifyInstance) {
 
     const [u] = await db.select().from(users).where(eq(users.email, body.email));
     const ok = u?.passwordHash ? await verifyPassword(u.passwordHash, body.password) : (await verifyDummy(body.password), false);
-    await recordAttempt(body.email, ip, ok);
+    // A disabled account is recorded as a failed attempt even with the right password.
+    await recordAttempt(body.email, ip, ok && u?.status === 'active');
     if (!u || !ok) throw new ApiError(401, 'AUTH_INVALID_CREDENTIALS');
     if (u.status !== 'active') throw new ApiError(403, 'AUTH_DISABLED');
 

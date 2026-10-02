@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import { ZodError } from 'zod';
 import { classifyHost, ERROR_MESSAGES } from '@kacp/shared';
 import { appOrigin, config } from './config.js';
@@ -10,6 +11,13 @@ import { internalEventRoutes } from './internal/events.js';
 import { ApiError } from './lib/errors.js';
 import { teamByName } from './teams/lookup.js';
 import { teamRoutes } from './teams/routes.js';
+import { memberRoutes } from './teams/members.js';
+import { adminUserRoutes } from './admin/users.js';
+import { adminTeamRoutes } from './admin/teams.js';
+import { templateRoutes } from './admin/templates.js';
+import { opsRoutes } from './admin/ops.js';
+import { orgRoutes } from './org/routes.js';
+import { importRoutes } from './import/routes.js';
 
 // CORS (06-auth.md §3): credentials only for the app origin and existing team hosts.
 // App hosts (`slug--team`, public names) never get CORS, so user-built apps cannot call the API as the user.
@@ -33,6 +41,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     bodyLimit: 1024 * 1024,
   });
   await app.register(cookie);
+  await app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
   // Action endpoints (session, heartbeat, logout) are POSTs without a body; accept an empty JSON body.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
     if (body === '') return done(null, {});
@@ -84,5 +93,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(teamRoutes);
   await app.register(forwardAuthRoutes);
   await app.register(internalEventRoutes);
+  await app.register(memberRoutes);
+  await app.register(adminUserRoutes);
+  await app.register(adminTeamRoutes);
+  await app.register(templateRoutes);
+  await app.register(opsRoutes);
+  await app.register(orgRoutes);
+  await app.register(importRoutes);
   return app;
 }

@@ -142,6 +142,39 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - 실행: `deploy/infra/docker-compose.yml`(README 참고), 시드 `docker compose -f deploy/infra/docker-compose.yml exec api node dist/cli.js demo`.
 - 3단계로 넘긴 것: Gateway 사이드카 `kacp-gwagent`와 `apply-config`, orchestrator ↔ 사이드카 네트워크 경로, VM용 compose 오버레이(bind mount·TLS).
 
+## 3단계 통과 조건 (관리자 기본) — 완료 2026-10-02
+
+목표: 데모 장면 1 — **관리자가 조직(부서)과 사용자를 등록하고, 팀을 만들어 에이전트를 할당한다.** 할당·팀 관리자 지정이 실행 중인 팀 Gateway에 재시작 없이 반영된다. 장소는 로컬.
+
+범위 밖(뒤 단계): A-07·A-08(MCP, 6단계), A-09(배포 승인, 5단계), U-15 팀 설정 화면(6단계). A-05의 MCP·앱 탭과 A-01의 앱·대기 건수는 자리만(0건). 템플릿의 스킬 **업로드**와 기본 MCP 실제 설치는 6단계(3단계는 번들 스킬 이름 허용 목록과 값 저장만).
+
+결정(문서 반영):
+- Gateway 사이드카 `kacp-gwagent-{team}`: orchestrator 이미지를 `node dist/gwagent.js`로 실행, 팀 컨테이너 네트워크 네임스페이스 공유, `:18800`에서 `config.get`·`config.patch`만 중계. orchestrator가 사이드카에 닿도록 **orchestrator를 `kacp-edge`에도 붙이되, `kacp-edge`로 들어오는 요청은 거부**한다(내부 API는 `kacp-core`로만). 팀 컨테이너가 새로 시작될 때마다 사이드카를 다시 만든다(네임스페이스가 바뀜, 상태 없음).
+- 공용 모델 API 키(A-10)는 팀 컨테이너 **환경변수**로 넣는다. 키가 바뀌면 컨테이너 라벨 `kacp.config-hash`가 달라져 다음 기동 때(정지 상태에서) 컨테이너를 다시 만든다. 실행 중인 팀은 관리자가 재시작해야 반영.
+- 사용량: orchestrator가 1분마다 팀 컨테이너 Docker stats + VM(CPU·메모리·`/data` 디스크)을 `POST api:/internal/usage`로 보낸다 → `usage_samples`.
+- 팀 삭제(로컬): socket-proxy가 볼륨 API를 막아 named volume은 남는다(VM은 bind 폴더를 백업으로 이동).
+
+- [x] api 스키마: `departments`(ltree), `import_jobs`, `agent_templates`, `team_agents`, `usage_samples`, `teams.provision_stage`. 플랫폼 설정 전 항목
+- [x] api 조직: `GET /departments`(트리·인원 수), 부서 추가·수정·이동(순환·깊이 10 검사)·보관/해제, 구성원, `POST /admin/users/bulk-department`
+- [x] api 사용자: 목록(필터: 부서 하위 포함·역할·상태·팀·검색), 추가(초기 비밀번호 1회), 상세(최근 로그인), 수정, 비밀번호 초기화(세션 전부 폐기), 비활성화(세션 폐기 + presence 제거 + 선택: 소속 팀 재시작)/재활성화, `GET /users/search`
+- [x] api 가져오기: 부서·사용자 CSV 미리보기(추가/변경/그대로/오류, 순환·깊이·없는 상위·중복) → 적용(오류 행 빼기, 409 재미리보기), 새 계정 초기 비밀번호 CSV 1회
+- [x] api 팀: 목록·생성(`POST /admin/teams` 202 + 진행 단계)·상세·표시 이름·삭제, 컨테이너 시작·정지·재시작, 리소스 한도(실행 중이면 즉시), 멤버 추가·역할 변경·제거(마지막 팀 관리자 보호), `GET /names/check`
+- [x] api 에이전트: 템플릿 CRUD(저장 시 version+1, 할당 팀 pending), 할당·해제 → apply-config, 할당 반영 워커
+- [x] api 설정·기록: `GET|PUT /admin/settings`, API 키(암호화, 설정 여부만 반환), `GET /admin/audit-events`(필터), `GET /admin/dashboard`, `GET /admin/metrics`. 모든 관리 행위 `audit_events`
+- [x] orchestrator: 사이드카 생성·재생성, `/internal/gateway/{team}/rpc`, `apply-config`(agents.entries + 워크스페이스 `AGENTS.md` + `identityScopes`, `baseHash`·`replacePaths` 규칙), `restart`, 리소스 `docker update`, 팀 삭제, 프로비저닝 단계 이벤트, 사용량 수집
+- [x] web: `/admin` 레이아웃(AdminSidebar), A-01·A-02·A-03·A-04·A-05(멤버·에이전트 할당·리소스·위험 영역 탭)·A-06·A-10·A-11·A-12·A-13. 헤더 "관리자 화면" 연결
+- [x] 테스트: 부서 이동 순환·깊이, CSV 파서·미리보기 판정, apply-config 패치 계산(추가·변경·제거, replacePaths)
+- [x] 데모(브라우저, 사용자가 확인): 부서 트리 만들기·이동 → 사용자 CSV 가져오기 → 팀 만들기(진행 표시) → 템플릿 만들고 할당 → 셸에서 새 에이전트 보임·지시문 반영 → 팀원을 팀 관리자로 지정 → 그 사람 Control UI에 설정(admin) 열림(재시작 없이) → 리소스 변경·재시작 → 사용자 비활성화 → 로그인 거부 → 활동 기록에 전부 남음
+
+### 3단계 결과 (2026-10-02, 로컬)
+
+- 검사: `pnpm -r typecheck` 통과, `pnpm -r test` 87개 통과(shared 18, api 23, orchestrator 6, web 40).
+- api 스크립트 확인: 부서 추가·자동 코드·이동·순환 422·보관 409, CSV 미리보기·오류 행 422·오류 빼고 적용·초기 비밀번호 CSV 1회, 사용자 목록·필터·검색·추가·중복 409·초기화·비활성화(로그인 403)·재활성화, 템플릿 생성·허용 안 된 모델 422·할당, 팀 생성(진행 단계 done)·리소스·삭제(확인 이름), 대시보드·추이·활동 기록.
+- Gateway 반영: 할당 → `agents.entries.kacp-*` + `workspace-<id>/AGENTS.md`, 팀 관리자 지정·해제 → `identityScopes` 추가·제거. 둘 다 사이드카 경유 `config.patch`, **hot reload(재시작 없음)**.
+- 브라우저(사용자 확인): A-01·A-02·A-03·A-04·A-05·A-06·A-10·A-11·A-12·A-13, 새 에이전트 선택·지시문, 팀 관리자 지정 후 설정 열림. 전부 통과.
+- 확인 중 고친 것: 관리자 시작 직후 유휴 정지(시작 시 `last_active_at` 갱신), 비활성 계정 로그인을 실패로 기록, `default: true` 마커 미사용(2026.9.7 레거시 — 기본 에이전트는 `main`).
+- 4단계 이후로 넘긴 것: 템플릿 스킬 업로드·기본 MCP 설치(6단계), A-05 MCP·앱 탭(5·6단계), VM용 compose 오버레이.
+
 ## 다음 단계와의 연결
 
 | 단계 | 이 문서 세트에서 쓰는 부분 |

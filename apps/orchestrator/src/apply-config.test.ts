@@ -1,0 +1,50 @@
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('./config.js', () => ({ STATE_DIR: '/home/node/.openclaw' }));
+const { agentEntry, computePatch } = await import('./apply-config.js');
+
+const agent = (id: string, over: Partial<Parameters<typeof agentEntry>[0]> = {}) => ({
+  id, name: '보고서 도우미', emoji: '📊', model: 'anthropic/claude-sonnet-4-5', thinking: 'medium' as const,
+  instructions: '주간 보고서를 써요.', skills: [], tools: { allow: [], deny: ['shell.exec'] }, ...over,
+});
+
+describe('computePatch', () => {
+  it('adds agents and team admins to an empty config', () => {
+    const plan = computePatch({}, { agents: [agent('kacp-a')], adminEmails: ['kim@kcc.co.kr'] });
+    expect(plan?.patch).toEqual({
+      agents: { entries: { 'kacp-a': {
+        name: '보고서 도우미', identity: { emoji: '📊' }, workspace: '/home/node/.openclaw/workspace-kacp-a',
+        model: 'anthropic/claude-sonnet-4-5', thinkingDefault: 'medium', tools: { deny: ['shell.exec'] },
+      } } },
+      gateway: { auth: { identityScopes: { 'kim@kcc.co.kr': ['operator.admin'] } } },
+    });
+    expect(plan?.replacePaths).toEqual(['agents.entries.kacp-a', 'gateway.auth.identityScopes.kim@kcc.co.kr']);
+  });
+
+  it('is a no-op when nothing changed (key order does not matter)', () => {
+    const entry = agentEntry(agent('kacp-a'));
+    const reordered = Object.fromEntries(Object.entries(entry).reverse());
+    const current = { agents: { entries: { 'kacp-a': reordered, main: { name: 'main' } } }, gateway: { auth: { identityScopes: { 'kim@kcc.co.kr': ['operator.admin'] } } } };
+    expect(computePatch(current, { agents: [agent('kacp-a')], adminEmails: ['kim@kcc.co.kr'] })).toBeNull();
+  });
+
+  it('removes unassigned managed agents and demoted admins with replacePaths, leaving others alone', () => {
+    const current = {
+      agents: { entries: { 'kacp-old': { name: 'x' }, main: { name: 'main' } } },
+      gateway: { auth: { identityScopes: { 'lee@kcc.co.kr': ['operator.admin'] } } },
+    };
+    const plan = computePatch(current, { agents: [], adminEmails: [] });
+    expect(plan?.patch).toEqual({
+      agents: { entries: { 'kacp-old': null } },
+      gateway: { auth: { identityScopes: { 'lee@kcc.co.kr': null } } },
+    });
+    expect(plan?.replacePaths).toEqual(['agents.entries.kacp-old', 'gateway.auth.identityScopes.lee@kcc.co.kr']);
+  });
+
+  it('replaces a changed entry whole', () => {
+    const current = { agents: { entries: { 'kacp-a': agentEntry(agent('kacp-a')) } } };
+    const plan = computePatch(current, { agents: [agent('kacp-a', { tools: { allow: ['web.fetch'], deny: [] } })], adminEmails: [] });
+    expect((plan?.patch.agents as { entries: Record<string, { tools: unknown }> }).entries['kacp-a']!.tools).toEqual({ allow: ['web.fetch'] });
+    expect(plan?.replacePaths).toEqual(['agents.entries.kacp-a']);
+  });
+});

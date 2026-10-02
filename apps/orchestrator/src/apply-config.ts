@@ -1,0 +1,116 @@
+// apply-config patch computation (04-api.md §3, spike 04): desired agents + team admins → a JSON merge
+// patch for config.patch. Pure, so it can be unit-tested without a Gateway.
+//
+// Rules:
+// - KACP owns only `agents.entries.kacp-*` and `gateway.auth.identityScopes`; other keys are left alone.
+// - No `default: true`: in 2026.9.7 it is a legacy marker that doctor rewrites into explicit owners
+//   (talk/heartbeat/systemAgent stay on `main`); template agents are picked in the Control UI.
+// - Entries are replaced whole (their arrays too), so every touched path goes into `replacePaths`.
+// - Deletions are `null` + `replacePaths` (OpenClaw refuses to drop array-valued paths otherwise).
+
+import { STATE_DIR } from './config.js';
+
+export interface DesiredAgent {
+  id: string;
+  name: string;
+  emoji: string;
+  model: string | null;
+  thinking: 'low' | 'medium' | 'high' | null;
+  instructions: string;
+  skills: string[];
+  tools: { allow: string[]; deny: string[] };
+}
+
+export interface DesiredConfig {
+  agents: DesiredAgent[];
+  adminEmails: string[];
+}
+
+export const MANAGED_PREFIX = 'kacp-';
+export const workspaceFor = (agentId: string) => `${STATE_DIR}/workspace-${agentId}`;
+
+export function agentEntry(a: DesiredAgent): Record<string, unknown> {
+  const entry: Record<string, unknown> = {
+    name: a.name,
+    identity: { emoji: a.emoji },
+    workspace: workspaceFor(a.id),
+  };
+  if (a.model) entry.model = a.model;
+  if (a.thinking) entry.thinkingDefault = a.thinking;
+  if (a.skills.length) entry.skills = a.skills;
+  if (a.tools.allow.length || a.tools.deny.length) {
+    entry.tools = {
+      ...(a.tools.allow.length ? { allow: a.tools.allow } : {}),
+      ...(a.tools.deny.length ? { deny: a.tools.deny } : {}),
+    };
+  }
+  return entry;
+}
+
+const stable = (v: unknown): string =>
+  JSON.stringify(v, (_k, val) => (val && typeof val === 'object' && !Array.isArray(val)
+    ? Object.fromEntries(Object.keys(val).sort().map((k) => [k, (val as Record<string, unknown>)[k]]))
+    : val));
+
+export interface PatchPlan {
+  patch: Record<string, unknown>;
+  replacePaths: string[];
+}
+
+/** Returns null when the current config already matches. */
+export function computePatch(current: Record<string, unknown>, desired: DesiredConfig): PatchPlan | null {
+  const cur = current as {
+    agents?: { entries?: Record<string, unknown> };
+    gateway?: { auth?: { identityScopes?: Record<string, unknown> } };
+  };
+  const entries: Record<string, unknown> = {};
+  const scopes: Record<string, unknown> = {};
+  const replacePaths: string[] = [];
+
+  const currentEntries = cur.agents?.entries ?? {};
+  const wanted = new Map(desired.agents.map((a) => [a.id, agentEntry(a)]));
+  for (const id of Object.keys(currentEntries)) {
+    if (id.startsWith(MANAGED_PREFIX) && !wanted.has(id)) {
+      entries[id] = null;
+      replacePaths.push(`agents.entries.${id}`);
+    }
+  }
+  for (const [id, entry] of wanted) {
+    if (stable(currentEntries[id]) !== stable(entry)) {
+      entries[id] = entry;
+      replacePaths.push(`agents.entries.${id}`);
+    }
+  }
+
+  const currentScopes = cur.gateway?.auth?.identityScopes ?? {};
+  const admins = new Set(desired.adminEmails);
+  for (const email of Object.keys(currentScopes)) {
+    if (!admins.has(email)) {
+      scopes[email] = null;
+      replacePaths.push(`gateway.auth.identityScopes.${email}`);
+    }
+  }
+  for (const email of admins) {
+    if (stable(currentScopes[email]) !== stable(['operator.admin'])) {
+      scopes[email] = ['operator.admin'];
+      replacePaths.push(`gateway.auth.identityScopes.${email}`);
+    }
+  }
+
+  if (replacePaths.length === 0) return null;
+  const patch: Record<string, unknown> = {};
+  if (Object.keys(entries).length) patch.agents = { entries };
+  if (Object.keys(scopes).length) patch.gateway = { auth: { identityScopes: scopes } };
+  return { patch, replacePaths };
+}
+
+/** Base instructions every KACP agent gets in front of the template's own (A-06 note). */
+export const PLATFORM_INSTRUCTIONS = `# KACP 플랫폼 기본 지시문
+
+- 이 에이전트는 회사 팀이 함께 쓰는 에이전트예요. 팀 채팅(공유됨 세션)의 대화는 팀원 모두가 봐요.
+- 사용자에게는 한국어로 답해요.
+- 비밀번호·API 키 같은 비밀값을 대화나 파일에 그대로 남기지 않아요.
+`;
+
+export const agentsMd = (a: DesiredAgent) =>
+  `${PLATFORM_INSTRUCTIONS}\n---\n\n# ${a.name}\n\n${a.instructions.trim()}\n`;

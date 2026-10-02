@@ -18,3 +18,14 @@ describe('tarFile', () => {
     expect(tar.subarray(512, 519).toString()).toBe('{"a":1}');
   });
 });
+
+describe('tar', () => {
+  it('writes directory entries before files', async () => {
+    const { tar } = await import('./tar.js');
+    const t = tar([{ name: 'workspace-x', uid: 1000, gid: 1000 }, { name: 'workspace-x/AGENTS.md', content: 'hi', uid: 1000, gid: 1000 }]);
+    expect(t.subarray(0, 12).toString()).toBe('workspace-x/');
+    expect(String.fromCharCode(t[156]!)).toBe('5');
+    expect(t.subarray(512, 533).toString()).toBe('workspace-x/AGENTS.md');
+    expect(String.fromCharCode(t[512 + 156]!)).toBe('0');
+  });
+});

@@ -1,5 +1,5 @@
 import { TEAM_STATUS_LABEL_USER, type MyTeam, type TeamContainerStatus } from '@kacp/shared';
-import { Bell, Check, ChevronsUpDown, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
+import { Bell, Check, ChevronsUpDown, LogOut, Settings, ShieldCheck, Undo2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { ComingSoon } from '@/components/coming-soon';
 import { Logo } from '@/components/logo';
@@ -138,7 +138,8 @@ function TeamSwitcher({
   );
 }
 
-function ProfileMenu() {
+/** Profile menu. `admin` mode (inside /admin) swaps "관리자 화면" for "사원 화면으로" (C-00). */
+export function ProfileMenu({ admin = false }: { admin?: boolean }) {
   const me = useMe().data;
   const onLogout = async () => {
     try {
@@ -167,12 +168,18 @@ function ProfileMenu() {
         <DropdownMenuItem onSelect={() => location.assign(`${appOrigin}/me`)}>
           <User className="text-muted-foreground" strokeWidth={1.75} />내 정보
         </DropdownMenuItem>
-        {me?.platformRole === 'admin' && (
-          <DropdownMenuItem disabled>
-            <ShieldCheck className="text-muted-foreground" strokeWidth={1.75} />
-            관리자 화면
-            <span className="ml-auto text-xs text-muted-foreground">준비 중</span>
+        {admin ? (
+          <DropdownMenuItem onSelect={() => location.assign(`${appOrigin}/`)}>
+            <Undo2 className="text-muted-foreground" strokeWidth={1.75} />
+            사원 화면으로
           </DropdownMenuItem>
+        ) : (
+          me?.platformRole === 'admin' && (
+            <DropdownMenuItem onSelect={() => location.assign(`${appOrigin}/admin`)}>
+              <ShieldCheck className="text-muted-foreground" strokeWidth={1.75} />
+              관리자 화면
+            </DropdownMenuItem>
+          )
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onLogout}>

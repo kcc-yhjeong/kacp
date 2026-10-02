@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger } from 'fastify';
 import { and, eq, lt, notExists, or, isNull, sql } from 'drizzle-orm';
 import { db } from './db/client.js';
-import { teamPresence, teams } from './db/schema.js';
+import { teamPresence, teams, usageSamples } from './db/schema.js';
 import { getSetting } from './settings.js';
 import { requestStop, setStatus } from './teams/runtime.js';
 
@@ -36,6 +36,8 @@ async function idleStop(log: FastifyBaseLogger) {
   for (const t of stuck) await setStatus(t.name, 'error', '시작 시간이 너무 오래 걸렸어요.');
 
   await db.delete(teamPresence).where(lt(teamPresence.lastSeenAt, sql`now() - interval '1 day'`));
+  // usage_samples keep 7 days (03-data-model.md).
+  await db.delete(usageSamples).where(lt(usageSamples.ts, sql`now() - interval '7 days'`));
 }
 
 export function startWorkers(log: FastifyBaseLogger) {

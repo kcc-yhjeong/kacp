@@ -39,12 +39,18 @@ export interface ContainerState {
   Health?: { Status: 'starting' | 'healthy' | 'unhealthy' | 'none' };
 }
 
+export interface ContainerStats {
+  cpu_stats: { cpu_usage: { total_usage: number }; system_cpu_usage?: number; online_cpus?: number };
+  precpu_stats: { cpu_usage: { total_usage: number }; system_cpu_usage?: number };
+  memory_stats: { usage?: number; limit?: number; stats?: { inactive_file?: number } };
+}
+
 export const docker = {
-  async inspect(name: string): Promise<{ Id: string; State: ContainerState } | null> {
+  async inspect(name: string): Promise<{ Id: string; State: ContainerState; Config: { Labels: Record<string, string> } } | null> {
     const r = await request('GET', `/containers/${name}/json`);
     if (r.status === 404) return null;
     if (r.status !== 200) throw new DockerError(r.status, r.body, 'inspect');
-    return r.body as { Id: string; State: ContainerState };
+    return r.body as { Id: string; State: ContainerState; Config: { Labels: Record<string, string> } };
   },
 
   async create(name: string, spec: unknown): Promise<string> {
@@ -62,6 +68,25 @@ export const docker = {
   async stop(name: string, timeoutS = 30) {
     const r = await request('POST', `/containers/${name}/stop?t=${timeoutS}`);
     if (r.status !== 204 && r.status !== 304 && r.status !== 404) throw new DockerError(r.status, r.body, 'stop');
+  },
+
+  /** Only for stopped containers or stateless sidecars — never a running Gateway (owner lease, spike 06). */
+  async remove(name: string) {
+    const r = await request('DELETE', `/containers/${name}?force=true`);
+    if (r.status !== 204 && r.status !== 404) throw new DockerError(r.status, r.body, 'remove');
+  },
+
+  /** docker update: CPU/memory of a running container. */
+  async update(name: string, body: unknown) {
+    const r = await request('POST', `/containers/${name}/update`, { json: body });
+    if (r.status !== 200) throw new DockerError(r.status, r.body, 'update');
+  },
+
+  /** One stats sample (Docker takes two readings ~1 s apart so cpu deltas are filled). */
+  async stats(name: string): Promise<ContainerStats | null> {
+    const r = await request('GET', `/containers/${name}/stats?stream=false`);
+    if (r.status !== 200) return null;
+    return r.body as ContainerStats;
   },
 
   async fileExists(name: string, path: string): Promise<boolean> {
