@@ -56,7 +56,9 @@ function teamEnv(spec: TeamRuntimeSpec): string[] {
 const LAYOUT_VERSION = 'drive-v1';
 
 function sandboxEnv(team: string): string[] {
-  return sandboxEnabled() ? [`DOCKER_HOST=tcp://${sbxProxyContainer(team)}:2375`] : [];
+  // TMPDIR inside the bind-mounted state dir: OpenClaw creates temp workspaces (e.g. Model Setup's
+  // inference check) under os.tmpdir(), and sandbox mounts must come from a Gateway bind mount.
+  return sandboxEnabled() ? [`DOCKER_HOST=tcp://${sbxProxyContainer(team)}:2375`, `TMPDIR=${STATE_DIR}/tmp`] : [];
 }
 
 /** Changes that need a new container (env, image). Limits are applied in place with docker update. */
@@ -124,6 +126,8 @@ async function seedBind(team: string, spec: TeamRuntimeSpec) {
   const dir = teamStateHostDir(team);
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await chown(dir, OPENCLAW_UID, OPENCLAW_UID);
+  await mkdir(`${dir}/tmp`, { recursive: true, mode: 0o700 });
+  await chown(`${dir}/tmp`, OPENCLAW_UID, OPENCLAW_UID);
   const file = `${dir}/openclaw.json`;
   if (await stat(file).then(() => true, () => false)) return;
   await writeFile(file, JSON.stringify(seedConfig(team, spec.adminEmails), null, 2), { mode: 0o600 });
