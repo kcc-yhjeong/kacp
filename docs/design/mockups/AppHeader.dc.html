@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes kacpBlink{0%,100%{opacity:1}50%{opacity:.3}}</style></helmet>
+<header style="position:relative;height:48px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 12px 0 16px;background:#fff;border-bottom:1px solid oklch(0.922 0 0);font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);font-size:14px">
+  <div style="display:flex;align-items:center;gap:12px;min-width:0">
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">K</div>
+      <span style="font-weight:600;letter-spacing:-0.01em">KACP</span>
+    </div>
+    <div style="width:1px;height:20px;background:oklch(0.922 0 0)"></div>
+    <div style="position:relative">
+      <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px;cursor:pointer;background:{{ switcherBg }}" style-hover="background:oklch(0.97 0 0)">
+        {{ teamDot }}
+        <span style="font-weight:500">{{ teamName }}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+      </div>
+      <sc-if value="{{ openTeam }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:40px;left:0;width:272px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;z-index:50">
+          <div style="padding:6px 8px;font-size:12px;color:oklch(0.556 0 0)">내 팀</div>
+          <sc-for list="{{ teams }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+              {{ t.dot }}
+              <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+                <span style="font-size:14px">{{ t.name }}</span>
+                <span style="font-family:'Geist Mono','JetBrains Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0)">{{ t.id }}.kacp.cloud</span>
+              </div>
+              <span style="font-size:12px;color:oklch(0.556 0 0)">{{ t.label }}</span>
+              <sc-if value="{{ t.current }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+              <sc-if value="{{ t.notCurrent }}" hint-placeholder-val="{{ true }}"><span style="width:16px"></span></sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ isTeamAdmin }}" hint-placeholder-val="{{ true }}">
+            <div style="height:1px;background:oklch(0.922 0 0);margin:4px -4px"></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>팀 설정</span>
+              <span style="margin-left:auto;font-size:12px;color:oklch(0.556 0 0)">{{ teamName }}</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+    <nav style="display:flex;align-items:center;gap:2px">
+      <sc-for list="{{ teamNav }}" as="n" hint-placeholder-count="3">
+        <sc-if value="{{ n.active }}" hint-placeholder-val="{{ false }}"><a style="padding:6px 10px;border-radius:6px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none;cursor:pointer">{{ n.label }}</a></sc-if>
+        <sc-if value="{{ n.inactive }}" hint-placeholder-val="{{ true }}"><a style="padding:6px 10px;border-radius:6px;color:oklch(0.556 0 0);text-decoration:none;cursor:pointer" style-hover="color:oklch(0.145 0 0)">{{ n.label }}</a></sc-if>
+      </sc-for>
+    </nav>
+  </div>
+  <div style="display:flex;align-items:center;gap:4px">
+    <nav style="display:flex;align-items:center;justify-content:flex-end;gap:2px;min-width:200px" data-note="전사 메뉴 3개(커뮤니티·MCP 마켓·지식 예정) 폭 확보">
+      <sc-for list="{{ orgNav }}" as="n" hint-placeholder-count="2">
+        <sc-if value="{{ n.active }}" hint-placeholder-val="{{ false }}"><a style="padding:6px 10px;border-radius:6px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none;cursor:pointer">{{ n.label }}</a></sc-if>
+        <sc-if value="{{ n.inactive }}" hint-placeholder-val="{{ true }}"><a style="padding:6px 10px;border-radius:6px;color:oklch(0.556 0 0);text-decoration:none;cursor:pointer" style-hover="color:oklch(0.145 0 0)">{{ n.label }}</a></sc-if>
+      </sc-for>
+    </nav>
+    <div style="width:1px;height:20px;background:oklch(0.922 0 0);margin:0 8px"></div>
+    <div style="position:relative">
+      <div style="position:relative;width:32px;height:32px;border-radius:6px;display:grid;place-items:center;cursor:pointer;background:{{ bellBg }}" style-hover="background:oklch(0.97 0 0)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+        <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;top:2px;right:1px;min-width:16px;height:16px;box-sizing:border-box;padding:0 4px;border-radius:6px;border:2px solid #fff;background:oklch(0.205 0 0);color:#fff;font-size:9.5px;font-weight:600;line-height:12px;text-align:center;font-variant-numeric:tabular-nums">{{ unread }}</span></sc-if>
+      </div>
+      <sc-if value="{{ openNotif }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:40px;right:0;width:360px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);z-index:50;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 16px;border-bottom:1px solid oklch(0.922 0 0)">
+            <span style="font-weight:600">알림</span>
+            <span style="font-size:12px;padding:4px 8px;border-radius:6px;cursor:pointer;color:oklch(0.556 0 0)" style-hover="background:oklch(0.97 0 0);color:oklch(0.145 0 0)">모두 읽음</span>
+          </div>
+          <sc-for list="{{ notifs }}" as="m" hint-placeholder-count="4">
+            <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid oklch(0.922 0 0);cursor:pointer" style-hover="background:oklch(0.985 0 0)">
+              <div style="width:32px;height:32px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center;flex:none">
+                <sc-if value="{{ m.isPlug }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"></path><path d="M9 8V2"></path><path d="M15 8V2"></path><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path></svg></sc-if>
+                <sc-if value="{{ m.isGlobe }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg></sc-if>
+                <sc-if value="{{ m.isAlert }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.586 0.253 17.585)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+                <sc-if value="{{ m.isBot }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                <span style="font-size:13.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.title }}</span>
+                <span style="font-size:12px;color:oklch(0.556 0 0)">{{ m.time }}</span>
+              </div>
+              <sc-if value="{{ m.unread }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.205 0 0);margin-top:8px;flex:none"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+    <div style="position:relative;margin-left:4px">
+      <div style="width:28px;height:28px;border-radius:50%;background:oklch(0.97 0 0);border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:12px;font-weight:600;cursor:pointer;box-sizing:border-box">{{ initial }}</div>
+      <sc-if value="{{ openProfile }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:36px;right:0;width:232px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;z-index:50">
+          <div style="display:flex;flex-direction:column;gap:2px;padding:8px">
+            <span style="font-weight:500">{{ userName }}</span>
+            <span style="font-size:12px;color:oklch(0.556 0 0)">{{ userEmail }}</span>
+          </div>
+          <div style="height:1px;background:oklch(0.922 0 0);margin:4px -4px"></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>내 정보</span>
+          </div>
+          <sc-if value="{{ isPlatformAdmin }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+              <span>관리자 화면</span>
+            </div>
+          </sc-if>
+          <div style="height:1px;background:oklch(0.922 0 0);margin:4px -4px"></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(0.556 0 0)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+            <span>로그아웃</span>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:420},&quot;team&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;마케팅팀&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;teamStatus&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;running&quot;,&quot;starting&quot;,&quot;stopped&quot;,&quot;stopping&quot;,&quot;error&quot;],&quot;default&quot;:&quot;running&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;agent&quot;,&quot;drive&quot;,&quot;apps&quot;,&quot;community&quot;,&quot;market&quot;],&quot;default&quot;:&quot;agent&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;team&quot;,&quot;notif&quot;,&quot;profile&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;isTeamAdmin&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;isPlatformAdmin&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;unread&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  dot(status) {
+    const c = { running: 'oklch(0.596 0.145 163.225)', starting: 'oklch(0.666 0.179 58.318)', error: 'oklch(0.586 0.253 17.585)' }[status] || 'oklch(0.556 0 0)';
+    return React.createElement('span', { style: { width: 8, height: 8, borderRadius: '50%', background: c, flex: 'none', display: 'inline-block', animation: status === 'starting' ? 'kacpBlink 1.2s ease-in-out infinite' : 'none' } });
+  }
+  renderVals() {
+    const p = this.props;
+    const active = p.active ?? 'agent';
+    const open = p.open ?? '';
+    const st = p.teamStatus ?? 'running';
+    const teamName = p.team ?? '마케팅팀';
+    const label = { running: '사용 가능', starting: '준비 중', error: '문제 발생', stopped: '쉬는 중', stopping: '정리 중' };
+    const teams = [
+      { id: 'marketing', name: teamName, status: st },
+      { id: 'data', name: '데이터분석팀', status: 'stopped' },
+      { id: 'newbiz', name: '신사업TF', status: 'running' },
+    ].map((t, i) => ({ ...t, dot: this.dot(t.status), label: label[t.status], current: i === 0, notCurrent: i !== 0 }));
+    const mk = arr => arr.map(([k, l]) => ({ label: l, active: k === active, inactive: k !== active }));
+    const unread = p.unread ?? 3;
+    const notifs = [
+      { kind: 'alert', title: '신사업TF 팀 에이전트에 문제가 생겼어요', time: '3분 전', unread: true },
+      { kind: 'globe', title: 'lunch-vote 앱이 Public으로 공개됐어요', time: '42분 전', unread: true },
+      { kind: 'plug', title: 'notion-sync 1.2.0 빌드가 끝났어요', time: '2시간 전', unread: true },
+      { kind: 'bot', title: '마케팅팀에 "보고서 도우미" 에이전트가 할당됐어요', time: '2026-09-29 16:20', unread: false },
+    ].map(n => ({ ...n, isPlug: n.kind === 'plug', isGlobe: n.kind === 'globe', isAlert: n.kind === 'alert', isBot: n.kind === 'bot' }));
+    return {
+      teamName, teams, teamDot: this.dot(st),
+      teamNav: mk([['agent', '에이전트'], ['drive', '드라이브'], ['apps', '배포관리']]),
+      orgNav: mk([['community', '커뮤니티'], ['market', 'MCP 마켓']]),
+      openTeam: open === 'team', openNotif: open === 'notif', openProfile: open === 'profile',
+      switcherBg: open === 'team' ? 'oklch(0.97 0 0)' : 'transparent',
+      bellBg: open === 'notif' ? 'oklch(0.97 0 0)' : 'transparent',
+      isTeamAdmin: p.isTeamAdmin ?? true, isPlatformAdmin: p.isPlatformAdmin ?? false,
+      unread, hasUnread: unread > 0, notifs,
+      userName: p.userName ?? '김하늘', userEmail: p.userEmail ?? 'haneul.kim@kcc.co.kr',
+      initial: (p.userName ?? '김하늘').slice(0, 1),
+    };
+  }
+}
+</script>
+</body>
+</html>

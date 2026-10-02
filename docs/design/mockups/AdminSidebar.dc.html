@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<sc-if value="{{ expanded }}" hint-placeholder-val="{{ true }}">
+<aside style="width:256px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;background:oklch(0.985 0 0);border-right:1px solid oklch(0.922 0 0);font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;font-size:13.5px;color:oklch(0.145 0 0)">
+  <div style="height:48px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0)">
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">K</div>
+    <span style="font-weight:600;font-size:14px">KACP</span>
+    <span style="height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:11.5px;font-weight:500">관리자</span>
+    <span style="flex:1"></span>
+    <span style="width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="panel-left" hint-size="16px,16px"></dc-import></span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:1px;padding:12px 8px">
+    <sc-for list="{{ items }}" as="m" hint-placeholder-count="10">
+      <sc-if value="{{ m.group }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px 6px;font-size:11.5px;color:oklch(0.556 0 0)">{{ m.group }}</div></sc-if>
+      <div style="display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;background:{{ m.bg }};font-weight:{{ m.w }};cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+        <dc-import name="Icon" n="{{ m.icon }}" color="{{ m.ic }}" hint-size="16px,16px"></dc-import>
+        <span style="flex:1">{{ m.label }}</span>
+        <sc-if value="{{ m.badge }}" hint-placeholder-val="{{ false }}"><span style="min-width:20px;height:20px;box-sizing:border-box;padding:0 6px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;font-variant-numeric:tabular-nums">{{ m.badge }}</span></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid oklch(0.922 0 0)">
+    <span style="width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:oklch(0.97 0 0);border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:12px;font-weight:600">이</span>
+    <div style="flex:1;display:flex;flex-direction:column"><span style="font-size:13px;font-weight:500">이서진</span><span style="font-size:11.5px;color:oklch(0.556 0 0)">플랫폼 관리자</span></div>
+    <span style="font-size:12px;color:oklch(0.556 0 0)">사원 화면으로</span>
+  </div>
+</aside>
+</sc-if>
+<sc-if value="{{ collapsed }}" hint-placeholder-val="{{ false }}">
+<aside style="width:48px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;background:oklch(0.985 0 0);border-right:1px solid oklch(0.922 0 0);font-family:Inter,'Pretendard Variable',Pretendard,sans-serif;color:oklch(0.145 0 0)">
+  <div style="height:48px;width:100%;box-sizing:border-box;display:grid;place-items:center;border-bottom:1px solid oklch(0.922 0 0)">
+    <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">K</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 0">
+    <sc-for list="{{ items }}" as="m" hint-placeholder-count="10">
+      <sc-if value="{{ m.group }}" hint-placeholder-val="{{ false }}"><div style="width:20px;height:1px;background:oklch(0.922 0 0);margin:8px 0"></div></sc-if>
+      <div title="{{ m.label }}" style="position:relative;width:32px;height:32px;border-radius:6px;display:grid;place-items:center;background:{{ m.bg }};cursor:pointer" style-hover="background:oklch(0.97 0 0)">
+        <dc-import name="Icon" n="{{ m.icon }}" color="{{ m.ic }}" hint-size="16px,16px"></dc-import>
+        <sc-if value="{{ m.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:oklch(0.205 0 0)"></span></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding:12px 0;border-top:1px solid oklch(0.922 0 0);width:100%;display:grid;place-items:center;gap:8px">
+    <span style="width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="panel-left" hint-size="16px,16px"></dc-import></span>
+    <span style="width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:oklch(0.97 0 0);border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:12px;font-weight:600">이</span>
+  </div>
+</aside>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:256,&quot;height&quot;:680},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dash&quot;,&quot;org&quot;,&quot;users&quot;,&quot;teams&quot;,&quot;agents&quot;,&quot;review&quot;,&quot;deploy&quot;,&quot;mcp&quot;,&quot;settings&quot;,&quot;audit&quot;],&quot;default&quot;:&quot;dash&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;collapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active ?? 'dash';
+    const c = !!this.props.collapsed;
+    const list = [
+      ['dash', '대시보드', 'layout-dashboard'],
+      ['org', '조직', 'building', '', '사람'], ['users', '사용자', 'user'],
+      ['teams', '팀', 'users', '', '팀과 에이전트'], ['agents', '에이전트 템플릿', 'sparkles'],
+      ['review', 'MCP 심사', 'shield-check', '2', '심사·승인'], ['deploy', '배포 승인', 'badge-check', '3'],
+      ['mcp', 'MCP 관리', 'plug', '', '운영'], ['settings', '플랫폼 설정', 'settings'], ['audit', '활동 기록', 'history'],
+    ];
+    return { expanded: !c, collapsed: c, items: list.map(([k, label, icon, badge, group]) => ({ label, icon, badge: badge || '', group: group || '', bg: k === a ? 'oklch(0.97 0 0)' : 'transparent', w: k === a ? 500 : 400, ic: k === a ? 'oklch(0.145 0 0)' : 'oklch(0.556 0 0)' })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpIndet{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}@keyframes kacpSpin{to{transform:rotate(360deg)}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="tc4">
+  <div class="dv-thd"><a class="dv-tid" href="#tc4">C4</a><span class="dv-tname">C-04 오류·안내 페이지 · 같은 레이아웃, 문구만 다름 · 1280×560</span></div>
+  <div class="dv-opts">
+    <sc-for list="{{ pages }}" as="p" hint-placeholder-count="6">
+      <div class="dv-opt" id="{{ p.id }}">
+        <div class="dv-olabel"><span class="dv-oid">{{ p.id }}</span>{{ p.label }}</div>
+        <div class="dv-card" style="width:1280px;height:560px;display:flex;flex-direction:column">
+          <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0)">
+            <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">K</div><span style="font-weight:600;font-size:14px">KACP</span>
+            <span style="margin-left:auto;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">{{ p.host }}</span>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center">
+            <div style="width:440px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center">
+              <sc-if value="{{ p.spin }}" hint-placeholder-val="{{ false }}"><dc-import name="Icon" n="loader" size="32" spin="{{ true }}" hint-size="32px,32px"></dc-import></sc-if>
+              <sc-if value="{{ p.icon }}" hint-placeholder-val="{{ true }}"><div style="width:64px;height:64px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="{{ p.ic }}" size="32" color="{{ p.icColor }}" hint-size="32px,32px"></dc-import></div></sc-if>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">{{ p.code }}</span>
+                <span style="font-size:20px;font-weight:600;letter-spacing:-0.01em">{{ p.title }}</span>
+                <span style="font-size:14px;color:oklch(0.556 0 0);line-height:1.55;text-wrap:pretty">{{ p.desc }}</span>
+              </div>
+              <sc-if value="{{ p.bar }}" hint-placeholder-val="{{ false }}">
+                <div style="width:280px;display:flex;flex-direction:column;gap:8px"><div style="height:6px;border-radius:3px;background:oklch(0.97 0 0);overflow:hidden">{{ indet }}</div><span style="font-size:12px;color:oklch(0.556 0 0)">켜지면 자동으로 새로고침돼요</span></div>
+              </sc-if>
+              <sc-if value="{{ p.reason }}" hint-placeholder-val="{{ false }}">
+                <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:14px 16px;text-align:left"><span style="font-size:12px;color:oklch(0.556 0 0)">사유</span><span style="font-size:14px;line-height:1.5">외부 개인정보 수집 동의 문구가 없어요.</span><span style="font-size:12px;color:oklch(0.556 0 0)">관리자가 중지함 · 2026-09-30 11:20</span></div>
+              </sc-if>
+              <sc-if value="{{ p.hasBtn }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;gap:8px">
+                  <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">{{ p.btn }}</span>
+                  <sc-if value="{{ p.hasBtn2 }}" hint-placeholder-val="{{ false }}"><span style="height:36px;padding:0 16px;box-sizing:border-box;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">{{ p.btn2 }}</span></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <p class="dv-next">Try next: "C-01 로그인으로"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const base = { spin: false, icon: true, bar: false, reason: false, hasBtn: true, hasBtn2: false, icColor: 'oklch(0.145 0 0)' };
+    const pages = [
+      { id: 'C4a', label: '앱 깨우는 중 · idle (오래 안 써서 잠듦)', host: 'survey-dash--marketing.kacp.cloud', spin: true, icon: false, bar: true, hasBtn: false, code: '잠듦 → 시작 중', title: '앱을 깨우고 있어요', desc: '오래 쓰지 않아 잠들어 있던 앱이에요.' },
+      { id: 'C4g', label: '앱 깨우는 중 · limit (실행 한도로 잠듦, 작업본만)', host: 'event-map--marketing.kacp.cloud', spin: true, icon: false, bar: true, hasBtn: false, code: '잠듦 → 시작 중', title: '앱을 깨우고 있어요', desc: '실행 중인 앱이 많아 잠시 쉬고 있던 앱이에요.' },
+      { id: 'C4b', label: '앱 멈춤 · 사람이 멈춘 앱(팀원이 볼 때)', host: 'data-clean--marketing.kacp.cloud', ic: 'square', code: '멈춤', title: '이 앱은 지금 멈춰 있어요', desc: '팀원이 앱을 멈췄어요. 배포관리에서 다시 시작할 수 있어요.', btn: '배포관리에서 보기' },
+      { id: 'C4j', label: '앱 멈춤 · 사람이 멈춘 공개본(비멤버가 볼 때, 버튼 없음) · 추가', host: 'campaign-report.kacp.cloud', ic: 'square', code: '멈춤', title: '이 앱은 지금 멈춰 있어요', desc: '앱을 만든 팀이 잠시 멈췄어요. 나중에 다시 열어 주세요.', hasBtn: false },
+      { id: 'C4c', label: '관리자가 중지함 · 공개본(비멤버가 볼 때)', host: 'lunch-vote.kacp.cloud', ic: 'shield-alert', code: '관리자가 중지함', title: '이 앱은 지금 멈춰 있어요', desc: '플랫폼 관리자가 이 앱의 공개를 멈췄어요.', reason: true, hasBtn: false },
+      { id: 'C4i', label: '관리자가 중지함 · 공개본(그 팀 팀원이 볼 때)', host: 'lunch-vote.kacp.cloud', ic: 'shield-alert', code: '관리자가 중지함', title: '이 앱은 지금 멈춰 있어요', desc: '작업본은 그대로 있어요. 사유를 고친 뒤 다시 요청하세요.', reason: true, btn: '다시 요청' },
+      { id: 'C4d', label: '404 · 없는 팀·앱 주소', host: 'lunchvote.kacp.cloud', ic: 'search', code: '404', title: '페이지를 찾을 수 없어요', desc: '주소를 확인해 주세요. 앱 이름이 바뀌었을 수도 있어요.', btn: '홈으로' },
+      { id: 'C4e', label: '403 · 다른 팀 주소 (팀 이름 대신 주소만)', host: 'data.kacp.cloud', ic: 'lock', code: '403', title: '이 팀 멤버만 볼 수 있어요', desc: '이 주소의 팀에 속해 있지 않아요. 필요하면 그 팀의 팀 관리자에게 요청하세요.', btn: '내 팀으로' },
+      { id: 'C4f', label: '점검 중 · 플랫폼 오류', host: 'app.kacp.cloud', ic: 'alert', code: '503', title: '잠시 점검 중이에요', desc: '곧 다시 쓸 수 있어요. 잠시 후 다시 시도해 주세요.', btn: '다시 시도' },
+    ];
+    const indet = React.createElement('div', { style: { width: '40%', height: '100%', borderRadius: 3, background: 'oklch(0.205 0 0)', animation: 'kacpIndet 1.4s ease-in-out infinite' } });
+    return { indet, pages: pages.map(p => ({ ...base, ...p })) };
+  }
+}
+</script>
+</body>
+</html>

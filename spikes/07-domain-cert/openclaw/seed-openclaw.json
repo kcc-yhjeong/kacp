@@ -1,0 +1,21 @@
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "publicOrigin": "https://team1.kacp.cloud",
+    "trustedProxies": ["172.30.0.10"],
+    "controlUi": { "basePath": "/claw", "allowedOrigins": ["https://team1.kacp.cloud"] },
+    "auth": {
+      "mode": "trusted-proxy",
+      "password": { "source": "env", "provider": "default", "id": "OPENCLAW_GATEWAY_PASSWORD" },
+      "identityScopes": { "alice@kcc.dev": ["operator.admin"] },
+      "trustedProxy": { "userHeader": "x-forwarded-user", "allowLoopback": false, "deviceAutoApprove": { "enabled": true } }
+    },
+    "roles": {
+      "default": "member",
+      "definitions": { "member": { "sessions": { "others": "write" }, "agents": "*", "scopes": ["operator.admin"] } }
+    }
+  },
+  "tools": { "sessions": { "visibility": "tree" } },
+  "plugins": { "entries": { "admin-http-rpc": { "enabled": true } } }
+}

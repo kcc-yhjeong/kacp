@@ -1,0 +1,2667 @@
+openapi: 3.1.0
+info:
+  title: KACP API
+  version: 0.1.0-draft
+  description: |
+    KCC Agent Cloud Platform 외부 API (0단계 초안).
+    규칙과 내부 API는 docs/design/04-api.md 참고.
+    상태 변경 요청은 X-KACP-CSRF 헤더가 필요하다.
+servers:
+  - url: https://app.kacp.cloud/api/v1
+security:
+  - session: []
+tags:
+  - name: auth
+  - name: me
+  - name: org
+  - name: names
+  - name: teams
+  - name: drive
+  - name: apps
+  - name: mcp
+  - name: posts
+  - name: admin
+
+paths:
+  # ───────────── auth ─────────────
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: 로그인
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: 성공. Set-Cookie kacp_session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: 로그아웃
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 완료 }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: 내 정보
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+          description: OK
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/password:
+    post:
+      tags: [auth]
+      summary: 비밀번호 변경 (첫 로그인 포함)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                currentPassword: { type: string, description: 첫 로그인 설정 세션이면 생략 }
+                newPassword: { type: string, minLength: 10 }
+      responses:
+        '204': { description: 변경됨. 다른 세션 폐기 }
+        '400': { $ref: '#/components/responses/Error' }
+
+  # ───────────── me ─────────────
+  /me/teams:
+    get:
+      tags: [me]
+      summary: 소속 팀
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/MyTeam' }
+  /me/sessions:
+    get:
+      tags: [me]
+      summary: 내 로그인 세션
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/SessionInfo' }
+    delete:
+      tags: [me]
+      summary: 현재 세션 외 모두 로그아웃
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 완료 }
+  /me/notifications:
+    get:
+      tags: [me]
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Notification' }
+  /me/notifications/unread-count:
+    get:
+      tags: [me]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+  /me/notifications/read:
+    post:
+      tags: [me]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: { type: array, items: { type: string, format: uuid } }
+                all: { type: boolean }
+      responses:
+        '204': { description: 완료 }
+  /me/mcp/packages:
+    get:
+      tags: [mcp]
+      summary: 내가 올린 MCP 패키지와 버전
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/McpPackageSummary'
+                        - properties:
+                            versions:
+                              type: array
+                              items: { $ref: '#/components/schemas/McpVersion' }
+
+  # ───────────── org ─────────────
+  /departments:
+    get:
+      tags: [org]
+      summary: 부서 트리 (선택 화면용)
+      parameters:
+        - { name: includeArchived, in: query, schema: { type: boolean, default: false }, description: 관리자만 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DepartmentNode' }
+  /users/search:
+    get:
+      tags: [org]
+      summary: 사람 찾기 (멤버 추가용)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: departmentId, in: query, schema: { type: string, format: uuid } }
+        - { name: includeDescendants, in: query, schema: { type: boolean, default: true } }
+      responses:
+        '200':
+          description: 최대 20명
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserRef' }
+
+  # ───────────── names ─────────────
+  /names/check:
+    get:
+      tags: [names]
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available: { type: boolean }
+                  reason:
+                    type: [string, 'null']
+                    enum: [NAME_INVALID, NAME_RESERVED, NAME_TAKEN, null]
+  /names/{name}:
+    get:
+      tags: [names]
+      security: []
+      summary: 호스트 분류 (web 404 판단용)
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hostKind: { type: string, enum: [team, public_app, private_app, none], description: "호스트 분류(names.kind와 다른 값)" }
+                  running: { type: boolean }
+
+  # ───────────── teams ─────────────
+  /teams/{team}:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [teams]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamDetail' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /teams/{team}/status:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [teams]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamStatus' }
+  /teams/{team}/session:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [teams]
+      summary: 에이전트 셸 진입 — 기동 보장 + presence 등록
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: 이미 실행 중
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamStatus' }
+        '202':
+          description: 기동 시작
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamStatus' }
+  /teams/{team}/heartbeat:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [teams]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: OK }
+  /teams/{team}/members:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [teams]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Member' }
+    post:
+      tags: [teams]
+      summary: 멤버 추가 (팀 관리자)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: email 하나 또는 userIds 여러 명
+              properties:
+                email: { type: string, format: email }
+                userIds: { type: array, items: { type: string, format: uuid } }
+                teamRole: { $ref: '#/components/schemas/TeamRole' }
+      responses:
+        '201':
+          description: 추가됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /teams/{team}/members/{userId}:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { $ref: '#/components/parameters/UserId' }
+    patch:
+      tags: [teams]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teamRole]
+              properties:
+                teamRole: { $ref: '#/components/schemas/TeamRole' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+    delete:
+      tags: [teams]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 제거됨 }
+        '409': { $ref: '#/components/responses/Error' }
+
+  # ───────────── drive ─────────────
+  /teams/{team}/drive/list:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      parameters:
+        - { $ref: '#/components/parameters/Space' }
+        - { $ref: '#/components/parameters/DrivePath' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  path: { type: string }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DriveEntry' }
+  /teams/{team}/drive/search:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      parameters:
+        - { $ref: '#/components/parameters/Space' }
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DriveEntry' }
+  /teams/{team}/drive/meta:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      parameters:
+        - { $ref: '#/components/parameters/Space' }
+        - { $ref: '#/components/parameters/DrivePath' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriveMeta' }
+  /teams/{team}/drive/download:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      parameters:
+        - { $ref: '#/components/parameters/Space' }
+        - { $ref: '#/components/parameters/DrivePath' }
+        - { name: inline, in: query, schema: { type: boolean }, description: 미리보기용 Content-Disposition inline }
+      responses:
+        '200':
+          description: 파일 스트림 (폴더는 application/zip)
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /teams/{team}/drive/download-zip:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [space, paths]
+              properties:
+                space: { $ref: '#/components/schemas/Space' }
+                paths: { type: array, items: { type: string } }
+      responses:
+        '200':
+          description: zip 스트림
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+  /teams/{team}/drive/upload:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/Space' }
+        - { $ref: '#/components/parameters/DrivePath' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items: { type: string, format: binary }
+                relativePaths:
+                  type: array
+                  items: { type: string }
+                  description: 폴더 업로드 시 파일별 상대 경로
+      responses:
+        '201':
+          description: 저장됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/DriveEntry' }
+        '413': { $ref: '#/components/responses/Error' }
+  /teams/{team}/drive/folder:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DriveRef' }
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriveEntry' }
+        '409': { $ref: '#/components/responses/Error' }
+  /teams/{team}/drive/rename:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/DriveRef'
+                - type: object
+                  required: [newName]
+                  properties:
+                    newName: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriveEntry' }
+  /teams/{team}/drive/move:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DriveTransfer' }
+      responses:
+        '204': { description: 완료 }
+  /teams/{team}/drive/copy:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DriveTransfer' }
+      responses:
+        '204': { description: 완료 }
+  /teams/{team}/drive/usage:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      summary: 팀 드라이브 사용량 (한도 = teams.resource_limits.diskGb)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usedBytes: { type: integer }
+                  limitBytes: { type: integer }
+  /teams/{team}/drive/trash:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [drive]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/TrashItem' }
+    post:
+      tags: [drive]
+      summary: 휴지통으로 이동
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [space, paths]
+              properties:
+                space: { $ref: '#/components/schemas/Space' }
+                paths: { type: array, items: { type: string } }
+      responses:
+        '204': { description: 완료 }
+    delete:
+      tags: [drive]
+      summary: 휴지통 비우기 — 지운 사람 본인 항목만, 팀 관리자는 팀 공유 항목 전부
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 영구 삭제 }
+  /teams/{team}/drive/trash/{id}/restore:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { $ref: '#/components/parameters/Id' }
+    post:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: 복원됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DriveEntry' }
+  /teams/{team}/drive/trash/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { $ref: '#/components/parameters/Id' }
+    delete:
+      tags: [drive]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 영구 삭제 }
+
+  # ───────────── apps ─────────────
+  /teams/{team}/apps:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [apps]
+      parameters:
+        - { name: work, in: query, schema: { type: string, enum: [running, sleeping, stopped, error] }, description: "sleeping = stopped + stopReason idle·limit, stopped = stopped + stopReason manual·admin" }
+        - { name: public, in: query, schema: { type: string, enum: [none, publish_pending, update_pending, live] }, description: "none = 미공개(대기 요청 없음), publish_pending = 공개 요청 대기, update_pending = 공개 중 + 업데이트 요청 대기, live = 공개 중(대기 없음)" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runningWorkCount: { type: integer }
+                  runningWorkLimit: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/App' }
+  /public-apps:
+    get:
+      tags: [apps]
+      summary: 공개 중인 앱 목록 (U-13 첨부 선택용)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/PublicAppSummary' }
+  /apps/{appId}:
+    parameters: [{ $ref: '#/components/parameters/AppId' }]
+    get:
+      tags: [apps]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AppDetail' }
+    delete:
+      tags: [apps]
+      summary: 앱 삭제 (팀 관리자)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { description: "삭제 진행 (두 사본·두 데이터, 원본 폴더 유지)" }
+  /apps/{appId}/stats:
+    parameters: [{ $ref: '#/components/parameters/AppId' }]
+    get:
+      tags: [apps]
+      parameters:
+        - { $ref: '#/components/parameters/CopyTarget' }
+        - { name: range, in: query, schema: { type: string, enum: [1h, 24h], default: 1h } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Series' }
+  /apps/{appId}/logs:
+    parameters: [{ $ref: '#/components/parameters/AppId' }]
+    get:
+      tags: [apps]
+      parameters:
+        - { $ref: '#/components/parameters/CopyTarget' }
+        - { name: tail, in: query, schema: { type: integer, default: 500, maximum: 5000 } }
+      responses:
+        '200':
+          description: 로그 텍스트
+          content:
+            text/plain:
+              schema: { type: string }
+  /apps/{appId}/work/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/AppId' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [start, stop, restart] } }
+    post:
+      tags: [apps]
+      summary: 작업본 제어
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202':
+          description: 접수
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/App' }
+        '409': { $ref: '#/components/responses/Error' }
+  /apps/{appId}/public/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/AppId' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [start, stop, restart] } }
+    post:
+      tags: [apps]
+      summary: 공개본 제어 (관리자 강제 중지 상태면 409)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202':
+          description: 접수
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/App' }
+        '409': { $ref: '#/components/responses/Error' }
+  /apps/{appId}/public-request:
+    parameters: [{ $ref: '#/components/parameters/AppId' }]
+    post:
+      tags: [apps]
+      summary: 공개 요청 — 미공개면 publish(name 필수), 공개 중이면 update
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                name: { $ref: '#/components/schemas/Name' }
+                reason: { type: string, maxLength: 500, description: "publish: 공개 이유 / update: 변경 내용" }
+      responses:
+        '201':
+          description: 요청됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeployRequest' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [apps]
+      summary: 대기 중 요청 취소
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 취소됨 }
+  /apps/{appId}/unpublish:
+    parameters: [{ $ref: '#/components/parameters/AppId' }]
+    post:
+      tags: [apps]
+      summary: 공개 중지 (팀 관리자, 공개본·공개 주소 제거, 작업본 유지)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { description: 진행 }
+  /app-hosts/{host}:
+    parameters:
+      - { name: host, in: path, required: true, schema: { type: string }, description: "앱 호스트의 첫 라벨 (예: lunch-vote--team1, sprint-board)" }
+    get:
+      tags: [apps]
+      security: []
+      summary: 앱 호스트 상태 (C-04 판단용)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists: { type: boolean }
+                  copy: { oneOf: [{ $ref: '#/components/schemas/AppCopyKind' }, { type: 'null' }] }
+                  appId: { type: [string, 'null'], format: uuid }
+                  status: { oneOf: [{ $ref: '#/components/schemas/AppStatus' }, { type: 'null' }] }
+                  stopReason: { oneOf: [{ $ref: '#/components/schemas/StopReason' }, { type: 'null' }] }
+                  statusDetail: { type: [string, 'null'], description: 관리자 강제 중지 사유(로그인 사용자에게만) }
+                  canWake: { type: boolean }
+  /app-hosts/{host}/wake:
+    parameters:
+      - { name: host, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [apps]
+      summary: 잠든 사본 깨우기 (stopReason idle·limit)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { description: 기동 중 }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  # ───────────── mcp ─────────────
+  /mcp/packages:
+    get:
+      tags: [mcp]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [popular, recent], default: popular } }
+        - { name: team, in: query, schema: { type: string }, description: 이 팀 설치 여부 표시용 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/McpPackageSummary' }
+  /mcp/packages/{pkg}:
+    parameters: [{ $ref: '#/components/parameters/Pkg' }]
+    get:
+      tags: [mcp]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpPackageDetail' }
+  /mcp/packages/{pkg}/versions/{ver}:
+    parameters:
+      - { $ref: '#/components/parameters/Pkg' }
+      - { name: ver, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [mcp]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpVersion' }
+  /mcp/packages/{pkg}/versions/{ver}/logs:
+    parameters:
+      - { $ref: '#/components/parameters/Pkg' }
+      - { name: ver, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [mcp]
+      parameters:
+        - { name: stage, in: query, required: true, schema: { type: string, enum: [validate, build, scan, test] } }
+      responses:
+        '200':
+          description: 로그
+          content:
+            text/plain:
+              schema: { type: string }
+  /mcp/uploads:
+    post:
+      tags: [mcp]
+      summary: MCP zip 업로드 (새 버전)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: 접수. 빌드 대기열에 들어감
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpVersion' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /teams/{team}/mcp/installs:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [mcp]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teamRunning: { type: boolean }
+                  lastSyncedAt: { type: [string, 'null'], format: date-time }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/McpInstall' }
+    post:
+      tags: [mcp]
+      summary: 마켓 MCP 설치 (팀 관리자)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [packageName]
+              properties:
+                packageName: { type: string }
+                version: { type: string, description: 생략 시 최신 게시 버전 }
+                secrets:
+                  type: object
+                  additionalProperties: { type: string }
+                  description: 팀 범위 비밀값. 저장하지 않고 팀 Secret Store로 전달
+      responses:
+        '202':
+          description: 설치 진행
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpInstall' }
+        '409': { $ref: '#/components/responses/Error' }
+  /teams/{team}/mcp/installs/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { $ref: '#/components/parameters/Id' }
+    delete:
+      tags: [mcp]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { description: 제거 진행 }
+  /teams/{team}/mcp/installs/{id}/secrets:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { $ref: '#/components/parameters/Id' }
+    put:
+      tags: [mcp]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secrets]
+              properties:
+                secrets: { type: object, additionalProperties: { type: string } }
+      responses:
+        '204': { description: 반영됨 }
+  /teams/{team}/mcp/manual:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    post:
+      tags: [mcp]
+      summary: 직접 추가 MCP (팀 관리자, 검토되지 않음)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url]
+              properties:
+                name: { type: string }
+                url: { type: string, format: uri }
+                headers: { type: object, additionalProperties: { type: string } }
+                secrets: { type: object, additionalProperties: { type: string } }
+      responses:
+        '202':
+          description: 추가 진행
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpInstall' }
+
+  # ───────────── posts ─────────────
+  /posts:
+    get:
+      tags: [posts]
+      parameters:
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/PostCategory' } }
+        - { name: q, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/PostSummary' }
+    post:
+      tags: [posts]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostInput' }
+      responses:
+        '201':
+          description: 작성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+  /posts/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [posts]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+    patch:
+      tags: [posts]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+    delete:
+      tags: [posts]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 삭제됨 }
+
+  # ───────────── admin ─────────────
+  /admin/dashboard:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+  /admin/metrics:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: target, in: query, required: true, schema: { type: string, description: "vm | team:{name} | app:{id}" } }
+        - { name: range, in: query, schema: { type: string, enum: [24h, 7d], default: 24h } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Series' }
+  /admin/users:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: role, in: query, schema: { $ref: '#/components/schemas/PlatformRole' } }
+        - { name: status, in: query, schema: { type: string, enum: [active, disabled, must_change_password] } }
+        - { name: team, in: query, schema: { type: string } }
+        - { name: departmentId, in: query, schema: { type: string, format: uuid } }
+        - { name: includeDescendants, in: query, schema: { type: boolean, default: true } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminUser' }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string }
+                departmentId: { type: string, format: uuid }
+                title: { type: string }
+                employeeNo: { type: string }
+                platformRole: { $ref: '#/components/schemas/PlatformRole' }
+                initialPassword: { type: string, description: 생략 시 자동 생성 }
+                teams:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      team: { type: string }
+                      teamRole: { $ref: '#/components/schemas/TeamRole' }
+      responses:
+        '201':
+          description: 생성됨. 초기 비밀번호는 이 응답에서만 반환
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/AdminUser' }
+                  initialPassword: { type: string }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/users/{userId}:
+    parameters: [{ $ref: '#/components/parameters/UserId' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AdminUser'
+                  - properties:
+                      recentLogins:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            at: { type: string, format: date-time }
+                            ip: { type: string }
+                            success: { type: boolean }
+    patch:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                departmentId: { type: [string, 'null'], format: uuid }
+                title: { type: [string, 'null'] }
+                employeeNo: { type: [string, 'null'] }
+                platformRole: { $ref: '#/components/schemas/PlatformRole' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUser' }
+  /admin/users/{userId}/reset-password:
+    parameters: [{ $ref: '#/components/parameters/UserId' }]
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: 임시 비밀번호(1회 표시)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  temporaryPassword: { type: string }
+  /admin/users/{userId}/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/UserId' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [disable, enable] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                restartTeams: { type: boolean, description: 열린 WebSocket을 끊기 위해 소속 팀 컨테이너 재시작 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUser' }
+  /admin/users/bulk-department:
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds, departmentId]
+              properties:
+                userIds: { type: array, items: { type: string, format: uuid } }
+                departmentId: { type: string, format: uuid }
+      responses:
+        '204': { description: 변경됨 }
+  /admin/departments:
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DepartmentInput' }
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/departments/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DepartmentInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+  /admin/departments/{id}/move:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [parentId]
+              properties:
+                parentId: { type: [string, 'null'], format: uuid }
+                sortOrder: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/departments/{id}/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [archive, unarchive] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Department' }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/departments/{id}/members:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [admin]
+      parameters:
+        - { name: includeDescendants, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminUser' }
+  /admin/import/{kind}/preview:
+    parameters:
+      - { name: kind, in: path, required: true, schema: { type: string, enum: [departments, users] } }
+    post:
+      tags: [admin]
+      summary: CSV 미리보기 (저장하지 않음)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: 미리보기
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportJob' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/import/{kind}/apply:
+    parameters:
+      - { name: kind, in: path, required: true, schema: { type: string, enum: [departments, users] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jobId]
+              properties:
+                jobId: { type: string, format: uuid }
+                skipErrors: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 적용 결과
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ImportJob'
+                  - type: object
+                    properties:
+                      initialPasswordsCsv:
+                        type: [string, 'null']
+                        description: users 가져오기에서 새로 만든 계정의 초기 비밀번호 CSV. 이 응답에서만 한 번 제공
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/teams:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminTeam' }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, displayName]
+              properties:
+                name: { $ref: '#/components/schemas/Name' }
+                displayName: { type: string }
+                adminEmails: { type: array, items: { type: string, format: email } }
+                memberUserIds: { type: array, items: { type: string, format: uuid } }
+                resourceLimits: { $ref: '#/components/schemas/ResourceLimits' }
+      responses:
+        '202':
+          description: 프로비저닝 진행
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeam' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/teams/{team}:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeamDetail' }
+    patch:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminTeam' }
+    delete:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmName]
+              properties:
+                confirmName: { type: string }
+      responses:
+        '202': { description: 삭제 진행 }
+  /admin/teams/{team}/container/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [start, stop, restart] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202':
+          description: 접수
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeamStatus' }
+  /admin/teams/{team}/resources:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    put:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResourceLimits' }
+      responses:
+        '200':
+          description: 적용됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResourceLimits' }
+  /admin/teams/{team}/agents:
+    parameters: [{ $ref: '#/components/parameters/Team' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamAgent' }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateIds]
+              properties:
+                templateIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '202':
+          description: 반영 대기
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamAgent' }
+  /admin/teams/{team}/agents/{templateId}:
+    parameters:
+      - { $ref: '#/components/parameters/Team' }
+      - { name: templateId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '202': { description: 해제 반영 대기 }
+  /admin/agent-templates:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AgentTemplate' }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgentTemplateInput' }
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AgentTemplate' }
+  /admin/agent-templates/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AgentTemplate' }
+    put:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgentTemplateInput' }
+      responses:
+        '200':
+          description: 저장됨(version +1, 할당 팀 pending)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AgentTemplate' }
+    delete:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: 삭제됨 }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/mcp/reviews:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: 심사 대기 버전
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/McpVersion' }
+  /admin/mcp/versions/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/McpVersion'
+                  - properties:
+                      previous: { $ref: '#/components/schemas/McpVersion' }
+                      scanFindings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: string }
+                            severity: { type: string, enum: [critical, high, medium, low] }
+                            package: { type: string }
+                            title: { type: string }
+  /admin/mcp/versions/{id}/source:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: 소스 zip
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+  /admin/mcp/versions/{id}/{decision}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: decision, in: path, required: true, schema: { type: string, enum: [approve, reject] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, description: 반려 시 필수 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpVersion' }
+  /admin/mcp/packages:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/McpPackageSummary' }
+  /admin/mcp/packages/{pkg}/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/Pkg' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [suspend, resume] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                removeInstalls: { type: boolean, default: false }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpPackageSummary' }
+  /admin/mcp/packages/{pkg}/default:
+    parameters: [{ $ref: '#/components/parameters/Pkg' }]
+    put:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isDefault]
+              properties:
+                isDefault: { type: boolean }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/McpPackageSummary' }
+  /admin/mcp/installs:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: team, in: query, schema: { type: string } }
+        - { name: source, in: query, schema: { $ref: '#/components/schemas/McpInstallSource' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/McpInstall'
+                        - properties:
+                            team: { type: string }
+  /admin/deploy-requests:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/DeployRequestStatus' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/DeployRequest'
+                        - properties:
+                            app: { $ref: '#/components/schemas/App' }
+                            sourceFiles:
+                              type: array
+                              items: { $ref: '#/components/schemas/DriveEntry' }
+                              description: publish일 때 원본 폴더 파일 목록
+  /admin/deploy-requests/{id}/{decision}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: decision, in: path, required: true, schema: { type: string, enum: [approve, reject] } }
+    post:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, description: 반려 시 필수 }
+      responses:
+        '202':
+          description: 승인 → 공개 진행 / 반려 완료
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeployRequest' }
+  /admin/apps:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: public, in: query, schema: { type: boolean } }
+        - { name: team, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/App' }
+  /admin/apps/{appId}/public/{action}:
+    parameters:
+      - { $ref: '#/components/parameters/AppId' }
+      - { name: action, in: path, required: true, schema: { type: string, enum: [force-stop, resume] } }
+    post:
+      tags: [admin]
+      summary: 공개본 강제 중지·해제 (작업본 영향 없음)
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, description: force-stop 시 필수 }
+      responses:
+        '202': { description: 진행 }
+  /admin/settings:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlatformSettings' }
+    put:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlatformSettings' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlatformSettings' }
+  /admin/settings/api-keys/{provider}:
+    parameters:
+      - { name: provider, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [admin]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key: { type: string }
+      responses:
+        '204': { description: 저장됨 }
+  /admin/audit-events:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { name: actor, in: query, schema: { type: string, format: uuid } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: targetType, in: query, schema: { type: string } }
+        - { name: team, in: query, schema: { type: string } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditEvent' }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: kacp_session
+
+  parameters:
+    Csrf:
+      name: X-KACP-CSRF
+      in: header
+      required: true
+      schema: { type: string }
+    Team:
+      name: team
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Name' }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AppId:
+      name: appId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    Pkg:
+      name: pkg
+      in: path
+      required: true
+      schema: { type: string }
+    Space:
+      name: space
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/Space' }
+    DrivePath:
+      name: path
+      in: query
+      required: true
+      schema: { type: string, default: / }
+    CopyTarget:
+      name: target
+      in: query
+      schema: { $ref: '#/components/schemas/AppCopyKind' }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, default: 50, maximum: 200 }
+
+  responses:
+    Error:
+      description: 오류
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [NAME_TAKEN] }
+            message: { type: string, description: 사용자에게 보여줄 한국어 문구 }
+            details: { type: object }
+    Page:
+      type: object
+      properties:
+        nextCursor: { type: [string, 'null'] }
+    Name:
+      type: string
+      pattern: '^[a-z0-9](?:[a-z0-9]|-(?!-)){1,28}[a-z0-9]$'
+      description: 3~30자, 소문자·숫자·하이픈, -- 금지
+    Space:
+      type: string
+      enum: [me, shared]
+    PlatformRole:
+      type: string
+      enum: [admin, user]
+    TeamRole:
+      type: string
+      enum: [team_admin, member]
+    TeamContainerStatus:
+      type: string
+      enum: [stopped, starting, running, stopping, error]
+    AppStatus:
+      type: string
+      enum: [starting, running, stopped, error]
+    AppCopyKind:
+      type: string
+      enum: [work, public]
+      description: work = 작업본(Private), public = 공개본(Public)
+    StopReason:
+      type: string
+      enum: [idle, limit, manual, admin]
+      description: stopped일 때만 값이 있다. 오류는 status=error + statusDetail로 표현한다
+    DeployRequestKind:
+      type: string
+      enum: [publish, update]
+    DeployRequestStatus:
+      type: string
+      enum: [pending, approved, rejected, cancelled]
+    McpVersionStatus:
+      type: string
+      enum: [uploaded, validating, building, scanning, testing, in_review, published, rejected, failed, superseded]
+    McpInstallStatus:
+      type: string
+      enum: [installing, installed, error, removing]
+    McpInstallSource:
+      type: string
+      enum: [default, market, manual]
+    ApplyStatus:
+      type: string
+      enum: [pending, applied, failed]
+    PostCategory:
+      type: string
+      enum: [notice, question, tip, mcp_share, app_share]
+
+    UserRef:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        departmentName: { type: [string, 'null'], description: 동명이인 구분용 표시 }
+    DepartmentRef:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        pathNames: { type: array, items: { type: string }, description: "최상위부터 (예: [경영지원본부, 인사팀])" }
+    Department:
+      allOf:
+        - $ref: '#/components/schemas/DepartmentRef'
+        - type: object
+          properties:
+            parentId: { type: [string, 'null'], format: uuid }
+            depth: { type: integer }
+            sortOrder: { type: integer }
+            head: { oneOf: [{ $ref: '#/components/schemas/UserRef' }, { type: 'null' }] }
+            status: { type: string, enum: [active, archived] }
+            memberCount: { type: integer, description: 이 부서만 }
+            totalMemberCount: { type: integer, description: 하위 포함 }
+    DepartmentNode:
+      allOf:
+        - $ref: '#/components/schemas/Department'
+        - type: object
+          properties:
+            children:
+              type: array
+              items: { $ref: '#/components/schemas/DepartmentNode' }
+    DepartmentInput:
+      type: object
+      properties:
+        name: { type: string }
+        code: { type: string }
+        parentId: { type: [string, 'null'], format: uuid }
+        headUserId: { type: [string, 'null'], format: uuid }
+        sortOrder: { type: integer }
+    ImportJob:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [departments, users] }
+        status: { type: string, enum: [previewed, applied, cancelled] }
+        fileName: { type: string }
+        summary:
+          type: object
+          properties:
+            added: { type: integer }
+            updated: { type: integer }
+            unchanged: { type: integer }
+            errors: { type: integer }
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              line: { type: integer }
+              action: { type: string, enum: [add, update, unchanged, error] }
+              key: { type: string, description: code 또는 email }
+              changes: { type: object, description: "바뀌는 칸 {field: [before, after]}" }
+              error: { type: [string, 'null'] }
+    Actor:
+      type: object
+      description: kind=agent 이면 user 는 null ("에이전트(팀)" — OpenClaw 가 MCP 호출자 신원을 넘기지 않음, spike 05)
+      properties:
+        kind: { type: string, enum: [user, agent, system] }
+        user: { oneOf: [{ $ref: '#/components/schemas/UserRef' }, { type: 'null' }] }
+    Me:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        platformRole: { $ref: '#/components/schemas/PlatformRole' }
+        department: { oneOf: [{ $ref: '#/components/schemas/DepartmentRef' }, { type: 'null' }] }
+        title: { type: [string, 'null'] }
+        mustChangePassword: { type: boolean }
+        csrfToken: { type: string }
+    MyTeam:
+      type: object
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        teamRole: { $ref: '#/components/schemas/TeamRole' }
+        containerStatus: { $ref: '#/components/schemas/TeamContainerStatus' }
+        url: { type: string, examples: ['https://team1.kacp.cloud'] }
+    SessionInfo:
+      type: object
+      properties:
+        id: { type: string }
+        current: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        ip: { type: string }
+        userAgent: { type: string }
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        title: { type: string }
+        link: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: [string, 'null'], format: date-time }
+    ResourceLimits:
+      type: object
+      properties:
+        cpu: { type: number, description: vCPU }
+        memoryMb: { type: integer }
+        diskGb: { type: integer }
+    TeamStatus:
+      type: object
+      properties:
+        status: { $ref: '#/components/schemas/TeamContainerStatus' }
+        detail: { type: [string, 'null'] }
+        activeUsers: { type: integer }
+        since: { type: string, format: date-time }
+    TeamAgent:
+      type: object
+      properties:
+        template: { $ref: '#/components/schemas/AgentTemplateSummary' }
+        templateVersion: { type: integer }
+        appliedVersion: { type: [integer, 'null'] }
+        applyStatus: { $ref: '#/components/schemas/ApplyStatus' }
+        applyError: { type: [string, 'null'] }
+    TeamDetail:
+      type: object
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        url: { type: string }
+        myRole: { $ref: '#/components/schemas/TeamRole' }
+        status: { $ref: '#/components/schemas/TeamStatus' }
+        agents:
+          type: array
+          items: { $ref: '#/components/schemas/TeamAgent' }
+        resourceLimits: { $ref: '#/components/schemas/ResourceLimits' }
+    Member:
+      type: object
+      properties:
+        user: { $ref: '#/components/schemas/UserRef' }
+        teamRole: { $ref: '#/components/schemas/TeamRole' }
+        addedAt: { type: string, format: date-time }
+
+    DriveRef:
+      type: object
+      required: [space, path]
+      properties:
+        space: { $ref: '#/components/schemas/Space' }
+        path: { type: string }
+    DriveTransfer:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: array
+          items: { $ref: '#/components/schemas/DriveRef' }
+        to: { $ref: '#/components/schemas/DriveRef' }
+    DriveEntry:
+      type: object
+      properties:
+        name: { type: string }
+        path: { type: string }
+        space: { $ref: '#/components/schemas/Space' }
+        isDir: { type: boolean }
+        size: { type: integer }
+        mimeType: { type: string }
+        modifiedAt: { type: string, format: date-time }
+        createdBy: { $ref: '#/components/schemas/Actor' }
+    DriveMeta:
+      allOf:
+        - $ref: '#/components/schemas/DriveEntry'
+        - type: object
+          properties:
+            createdAt: { type: [string, 'null'], format: date-time }
+            access: { type: string, enum: [only_me, team] }
+            history:
+              type: array
+              items:
+                type: object
+                properties:
+                  action: { type: string }
+                  actor: { $ref: '#/components/schemas/Actor' }
+                  path: { type: string }
+                  prevPath: { type: [string, 'null'] }
+                  at: { type: string, format: date-time }
+    TrashItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        space: { $ref: '#/components/schemas/Space' }
+        originalPath: { type: string }
+        isDir: { type: boolean }
+        size: { type: integer }
+        deletedBy: { $ref: '#/components/schemas/UserRef' }
+        deletedAt: { type: string, format: date-time }
+        purgeAfter: { type: string, format: date-time }
+
+    AppCopy:
+      type: object
+      description: 앱의 한 사본(작업본 또는 공개본)
+      properties:
+        kind: { $ref: '#/components/schemas/AppCopyKind' }
+        url: { type: string }
+        status: { $ref: '#/components/schemas/AppStatus' }
+        stopReason: { oneOf: [{ $ref: '#/components/schemas/StopReason' }, { type: 'null' }] }
+        statusDetail: { type: [string, 'null'] }
+        lastAccessedAt: { type: [string, 'null'], format: date-time }
+        usage:
+          type: object
+          properties:
+            cpuPct: { type: number }
+            memBytes: { type: integer }
+            memLimitBytes: { type: integer }
+    PublicCopy:
+      allOf:
+        - $ref: '#/components/schemas/AppCopy'
+        - type: object
+          properties:
+            name: { type: string }
+            version: { type: integer }
+            publishedAt: { type: string, format: date-time }
+            approvedBy: { $ref: '#/components/schemas/UserRef' }
+    App:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        team: { type: string }
+        slug: { type: string }
+        creator: { $ref: '#/components/schemas/Actor' }
+        work: { $ref: '#/components/schemas/AppCopy' }
+        public:
+          oneOf: [{ $ref: '#/components/schemas/PublicCopy' }, { type: 'null' }]
+          description: null = 미공개
+        pendingRequest:
+          oneOf:
+            - type: object
+              properties:
+                id: { type: string, format: uuid }
+                kind: { $ref: '#/components/schemas/DeployRequestKind' }
+            - type: 'null'
+    AppDetail:
+      allOf:
+        - $ref: '#/components/schemas/App'
+        - type: object
+          properties:
+            source: { $ref: '#/components/schemas/DriveRef' }
+            runSpec:
+              type: object
+              properties:
+                command: { type: string }
+                port: { type: integer }
+                runtime: { type: string, enum: [node, python, static] }
+            resourceLimits: { $ref: '#/components/schemas/ResourceLimits' }
+            dataUsage:
+              type: object
+              properties:
+                workBytes: { type: integer }
+                publicBytes: { type: [integer, 'null'] }
+            currentRequest: { oneOf: [{ $ref: '#/components/schemas/DeployRequest' }, { type: 'null' }] }
+            history:
+              type: array
+              items: { $ref: '#/components/schemas/DeployRequest' }
+            canManage: { type: boolean, description: "삭제·공개 중지 가능 여부(팀 관리자). 시작·중지·공개 요청은 팀원 전체 가능" }
+    PublicAppSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, description: 공개 이름(= 호스트) }
+        slug: { type: string, description: "팀 안 앱 이름(카드 제목으로 표시, apps에 별도 title 칼럼 없음)" }
+        team: { type: string }
+        url: { type: string, description: "https://{name}.kacp.cloud" }
+        version: { type: integer }
+    DeployRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        appId: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/DeployRequestKind' }
+        requestedName: { type: [string, 'null'], description: publish일 때만 }
+        reason: { type: string }
+        fromVersion: { type: [integer, 'null'] }
+        approvedVersion: { type: [integer, 'null'] }
+        diffSummary:
+          oneOf:
+            - type: object
+              properties:
+                added: { type: array, items: { type: string } }
+                modified: { type: array, items: { type: string } }
+                removed: { type: array, items: { type: string } }
+            - type: 'null'
+        status: { $ref: '#/components/schemas/DeployRequestStatus' }
+        requestedBy: { $ref: '#/components/schemas/UserRef' }
+        requestedAt: { type: string, format: date-time }
+        decidedBy: { oneOf: [{ $ref: '#/components/schemas/UserRef' }, { type: 'null' }] }
+        decidedAt: { type: [string, 'null'], format: date-time }
+        decisionNote: { type: [string, 'null'] }
+    Series:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              ts: { type: string, format: date-time }
+              cpuPct: { type: number }
+              memBytes: { type: integer }
+              diskBytes: { type: integer }
+
+    McpTool:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        inputSchema: { type: object }
+    McpManifest:
+      type: object
+      description: platform-plugin.yaml 파싱 결과
+      properties:
+        name: { type: string }
+        version: { type: string }
+        displayName: { type: string }
+        summary: { type: string }
+        category: { type: string }
+        secrets:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              scope: { type: string, enum: [team, user] }
+              description: { type: string }
+              required: { type: boolean }
+        network:
+          type: array
+          items: { type: string, description: 허용 도메인 }
+        resources: { $ref: '#/components/schemas/ResourceLimits' }
+        examples:
+          type: array
+          items: { type: string }
+    McpPackageSummary:
+      type: object
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        summary: { type: string }
+        category: { type: string }
+        icon: { type: string }
+        owner: { $ref: '#/components/schemas/UserRef' }
+        status: { type: string, enum: [active, suspended] }
+        isDefault: { type: boolean }
+        isPlatform: { type: boolean }
+        latestVersion: { type: [string, 'null'] }
+        installCount: { type: integer }
+        installedInTeam: { type: boolean }
+    McpPackageDetail:
+      allOf:
+        - $ref: '#/components/schemas/McpPackageSummary'
+        - type: object
+          properties:
+            readme: { type: string }
+            manifest: { $ref: '#/components/schemas/McpManifest' }
+            tools:
+              type: array
+              items: { $ref: '#/components/schemas/McpTool' }
+            versions:
+              type: array
+              items:
+                type: object
+                properties:
+                  version: { type: string }
+                  publishedAt: { type: string, format: date-time }
+    McpVersion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        packageName: { type: string }
+        version: { type: string }
+        status: { $ref: '#/components/schemas/McpVersionStatus' }
+        failedStage: { type: [string, 'null'], enum: [validate, build, scan, test, null] }
+        uploadedBy: { $ref: '#/components/schemas/UserRef' }
+        uploadedAt: { type: string, format: date-time }
+        manifest: { $ref: '#/components/schemas/McpManifest' }
+        scanSummary:
+          type: object
+          properties:
+            critical: { type: integer }
+            high: { type: integer }
+            medium: { type: integer }
+            low: { type: integer }
+        tools:
+          type: array
+          items: { $ref: '#/components/schemas/McpTool' }
+        reviewNote: { type: [string, 'null'] }
+    McpInstall:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        source: { $ref: '#/components/schemas/McpInstallSource' }
+        name: { type: string, description: 패키지 표시 이름 또는 직접 추가 이름 }
+        packageName: { type: [string, 'null'] }
+        version: { type: [string, 'null'] }
+        manualUrl: { type: [string, 'null'] }
+        status: { $ref: '#/components/schemas/McpInstallStatus' }
+        statusDetail: { type: [string, 'null'] }
+        secretNames: { type: array, items: { type: string } }
+        installedBy: { $ref: '#/components/schemas/UserRef' }
+        lastCheckedAt: { type: [string, 'null'], format: date-time }
+
+    PostInput:
+      type: object
+      required: [category, title, bodyMd]
+      properties:
+        category: { $ref: '#/components/schemas/PostCategory' }
+        title: { type: string, maxLength: 200 }
+        bodyMd: { type: string }
+        attachedPackage: { type: [string, 'null'] }
+        attachedAppId: { type: [string, 'null'], format: uuid }
+    PostSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        title: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        hasPackage: { type: boolean }
+        hasApp: { type: boolean }
+    Post:
+      allOf:
+        - $ref: '#/components/schemas/PostSummary'
+        - type: object
+          properties:
+            bodyMd: { type: string }
+            updatedAt: { type: string, format: date-time }
+            attachedPackage: { oneOf: [{ $ref: '#/components/schemas/McpPackageSummary' }, { type: 'null' }] }
+            attachedApp: { oneOf: [{ $ref: '#/components/schemas/App' }, { type: 'null' }] }
+            canEdit: { type: boolean }
+
+    AdminUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        department: { oneOf: [{ $ref: '#/components/schemas/DepartmentRef' }, { type: 'null' }] }
+        title: { type: [string, 'null'] }
+        employeeNo: { type: [string, 'null'] }
+        platformRole: { $ref: '#/components/schemas/PlatformRole' }
+        status: { type: string, enum: [active, disabled] }
+        mustChangePassword: { type: boolean }
+        teams:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              teamRole: { $ref: '#/components/schemas/TeamRole' }
+        lastLoginAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    AdminTeam:
+      type: object
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        memberCount: { type: integer }
+        admins:
+          type: array
+          items: { $ref: '#/components/schemas/UserRef' }
+        agentCount: { type: integer }
+        status: { $ref: '#/components/schemas/TeamStatus' }
+        resourceLimits: { $ref: '#/components/schemas/ResourceLimits' }
+        createdAt: { type: string, format: date-time }
+    AdminTeamDetail:
+      allOf:
+        - $ref: '#/components/schemas/AdminTeam'
+        - type: object
+          properties:
+            members:
+              type: array
+              items: { $ref: '#/components/schemas/Member' }
+            agents:
+              type: array
+              items: { $ref: '#/components/schemas/TeamAgent' }
+            usage:
+              type: object
+              properties:
+                cpuPct: { type: number }
+                memBytes: { type: integer }
+                diskBytes: { type: integer }
+            mcpInstalls:
+              type: array
+              items: { $ref: '#/components/schemas/McpInstall' }
+            apps:
+              type: array
+              items: { $ref: '#/components/schemas/App' }
+    AgentTemplateSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        icon: { type: string }
+        description: { type: string }
+        version: { type: integer }
+    AgentTemplateInput:
+      type: object
+      required: [name, spec]
+      properties:
+        name: { type: string }
+        icon: { type: string }
+        description: { type: string }
+        spec: { $ref: '#/components/schemas/AgentSpec' }
+    AgentSpec:
+      type: object
+      description: |
+        OpenClaw 설정 변환은 orchestrator 담당(spike 04 대응표, 03-data-model.md agent_templates).
+        model.id → agents.entries.<id>.model, model.reasoning → thinkingDefault,
+        instructions → 워크스페이스 AGENTS.md, skills → SKILL.md 폴더 + agents.entries.<id>.skills,
+        defaultMcp → mcp.servers, tools → agents.entries.<id>.tools.
+      properties:
+        model:
+          type: object
+          properties:
+            id: { type: string, description: "provider 접두사 포함 (예: anthropic/claude-sonnet-...)" }
+            reasoning: { type: string, enum: [low, medium, high], description: OpenClaw thinkingDefault 로 변환 }
+        instructions: { type: string, description: 워크스페이스 AGENTS.md 로 기록 }
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              source: { type: string, enum: [bundled, upload] }
+              ref: { type: string }
+        defaultMcp: { type: array, items: { type: string } }
+        tools:
+          type: object
+          properties:
+            allow: { type: array, items: { type: string } }
+            deny: { type: array, items: { type: string } }
+    AgentTemplate:
+      allOf:
+        - $ref: '#/components/schemas/AgentTemplateSummary'
+        - type: object
+          properties:
+            spec: { $ref: '#/components/schemas/AgentSpec' }
+            assignedTeams:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  applyStatus: { $ref: '#/components/schemas/ApplyStatus' }
+            updatedAt: { type: string, format: date-time }
+            updatedBy: { $ref: '#/components/schemas/UserRef' }
+    Dashboard:
+      type: object
+      properties:
+        teams:
+          type: object
+          properties:
+            total: { type: integer }
+            running: { type: integer }
+        activeUsers: { type: integer }
+        runningApps:
+          type: object
+          properties:
+            work: { type: integer }
+            public: { type: integer }
+        pending:
+          type: object
+          properties:
+            deployRequests: { type: integer }
+            mcpReviews: { type: integer }
+        vm:
+          type: object
+          properties:
+            cpuPct: { type: number }
+            memPct: { type: number }
+            diskPct: { type: number }
+        warnings:
+          type: array
+          items:
+            type: object
+            properties:
+              level: { type: string, enum: [warn, danger] }
+              resource: { type: string, enum: [cpu, memory, disk] }
+              message: { type: string }
+        teamContainers:
+          type: array
+          items:
+            type: object
+            properties:
+              team: { type: string }
+              status: { $ref: '#/components/schemas/TeamContainerStatus' }
+              activeUsers: { type: integer }
+              cpuPct: { type: number }
+              memBytes: { type: integer }
+              memLimitBytes: { type: integer }
+              lastActiveAt: { type: [string, 'null'], format: date-time }
+    PlatformSettings:
+      type: object
+      properties:
+        models:
+          type: object
+          properties:
+            allowed:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  label: { type: string }
+                  provider: { type: string }
+                  default: { type: boolean }
+            apiKeysConfigured:
+              type: object
+              additionalProperties: { type: boolean }
+              readOnly: true
+        limits:
+          type: object
+          properties:
+            teamDefault: { $ref: '#/components/schemas/ResourceLimits' }
+            appDefault: { $ref: '#/components/schemas/ResourceLimits' }
+            mcpDefault: { $ref: '#/components/schemas/ResourceLimits' }
+        ops:
+          type: object
+          properties:
+            idleStopMinutes: { type: integer, description: 팀 컨테이너 }
+            appIdleStopMinutes:
+              type: object
+              properties:
+                work: { type: integer }
+                public: { type: integer }
+            maxRunningWorkAppsPerTeam: { type: integer }
+            capacityWarn:
+              type: object
+              properties:
+                cpu: { type: integer }
+                memory: { type: integer }
+                disk: { type: integer }
+            trashRetentionDays: { type: integer }
+        names:
+          type: object
+          properties:
+            reserved: { type: array, items: { type: string }, readOnly: true }
+            reservedExtra: { type: array, items: { type: string } }
+    AuditEvent:
+      type: object
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        actor: { oneOf: [{ $ref: '#/components/schemas/UserRef' }, { type: 'null' }] }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: string }
+        targetLabel: { type: string }
+        team: { type: [string, 'null'] }
+        detail: { type: object }
+        ip: { type: [string, 'null'] }

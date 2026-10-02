@@ -1,0 +1,37 @@
+# spike 06 (2부) — spike 07 compose 위에 겹쳐 쓰는 샌드박스 구성.
+# docker compose -f docker-compose.yml -f docker-compose.sbx.yml up -d
+networks:
+  sbx:                       # 팀 Gateway ↔ 샌드박스 전용 socket-proxy (외부 노출 없음)
+    name: kacp07-sbx
+    internal: true
+
+services:
+  sbx-proxy:                 # 팀 전용 socket-proxy (설계: kacp-sbx-proxy-{team})
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      CONTAINERS: 1
+      POST: 1
+      EXEC: 1                # 샌드박스 안 명령 실행(docker exec)
+      IMAGES: 1              # 샌드박스 이미지 존재 확인. POST=1 과 합쳐지면 pull/build 도 열린다 — 기록할 위험
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 1
+      INFO: 1
+      VERSION: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [sbx]
+
+  openclaw-team1:
+    image: kacp/openclaw:2026.9.7-sbx   # 공식 이미지 + docker CLI (sandbox/Dockerfile.gateway)
+    environment:
+      DOCKER_HOST: tcp://sbx-proxy:2375
+    networks:
+      sbx: {}
+
+  echo-mcp:                  # platform-mcp 자리
+    image: node:22-alpine
+    command: ["node", "/w/echo-mcp.mjs"]
+    volumes:
+      - ./sandbox:/w:ro
+    networks: [edge]

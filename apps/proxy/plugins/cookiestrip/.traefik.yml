@@ -1,0 +1,10 @@
+# Traefik plugin manifest (local plugin, loaded via experimental.localPlugins).
+displayName: KACP strip named cookies
+type: middleware
+import: github.com/kacp/cookiestrip
+summary: >-
+  Removes the named cookies (default kacp_session) from the request Cookie
+  header and keeps every other cookie, so app containers never see the platform session.
+testData:
+  names:
+    - kacp_session

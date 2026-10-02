@@ -1,0 +1,73 @@
+# spike 07 — kacp.cloud 실도메인 + Traefik ACME DNS-01(gcloud) 와일드카드 인증서.
+# spike 03 구성(로컬 플러그인, fake-auth, 셸, /claw) 을 https 로 올린다. GCP VM 전용.
+name: kacp-spike07
+
+networks:
+  edge:
+    name: kacp07-edge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+services:
+  traefik:
+    image: traefik:v3.7.13
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # 와일드카드 하나만: 진입점에서 kacp.cloud + *.kacp.cloud 를 요청하고, 라우터에는 tls 를 적지 않아 진입점 설정을 물려받게 한다(라우터별 인증서 금지 — 발급 한도)
+      - --entrypoints.websecure.http.tls.certresolver=le
+      - --entrypoints.websecure.http.tls.domains[0].main=kacp.cloud
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.kacp.cloud
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      - --certificatesresolvers.le.acme.storage=/acme/acme.json
+      - --certificatesresolvers.le.acme.caserver=${ACME_CA_SERVER}
+      - --certificatesresolvers.le.acme.dnschallenge.provider=gcloud
+      - --certificatesresolvers.le.acme.dnschallenge.resolvers=8.8.8.8:53,1.1.1.1:53
+      - --experimental.localPlugins.cspframe.moduleName=github.com/kacp/cspframe
+      - --experimental.localPlugins.cookiestrip.moduleName=github.com/kacp/cookiestrip
+      - --accesslog=true
+      - --log.level=INFO
+    environment:
+      GCE_PROJECT: ${GCE_PROJECT}          # VM 서비스 계정(메타데이터) 권한으로 Cloud DNS 수정 — 키 파일 없음
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./traefik/plugins-local:/plugins-local:ro
+      - ${DATA_ROOT}/traefik:/acme              # acme.json (chmod 600)
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10
+
+  fake-auth:
+    image: node:22-alpine
+    command: ["node", "/app/server.js"]
+    volumes:
+      - ./fake-auth:/app:ro
+    networks: [edge]
+
+  whoami:
+    image: traefik/whoami
+    networks: [edge]
+
+  openclaw-team1:
+    image: ${OPENCLAW_IMAGE}
+    healthcheck:
+      test: ["CMD", "node", "dist/docker-healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      start_interval: 2s
+      retries: 3
+    environment:
+      OPENCLAW_GATEWAY_PASSWORD: ${TEAM1_GATEWAY_PASSWORD}
+    volumes:
+      - ${DATA_ROOT}/spike07/team1/openclaw:/home/node/.openclaw   # bind mount (06 결론), 시드는 vm-run07.sh 가 첫 기동 전에만
+    networks:
+      edge:
+        ipv4_address: 172.30.0.20

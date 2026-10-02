@@ -1,0 +1,38 @@
+# spike 06 — orchestrator 가 docker-socket-proxy 경유로 팀 컨테이너를 만들고·켜고·끈다.
+# 로컬(Docker Desktop)에서는 준비·API 경로만 확인하고, 권한·UID·bind mount·콜드 스타트는 GCP VM 에서 잰다.
+name: kacp-spike06
+
+networks:
+  core:                 # orchestrator ↔ socket-proxy (외부 노출 없음)
+    name: kacp06-core
+    internal: true
+  edge:                 # 팀 컨테이너가 붙는 네트워크 (실서비스의 kacp-edge 자리)
+    name: kacp06-edge
+
+services:
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      CONTAINERS: 1      # /containers/* 조회
+      POST: 1            # 쓰기 메서드 허용(create, start, stop, delete, archive)
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 1
+      # 나머지는 기본 0: IMAGES, NETWORKS, VOLUMES, EXEC, INFO, SERVICES, SWARM, SECRETS ...
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [core]
+
+  orch:
+    image: node:22-alpine
+    command: ["sleep", "infinity"]
+    environment:
+      DOCKER: http://socket-proxy:2375
+      OPENCLAW_IMAGE: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.9.7}
+      TEAM1_GATEWAY_PASSWORD: ${TEAM1_GATEWAY_PASSWORD}
+      STATE_MODE: ${STATE_MODE:-volume}           # volume(로컬) | bind(VM: /data/teams/{team}/openclaw)
+      DATA_ROOT: ${DATA_ROOT:-/data}
+      EDGE_NETWORK: kacp06-edge
+    volumes:
+      - ./orch:/orch:ro
+    networks: [core, edge]   # edge 는 spike 편의(실서비스 orchestrator 는 core 만)

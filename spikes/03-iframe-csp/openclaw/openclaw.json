@@ -1,0 +1,40 @@
+// data/team1/openclaw.json 으로 복사해서 사용 (파일 단위 bind mount 는 설정 저장 시 깨질 수 있음)
+{
+  gateway: {
+    mode: "local",
+    bind: "lan",
+    trustedProxies: ["172.30.0.10"],          // Traefik 고정 IP
+    controlUi: {
+      basePath: "/claw",                                 // spike 02: 셸(/)과 Control UI(/claw)를 같은 호스트에 둔다
+      allowedOrigins: ["http://team1.kacp.localhost"],  // HTTP_PORT 를 80 이외로 바꾸면 포트 포함
+    },
+    auth: {
+      mode: "trusted-proxy",
+      // 팀 관리자에게만 세션 한정 admin 부여 (영구 기기 권한은 넓히지 않음)
+      identityScopes: {
+        "alice@kcc.dev": ["operator.admin"],
+      },
+      trustedProxy: {
+        userHeader: "x-forwarded-user",
+        allowLoopback: false,
+        deviceAutoApprove: {
+          enabled: true,   // 기본 scopes: read, write, approvals, questions
+        },
+      },
+    },
+    // spike 02 최종: 역할 하나. scopes 는 상한일 뿐이라 admin 까지 열어 두고, 실제 admin 은 identityScopes 로만 준다.
+    // 주의: 첫 기동 이후 이 파일을 통째로 바꾸면 OpenClaw 가 백업으로 되돌린다. 변경은 `openclaw config set` 으로.
+    roles: {
+      default: "member",
+      definitions: {
+        member: {
+          sessions: { others: "write" },  // 공유됨 = 팀 채팅(같이 쓰기), 초안 = 개인 대화(서버가 숨김). admin 은 초안도 보임
+          agents: "*",
+          scopes: ["operator.admin"],
+        },
+      },
+    },
+  },
+  // spike 02: 에이전트 세션 도구 범위. 역할 필터로 이미 막히지만(검증) 심층 방어로 좁힌다
+  tools: { sessions: { visibility: "tree" } },
+}

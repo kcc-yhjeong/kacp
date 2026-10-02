@@ -1,0 +1,23 @@
+{
+  "agents": {
+    "defaults": {
+      "sandbox": {
+        "mode": "all",
+        "backend": "docker",
+        "scope": "session",
+        "workspaceAccess": "rw",
+        "docker": {
+          "image": "openclaw-sandbox:bookworm-slim",
+          "containerPrefix": "kacp-sbx-team1-",
+          "network": "none",
+          "user": "1000:1000",
+          "readOnlyRoot": true,
+          "capDrop": ["ALL"],
+          "pidsLimit": 256,
+          "memory": "1g",
+          "cpus": 1
+        }
+      }
+    }
+  }
+}

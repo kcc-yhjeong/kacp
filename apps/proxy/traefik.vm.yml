@@ -1,0 +1,85 @@
+# Traefik v3.7.13 static config — VM (GCP, https, *.kacp.cloud).
+# Mounted as /etc/traefik/traefik.yml. See README.md.
+#
+# Same entry point names as traefik.local.yml: routers always use `websecure`.
+# `web` (:80) only redirects to https; no router is attached to it.
+#
+# Certificate rules (docs/design/05-urls-and-storage.md §1, spike 07):
+#   - ONE wildcard certificate kacp.cloud + *.kacp.cloud, requested only here
+#     on the websecure entry point.
+#   - Routers / container labels carry NO `tls` key: neither `tls.certResolver`
+#     (one certificate per Host → rate limits) nor `tls: {}` (overrides the
+#     entry point TLS settings → no certificate at all).
+# Static config cannot read BASE_DOMAIN, so the domain is written literally.
+# Credentials: VM service account (roles/dns.admin) + access scope
+# cloud-platform; GCE_PROJECT env on the traefik container. No key file.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+    # Routers that forget `entryPoints` attach here only (not to web/ping).
+    asDefault: true
+    http:
+      tls:
+        certResolver: le
+        domains:
+          - main: kacp.cloud
+            sans:
+              - "*.kacp.cloud"
+  ping:
+    # Internal only (not published by compose). Used by `traefik healthcheck --ping`.
+    address: ":8082"
+
+ping:
+  entryPoint: ping
+
+certificatesResolvers:
+  le:
+    acme:
+      # No email (account without contact address).
+      # Host path /data/traefik/acme.json, mounted at /data (file must be 0600;
+      # to reset, truncate to 0 bytes — an empty line disables the resolver).
+      storage: /data/acme.json
+      # For a first dry run use Let's Encrypt staging, then remove the line and
+      # truncate acme.json:
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      dnsChallenge:
+        provider: gcloud
+        resolvers:
+          - "8.8.8.8:53"
+          - "1.1.1.1:53"
+
+providers:
+  docker:
+    endpoint: tcp://traefik-socket-proxy:2375
+    exposedByDefault: false
+    network: kacp-edge
+    constraints: "LabelRegex(`kacp.kind`, `^(team|app-work|app-public)$`)"
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+experimental:
+  localPlugins:
+    cspframe:
+      moduleName: github.com/kacp/cspframe
+    cookiestrip:
+      moduleName: github.com/kacp/cookiestrip
+
+log:
+  level: INFO
+
+accessLog: {}
+# No `api:` section: dashboard and API are disabled.

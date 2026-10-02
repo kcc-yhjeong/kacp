@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpSpin{to{transform:rotate(360deg)}}@keyframes kacpBlink{0%,100%{opacity:1}50%{opacity:.3}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="ta1">
+  <div class="dv-thd"><a class="dv-tid" href="#ta1">A1</a><span class="dv-tname">A-01 대시보드 · A-02/03 사용자 · A-04/05 팀</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="A1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#A1a">A1a</a>A-01 대시보드 · 메모리 경고 넘음</div>
+      <div class="dv-card" style="width:1440px;height:1020px;display:flex" data-screen-label="A1a 대시보드">
+        <dc-import name="AdminSidebar" active="dash" hint-size="256px,100%" style="flex:none"></dc-import>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="height:40px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 24px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+            <dc-import name="Icon" n="alert" color="oklch(0.666 0.179 58.318)" hint-size="16px,16px"></dc-import>
+            <span style="font-weight:500">주의</span><span>메모리 85% — 새 팀 기동이 실패할 수 있어요</span>
+            <span style="margin-left:auto;font-size:13px;text-decoration:underline">리소스 보기</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">대시보드</span><span style="font-size:14px;color:oklch(0.556 0 0)">플랫폼 전체 상태예요.</span></div>
+              <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px"><span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">24시간</span><span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">7일</span></div>
+            </div>
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))">
+              <div style="padding:20px;display:flex;flex-direction:column;gap:10px;border-right:1px solid oklch(0.922 0 0)">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:oklch(0.556 0 0)">활성 팀</span><span style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="users" hint-size="16px,16px"></dc-import></span></div>
+                <span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">12 <span style="font-size:14px;font-weight:400;color:oklch(0.556 0 0)">/ 14팀</span></span>
+              </div>
+              <div style="padding:20px;display:flex;flex-direction:column;gap:10px;border-right:1px solid oklch(0.922 0 0)">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:oklch(0.556 0 0)">접속 중 사용자</span><span style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="user" hint-size="16px,16px"></dc-import></span></div>
+                <span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">38</span>
+              </div>
+              <div style="padding:20px;display:flex;flex-direction:column;gap:10px;border-right:1px solid oklch(0.922 0 0)">
+                <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:oklch(0.556 0 0)">실행 중 앱</span><span style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="app-window" hint-size="16px,16px"></dc-import></span></div>
+                <span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">작업본 23 <span style="color:oklch(0.87 0 0);font-weight:400">·</span> 공개본 9</span>
+                <span style="font-size:12px;color:oklch(0.556 0 0)">잠듦 작업본 31 · 공개본 4</span>
+              </div>
+              <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:14px;color:oklch(0.556 0 0)">처리 대기</span>
+                <div style="display:flex;gap:20px">
+                  <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">3</span><span style="font-size:12px;color:oklch(0.556 0 0);text-decoration:underline">공개 승인</span></div>
+                  <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">2</span><span style="font-size:12px;color:oklch(0.556 0 0);text-decoration:underline">MCP 심사</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px">
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="hard-drive" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">VM 리소스</span></div>
+                <div style="padding:16px 12px;display:grid;grid-template-columns:repeat(3,1fr);justify-items:center">{{ gCpu }}{{ gMem }}{{ gDisk }}</div>
+                <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:10px;font-size:13.5px">
+                  <sc-for list="{{ legend }}" as="l" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px"><span style="width:3px;height:14px;border-radius:2px;background:{{ l.c }}"></span><span style="flex:1">{{ l.k }}</span><span style="font-variant-numeric:tabular-nums;font-weight:500">{{ l.v }}</span></div></sc-for>
+                  <span style="font-size:11.5px;color:oklch(0.556 0 0);margin-top:4px">자동 확장은 GKE 전환 단계 로드맵이에요</span>
+                </div>
+              </div>
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><span style="font-size:14px;font-weight:500;flex:1">24시간 추이</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:oklch(0.556 0 0)"><span style="width:12px;border-top:1.5px dashed oklch(0.666 0.179 58.318)"></span>주의 80%</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:oklch(0.556 0 0)"><span style="width:12px;height:2px;background:oklch(0.666 0.179 58.318)"></span>메모리</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:oklch(0.556 0 0)"><span style="width:12px;border-top:1.5px dashed oklch(0.556 0 0)"></span>CPU</span></div>
+                <div style="flex:1;padding:16px 20px 8px;display:flex;flex-direction:column">{{ chart }}<div style="display:flex;justify-content:space-between;font-size:11.5px;color:oklch(0.556 0 0);padding-top:6px"><span>어제 15시</span><span>21시</span><span>03시</span><span>09시</span><span>지금</span></div></div>
+              </div>
+            </div>
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="users" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">팀 컨테이너</span></div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 80px 180px 180px 110px 32px;align-items:center;column-gap:12px;height:40px;padding:0 20px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>팀</span><span>상태</span><span>접속자</span><span>CPU</span><span>메모리</span><span>마지막 활동</span><span></span></div>
+              <sc-for list="{{ teams }}" as="t" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 80px 180px 180px 110px 32px;align-items:center;column-gap:12px;height:48px;padding:0 20px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+                  <div style="display:flex;flex-direction:column"><span style="font-weight:500">{{ t.n }}</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0)">{{ t.id }}</span></div>
+                  <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.dot }}"></span>{{ t.st }}</span>
+                  <span style="font-variant-numeric:tabular-nums">{{ t.u }}</span>
+                  <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:4px;border-radius:2px;background:oklch(0.97 0 0);overflow:hidden"><div style="height:100%;width:{{ t.cpu }};background:oklch(0.205 0 0)"></div></div><span style="font-size:12px;color:oklch(0.556 0 0);width:34px;text-align:right;font-variant-numeric:tabular-nums">{{ t.cpu }}</span></div>
+                  <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:4px;border-radius:2px;background:oklch(0.97 0 0);overflow:hidden"><div style="height:100%;width:{{ t.mem }};background:{{ t.memC }}"></div></div><span style="font-size:12px;color:oklch(0.556 0 0);width:34px;text-align:right;font-variant-numeric:tabular-nums">{{ t.mem }}</span></div>
+                  <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ t.last }}</span>
+                  <span style="display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="chevron-right" hint-size="16px,16px"></dc-import></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#A2a">A2a</a>A-02 사용자 목록 · 부서·직위 열 + 부서 필터 팝오버 + 여러 명 선택 → 부서 변경</div>
+      <div class="dv-card" style="width:1440px;height:760px;display:flex" data-screen-label="A2a 사용자">
+        <dc-import name="AdminSidebar" active="users" hint-size="256px,100%" style="flex:none"></dc-import>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">사용자</span><span style="font-size:14px;color:oklch(0.556 0 0)">계정은 관리자만 만들 수 있어요.</span></div>
+            <div style="display:flex;gap:8px">
+              <span style="height:36px;padding:0 14px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><dc-import name="Icon" n="file-up" hint-size="16px,16px"></dc-import>가져오기(CSV)</span>
+              <span style="height:36px;padding:0 16px;display:flex;align-items:center;gap:8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500"><dc-import name="Icon" n="plus" hint-size="16px,16px"></dc-import>사용자 추가</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;position:relative;z-index:5">
+            <div style="width:250px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;color:oklch(0.556 0 0);font-size:13px"><dc-import name="Icon" n="search" size="14" hint-size="14px,14px"></dc-import>이름·이메일 검색</div>
+            <div style="position:relative">
+              <div style="height:32px;box-sizing:border-box;border:1px dashed oklch(0.87 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500;background:oklch(0.97 0 0)"><dc-import name="Icon" n="building" size="14" hint-size="14px,14px"></dc-import>부서<span style="width:1px;height:16px;background:oklch(0.922 0 0);margin:0 2px"></span><span style="padding:1px 6px;border-radius:6px;background:#fff;font-size:12px">인사부 +하위</span></div>
+              <div style="position:absolute;top:38px;left:0;width:280px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);overflow:hidden">
+                <div style="padding:8px;border-bottom:1px solid oklch(0.922 0 0)"><div style="height:30px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 8px;color:oklch(0.556 0 0);font-size:12.5px"><dc-import name="Icon" n="search" size="13" hint-size="13px,13px"></dc-import>부서 찾기</div></div>
+                <div style="padding:4px;display:flex;flex-direction:column;gap:1px">
+                  <sc-for list="{{ deptPick }}" as="d" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:6px;height:28px;padding-left:{{ d.pad }};padding-right:8px;border-radius:6px;background:{{ d.bg }};font-size:13px;font-weight:{{ d.w }}"><span style="width:12px;display:grid;place-items:center;color:oklch(0.556 0 0)"><sc-if value="{{ d.open }}" hint-placeholder-val="{{ false }}"><dc-import name="Icon" n="chevron-down" size="12" hint-size="12px,12px"></dc-import></sc-if><sc-if value="{{ d.closed }}" hint-placeholder-val="{{ false }}"><dc-import name="Icon" n="chevron-right" size="12" hint-size="12px,12px"></dc-import></sc-if></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.t }}</span><sc-if value="{{ d.sel }}" hint-placeholder-val="{{ false }}"><dc-import name="Icon" n="check" size="14" hint-size="14px,14px"></dc-import></sc-if></div></sc-for>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid oklch(0.922 0 0);font-size:13px"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span>하위 부서 포함<span style="margin-left:auto;font-size:12px;color:oklch(0.556 0 0)">24명</span></div>
+              </div>
+            </div>
+            <sc-for list="{{ uFilters }}" as="f" hint-placeholder-count="3"><div style="height:32px;box-sizing:border-box;border:1px dashed oklch(0.87 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500"><dc-import name="Icon" n="plus" size="14" hint-size="14px,14px"></dc-import>{{ f }}</div></sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;height:44px;box-sizing:border-box;padding:0 8px 0 14px;border-radius:6px;background:oklch(0.97 0 0)">
+            <span style="font-size:13.5px;font-weight:500;flex:1">2명 선택됨</span>
+            <span style="height:30px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);background:#fff;border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="building" size="14" hint-size="14px,14px"></dc-import>부서 변경</span>
+            <span style="width:30px;height:30px;display:grid;place-items:center"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:28px 90px minmax(0,1fr) 130px 56px 96px minmax(0,1fr) 150px 120px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span style="width:16px;height:16px;box-sizing:border-box;border:1px solid oklch(0.87 0 0);border-radius:4px;background:#fff"></span><span>이름</span><span>이메일</span><span>부서</span><span>직위</span><span>역할</span><span>소속 팀</span><span>상태</span><span>마지막 로그인</span><span></span></div>
+            <sc-for list="{{ users }}" as="u" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:28px 90px minmax(0,1fr) 130px 56px 96px minmax(0,1fr) 150px 120px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px;background:{{ u.bg }}">
+                <sc-if value="{{ u.on }}" hint-placeholder-val="{{ false }}"><span style="width:16px;height:16px;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span></sc-if><sc-if value="{{ u.off }}" hint-placeholder-val="{{ true }}"><span style="width:16px;height:16px;box-sizing:border-box;border:1px solid oklch(0.87 0 0);border-radius:4px;background:#fff"></span></sc-if>
+                <span style="font-weight:500">{{ u.n }}</span><span style="font-size:13px;color:oklch(0.556 0 0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.e }}</span>
+                <span title="{{ u.path }}" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.dept }}</span>
+                <span style="font-size:13px">{{ u.pos }}</span><span style="font-size:13px">{{ u.r }}</span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ u.teams }}" as="t" hint-placeholder-count="1"><span style="height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;background:oklch(0.97 0 0);font-size:11.5px;font-weight:500">{{ t }}</span></sc-for></div>
+                <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ u.dot }}"></span>{{ u.st }}</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ u.last }}</span>
+                <span style="display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="more" hint-size="16px,16px"></dc-import></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#A3a">A3a</a>A-03 사용자 추가 모달 · 부서(필수)·직위·사번</div>
+      <div class="dv-card" style="width:540px" data-screen-label="A3a 사용자 추가">
+        <div style="display:flex;flex-direction:column;gap:18px;padding:24px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:18px;font-weight:600">사용자 추가</span><dc-import name="Icon" n="x" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">이메일</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">minsu.choi@kcc.co.kr</div><span style="font-size:12px;color:oklch(0.556 0 0)">만든 뒤에는 바꿀 수 없어요</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">이름</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">최민수</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">부서 <span style="color:oklch(0.586 0.253 17.585)">*</span></span>
+            <div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;gap:8px;font-size:14px"><dc-import name="Icon" n="building" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:oklch(0.556 0 0)">마케팅본부 › </span>디지털마케팅팀</span><dc-import name="Icon" n="chevron-down" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">직위 <span style="font-weight:400;color:oklch(0.556 0 0)">(선택)</span></span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">선임</div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">사번 <span style="font-weight:400;color:oklch(0.556 0 0)">(선택)</span></span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:13px">K20230418</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">플랫폼 역할</span>
+            <div style="display:flex;border:1px solid oklch(0.922 0 0);border-radius:6px;overflow:hidden;font-size:13.5px;font-weight:500;align-self:flex-start"><span style="padding:7px 16px;background:oklch(0.205 0 0);color:#fff">일반</span><span style="padding:7px 16px">플랫폼 관리자</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">초기 비밀번호</span>
+            <div style="display:flex;gap:6px"><div style="flex:1;height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:13px">tR8-mq4K-2vxP</div><span style="height:36px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>자동 생성</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">소속 팀 <span style="font-weight:400;color:oklch(0.556 0 0)">(선택 · 부서와 별개예요)</span></span>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid oklch(0.922 0 0);border-radius:6px"><span style="flex:1;font-size:13.5px">마케팅팀</span><span style="height:26px;padding:0 8px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:4px;font-size:12.5px">팀원<dc-import name="Icon" n="chevron-down" size="12" hint-size="12px,12px"></dc-import></span><dc-import name="Icon" n="x" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 24px"><span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">취소</span><span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">만들기</span></div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A3b">
+      <div class="dv-olabel"><a class="dv-oid" href="#A3b">A3b</a>A-03 생성 결과 · 초기 비밀번호 한 번만 표시</div>
+      <div class="dv-card" style="width:540px" data-screen-label="A3b 결과">
+        <div style="display:flex;flex-direction:column;gap:18px;padding:24px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:36px;height:36px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="check" color="oklch(0.596 0.145 163.225)" sw="2.25" hint-size="16px,16px"></dc-import></span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:18px;font-weight:600">최민수 님 계정을 만들었어요</span><span style="font-size:13.5px;color:oklch(0.556 0 0)">minsu.choi@kcc.co.kr</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">초기 비밀번호</span>
+            <div style="display:flex;gap:6px"><div style="flex:1;height:40px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:15px;background:oklch(0.985 0 0)">tR8-mq4K-2vxP</div><span style="width:40px;height:40px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="copy" hint-size="16px,16px"></dc-import></span></div>
+            <span style="font-size:12.5px;color:oklch(0.556 0 0);display:flex;align-items:center;gap:6px"><dc-import name="Icon" n="alert" size="14" color="oklch(0.666 0.179 58.318)" hint-size="14px,14px"></dc-import>이 창을 닫으면 다시 볼 수 없어요. 지금 전달해 주세요.</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 24px"><span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">전달했어요</span></div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#A4a">A4a</a>A-04 팀 목록</div>
+      <div class="dv-card" style="width:1440px;height:620px;display:flex" data-screen-label="A4a 팀 목록">
+        <dc-import name="AdminSidebar" active="teams" hint-size="256px,100%" style="flex:none"></dc-import>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">팀</span><span style="font-size:14px;color:oklch(0.556 0 0)">팀 이름이 곧 서브도메인이에요.</span></div>
+            <span style="height:36px;padding:0 16px;display:flex;align-items:center;gap:8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500"><dc-import name="Icon" n="plus" hint-size="16px,16px"></dc-import>팀 만들기</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 70px 110px 90px 110px 160px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>팀 이름</span><span>표시 이름</span><span>멤버</span><span>팀 관리자</span><span>에이전트</span><span>컨테이너</span><span>리소스 한도</span><span></span></div>
+            <sc-for list="{{ teamRows }}" as="t" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 70px 110px 90px 110px 160px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+                <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">{{ t.id }}</span><span>{{ t.n }}</span><span style="font-variant-numeric:tabular-nums">{{ t.m }}</span><span>{{ t.adm }}</span><span style="font-variant-numeric:tabular-nums">{{ t.ag }}</span>
+                <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.dot }}"></span>{{ t.st }}</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ t.lim }}</span>
+                <span style="display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="chevron-right" hint-size="16px,16px"></dc-import></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A5a">
+      <div class="dv-olabel"><a class="dv-oid" href="#A5a">A5a</a>A-05 팀 상세 · 앱 탭 (U-07과 같은 열 + 공개본 강제 중지 + 관리자가 중지한 행)</div>
+      <div class="dv-card" style="width:1440px;height:720px;display:flex" data-screen-label="A5a 팀 상세 앱">
+        <dc-import name="AdminSidebar" active="teams" hint-size="256px,100%" style="flex:none"></dc-import>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px">
+          <span style="display:flex;align-items:center;gap:4px;font-size:13px;color:oklch(0.556 0 0)">팀<dc-import name="Icon" n="chevron-right" size="14" hint-size="14px,14px"></dc-import>marketing<span style="margin-left:12px;font-size:12px">표시 이름만 고칠 수 있어요 · 팀 이름·주소는 바꿀 수 없어요</span></span>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">마케팅팀</span>
+            <span title="표시 이름 수정" style="width:28px;height:28px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="pencil" size="14" hint-size="14px,14px"></dc-import></span>
+            <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;color:oklch(0.556 0 0);display:flex;align-items:center;gap:4px">marketing.kacp.cloud<dc-import name="Icon" n="external-link" size="13" hint-size="13px,13px"></dc-import></span>
+            <span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;opacity:.5"><dc-import name="Icon" n="play" size="14" hint-size="14px,14px"></dc-import>시작</span>
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="square" size="14" hint-size="14px,14px"></dc-import>정지</span>
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>재시작</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px;align-self:flex-start">
+            <sc-for list="{{ tTabs }}" as="t" hint-placeholder-count="6"><span style="padding:5px 12px;border-radius:6px;background:{{ t.bg }};color:{{ t.fg }};font-weight:{{ t.w }};box-shadow:{{ t.sh }}">{{ t.t }}</span></sc-for>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 96px minmax(0,1.2fr) 118px 76px 90px 150px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>앱 이름</span><span>작업본 주소</span><span>작업본 상태</span><span>공개 상태</span><span>만든 이</span><span>마지막 접속</span><span>메모리</span><span></span></div>
+            <sc-for list="{{ apps }}" as="a" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 96px minmax(0,1.2fr) 118px 76px 90px 150px;align-items:center;column-gap:12px;min-height:56px;padding:6px 16px;box-sizing:border-box;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+                <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span>
+                <div style="display:flex;align-items:center;gap:4px;min-width:0"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}--marketing.kacp.cloud</span><span style="width:22px;height:22px;flex:none;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="copy" size="13" hint-size="13px,13px"></dc-import></span></div>
+                <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ a.wDot }}"></span>{{ a.wText }}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-width:0">
+                  <sc-if value="{{ a.pNone }}" hint-placeholder-val="{{ true }}"><span style="color:oklch(0.556 0 0)">—</span></sc-if>
+                  <sc-if value="{{ a.pVer }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>{{ a.ver }}</span><sc-if value="{{ a.adm }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:20px;padding:0 7px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:11.5px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>관리자가 중지함</span></sc-if></div></sc-if>
+                  <sc-if value="{{ a.pWait }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:11.5px;font-weight:500;white-space:nowrap;height:20px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>{{ a.wait }}</span></sc-if>
+                </div>
+                <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ a.last }}</span>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:oklch(0.556 0 0);font-variant-numeric:tabular-nums"><div style="flex:1;height:4px;border-radius:2px;background:oklch(0.97 0 0);overflow:hidden"><div style="height:100%;width:{{ a.mem }};background:oklch(0.205 0 0)"></div></div><span style="width:26px;text-align:right">{{ a.mem }}</span></div>
+                <div style="display:flex;justify-content:flex-end">
+                  <sc-if value="{{ a.canStop }}" hint-placeholder-val="{{ false }}"><span style="height:28px;padding:0 10px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;font-size:12.5px;font-weight:500;color:oklch(0.577 0.245 27.325)">공개본 강제 중지</span></sc-if><sc-if value="{{ a.adm }}" hint-placeholder-val="{{ false }}"><a href="A-09 A-11 Deploy Settings Audit.dc.html#A9b" style="font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:4px">해제는 배포 승인에서<dc-import name="Icon" n="chevron-right" size="13" hint-size="13px,13px"></dc-import></a></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="A1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#A1b">A1b</a>A-01 경고 띠 · 주의(노랑) / 위험(빨강) 두 단계</div>
+      <div class="dv-card" style="width:1184px;display:flex;flex-direction:column" data-screen-label="A1b 경고 띠">
+        <div style="height:40px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 24px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px"><dc-import name="Icon" n="alert" color="oklch(0.666 0.179 58.318)" hint-size="16px,16px"></dc-import><span style="font-weight:500">주의</span><span>메모리 85% — 새 팀 기동이 실패할 수 있어요</span><span style="margin-left:auto;font-size:13px;text-decoration:underline">리소스 보기</span></div>
+        <div style="height:40px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 24px;font-size:13.5px"><dc-import name="Icon" n="alert" color="oklch(0.586 0.253 17.585)" hint-size="16px,16px"></dc-import><span style="font-weight:500">위험</span><span>디스크 96% — 드라이브 업로드와 앱 시작이 막힐 수 있어요</span><span style="margin-left:auto;font-size:13px;text-decoration:underline">리소스 보기</span></div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#A1c">A1c</a>AdminSidebar · 접힌 아이콘 모드 (3rem) · 추가</div>
+      <div class="dv-card" style="width:720px;height:640px;display:flex" data-screen-label="A1c 사이드바 접힘">
+        <dc-import name="AdminSidebar" active="dash" collapsed="{{ true }}" hint-size="48px,100%" style="flex:none"></dc-import>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:24px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">대시보드</span><span style="font-size:14px;color:oklch(0.556 0 0)">플랫폼 전체 상태예요.</span></div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="A5h">
+      <div class="dv-olabel"><a class="dv-oid" href="#A5h">A5h</a>A-05 머리 · 표시 이름 인라인 수정</div>
+      <div class="dv-card" style="width:1184px;box-sizing:border-box;padding:20px 24px;display:flex;flex-direction:column;gap:8px" data-screen-label="A5h 표시 이름 수정">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:240px;height:36px;box-sizing:border-box;border:1px solid oklch(0.205 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:18px;font-weight:600">마케팅팀</div>
+          <span style="width:32px;height:32px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="14" sw="2.25" hint-size="14px,14px"></dc-import></span>
+          <span style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="x" size="14" hint-size="14px,14px"></dc-import></span>
+          <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;color:oklch(0.556 0 0);margin-left:8px">marketing.kacp.cloud</span>
+        </div>
+        <span style="font-size:12px;color:oklch(0.556 0 0)">팀 이름·주소는 바꿀 수 없어요</span>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "<a class="dv-oid" href="#A5a">A5a</a> 에이전트 할당 탭" · "팀 만들기 모달" · "A-06~A-11 이어서"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const e = React.createElement;
+    const D = { ok: 'oklch(0.596 0.145 163.225)', wait: 'oklch(0.666 0.179 58.318)', err: 'oklch(0.586 0.253 17.585)', mute: 'oklch(0.556 0 0)' };
+    const mkGauge = (label, pct, col) => { const ticks = 40, filled = Math.round(ticks * pct / 100), R = 46, r = 37, c = 50;
+      return e('svg', { width: 100, height: 100, viewBox: '0 0 100 100' },
+        Array.from({ length: ticks }, (_, i) => { const a = (i / ticks) * Math.PI * 2 - Math.PI / 2; return e('line', { key: i, x1: c + Math.cos(a) * r, y1: c + Math.sin(a) * r, x2: c + Math.cos(a) * R, y2: c + Math.sin(a) * R, stroke: i < filled ? col : 'oklch(0.87 0 0)', strokeWidth: 2, strokeLinecap: 'round' }); }),
+        e('text', { x: c, y: c - 4, textAnchor: 'middle', fontSize: 10, fill: D.mute, fontFamily: 'Inter, Pretendard Variable, sans-serif' }, label),
+        e('text', { x: c, y: c + 13, textAnchor: 'middle', fontSize: 17, fontWeight: 600, fill: 'oklch(0.145 0 0)', fontFamily: 'Inter, sans-serif' }, pct + '%')); };
+    const gCpu = mkGauge('CPU', 47, 'oklch(0.205 0 0)'), gMem = mkGauge('메모리', 85, D.wait), gDisk = mkGauge('디스크', 61, 'oklch(0.205 0 0)');
+    const mem = [62, 64, 63, 66, 70, 72, 71, 68, 66, 64, 67, 70, 74, 76, 79, 78, 80, 82, 81, 83, 84, 85, 84, 85];
+    const cpu = [30, 28, 26, 25, 24, 22, 20, 21, 25, 32, 40, 44, 48, 46, 50, 52, 49, 47, 51, 54, 50, 48, 46, 47];
+    const W = 800, H = 200, pts = a => a.map((v, i) => `${(i / (a.length - 1)) * W},${H - (v / 100) * H}`).join(' ');
+    const chart = e('svg', { width: '100%', height: 200, viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', style: { display: 'block' } },
+      [0, 1, 2, 3, 4].map(i => e('line', { key: i, x1: 0, x2: W, y1: i * H / 4, y2: i * H / 4, stroke: 'oklch(0.922 0 0)', strokeDasharray: '3 4', vectorEffect: 'non-scaling-stroke' })),
+      e('line', { x1: 0, x2: W, y1: H * 0.2, y2: H * 0.2, stroke: D.wait, strokeDasharray: '6 4', vectorEffect: 'non-scaling-stroke' }),
+      e('polyline', { points: pts(cpu), fill: 'none', stroke: D.mute, strokeWidth: 1.5, strokeDasharray: '4 4', vectorEffect: 'non-scaling-stroke' }),
+      e('polyline', { points: pts(mem), fill: 'none', stroke: D.wait, strokeWidth: 2, strokeLinejoin: 'round', vectorEffect: 'non-scaling-stroke' }));
+    const W2 = { running: [D.ok, '실행 중'], sleeping: [D.mute, '잠듦'], stopped: [D.mute, '멈춤'], error: [D.err, '오류'] };
+    const app = (name, w, pub, by, last, cpu, mem) => {
+      const o = { name, wDot: W2[w][0], wText: W2[w][1], last, mem, pNone: !pub, pVer: false, pWait: false, adm: !!(pub && pub.adm), canStop: !!(pub && pub.ver && !pub.adm) };
+      if (pub && pub.ver) Object.assign(o, { pVer: true, ver: 'Public ' + pub.ver, pDot: pub.sleep ? D.mute : D.ok, pText: pub.sleep ? '잠듦' : '실행 중' });
+      if (pub && pub.wait) Object.assign(o, { pWait: true, wait: pub.wait });
+      return o;
+    };
+    const cst = { running: [D.ok, '실행 중'], stopped: [D.mute, '정지'], starting: [D.wait, '기동 중'], error: [D.err, '오류'] };
+    const tabs = ['멤버', '에이전트 할당', '리소스', 'MCP', '앱', '위험 영역'];
+    return {
+      gCpu, gMem, gDisk, chart,
+      legend: [
+        { k: 'CPU', v: '47%', c: 'oklch(0.205 0 0)', tc: 'oklch(0.145 0 0)' },
+        { k: '메모리 · 주의', v: '85%', c: D.wait, tc: D.wait },
+        { k: '디스크 /data', v: '61%', c: 'oklch(0.205 0 0)', tc: 'oklch(0.145 0 0)' },
+      ],
+      teams: [
+        ['마케팅팀', 'marketing', 'running', 6, '42%', '71%', '방금'], ['데이터분석팀', 'data', 'running', 9, '68%', '88%', '방금'],
+        ['신사업TF', 'newbiz', 'error', 0, '0%', '0%', '3분 전'], ['인사팀', 'hr', 'stopped', 0, '0%', '0%', '2일 전'], ['영업1팀', 'sales1', 'starting', 1, '12%', '20%', '방금'],
+      ].map(([n, id, s, u, cpu, m, last]) => ({ n, id, u, cpu, mem: m, last, dot: cst[s][0], st: cst[s][1], memC: parseInt(m) >= 95 ? D.err : parseInt(m) >= 85 ? D.wait : 'oklch(0.205 0 0)' })),
+      uFilters: ['역할', '상태', '팀'],
+      deptPick: [['KCC정보통신',0,'open'],['경영지원본부',1,'open'],['인사부',2,'closed',1],['재무부',2,'closed'],['마케팅본부',1,'closed'],['기술연구소',1,'closed']].map(([t,d,st,sel]) => ({ t, pad: (6 + d * 12) + 'px', open: st === 'open', closed: st === 'closed', sel: !!sel, bg: sel ? 'oklch(0.97 0 0)' : 'transparent', w: sel ? 500 : 400 })),
+      users: [
+        ['김하늘', 'haneul.kim@kcc.co.kr', '디지털마케팅팀', '마케팅본부 › 디지털마케팅팀', '책임', '일반', ['마케팅팀', '신사업TF'], 'active', '방금', 0],
+        ['이서진', 'seojin.lee@kcc.co.kr', 'IT운영팀', '기술연구소 › IT운영팀', '수석', '플랫폼 관리자', [], 'active', '방금', 0],
+        ['강민재', 'minjae.kang@kcc.co.kr', '신입채용셀', 'KCC정보통신 › 경영지원본부 › 인사부 › 인사팀 › 채용파트 › 신입채용셀', '선임', '일반', ['인사팀 에이전트'], 'active', '1시간 전', 1],
+        ['최민수', 'minsu.choi@kcc.co.kr', '디지털마케팅팀', '마케팅본부 › 디지털마케팅팀', '선임', '일반', ['마케팅팀'], 'pw', '—', 1],
+        ['정우성', 'woosung.jung@kcc.co.kr', '데이터플랫폼파트', '기술연구소 › 데이터플랫폼파트', '책임', '일반', ['데이터분석팀'], 'active', '어제', 0],
+        ['박지민', 'jimin.park@kcc.co.kr', '노무팀', '경영지원본부 › 인사부 › 노무팀', '사원', '일반', ['인사팀 에이전트'], 'disabled', '2026-08-30 18:02', 0],
+        ['김하늘', 'haneul.kim2@kcc.co.kr', '영업1팀', '영업본부 › 영업1팀', '사원', '일반', ['영업1팀'], 'active', '2026-09-28 11:40', 0],
+      ].map(([n, e2, dept, path, pos, r, teams, s, last, on]) => ({ n, e: e2, dept, path, pos, r, teams, last, on: !!on, off: !on, bg: on ? 'oklch(0.985 0 0)' : '#fff', dot: { active: D.ok, pw: D.wait, disabled: D.mute }[s], st: { active: '활성', pw: '비밀번호 변경 대기', disabled: '비활성' }[s] })),
+      teamRows: [
+        ['marketing', '마케팅팀', 8, '김하늘', 2, 'running', '2코어 · 4GB · 20GB'], ['data', '데이터분석팀', 12, '정우성', 3, 'running', '4코어 · 8GB · 100GB'],
+        ['newbiz', '신사업TF', 5, '김하늘', 1, 'error', '2코어 · 4GB · 20GB'], ['hr', '인사팀', 6, '박지민', 1, 'stopped', '2코어 · 4GB · 20GB'],
+        ['sales1', '영업1팀', 10, '오세훈', 2, 'starting', '2코어 · 4GB · 20GB'], ['design', '디자인팀', 4, '박소연', 0, 'stopped', '2코어 · 4GB · 20GB'],
+      ].map(([id, n, m, adm, ag, s, lim]) => ({ id, n, m, adm, ag, lim, dot: cst[s][0], st: cst[s][1] })),
+      tTabs: tabs.map(t => ({ t, bg: t === '앱' ? '#fff' : 'transparent', fg: t === '앱' ? 'oklch(0.145 0 0)' : t === '위험 영역' ? 'oklch(0.577 0.245 27.325)' : 'oklch(0.556 0 0)', w: t === '앱' ? 500 : 400, sh: t === '앱' ? '0 1px 2px rgba(0,0,0,.06)' : 'none' })),
+      apps: [
+        app('lunch-vote', 'running', { ver: 'v2' }, '김하늘', '방금', '36%', '41%'),
+        app('campaign-report', 'running', { ver: 'v1', wait: '업데이트 대기 v1→v2' }, '이준호', '5분 전', '22%', '58%'),
+        app('budget-calc', 'running', { wait: '공개 승인 대기' }, '김하늘', '1시간 전', '8%', '20%'),
+        app('event-map', 'stopped', null, '박소연', '2시간 전', '0%', '0%'),
+        app('survey-dash', 'sleeping', { ver: 'v3', adm: true }, '박소연', '3일 전', '0%', '0%'),
+        app('data-clean', 'error', null, '이준호', '어제', '0%', '0%'),
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

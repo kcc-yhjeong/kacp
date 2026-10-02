@@ -1,0 +1,77 @@
+# KACP 1단계 검증 환경 (로컬)
+# Traefik -> fake forward-auth -> OpenClaw(team1)
+name: kacp-spike
+
+volumes:
+  team1-state:
+
+networks:
+  edge:
+    name: kacp-edge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+services:
+  traefik:
+    image: traefik:v3.7.13   # 검증한 정확한 버전으로 고정
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      - --api.insecure=true          # 대시보드 (127.0.0.1:8081), 검증용
+      - --accesslog=true
+      - --log.level=INFO
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10   # openclaw.json trustedProxies 와 같아야 함
+
+  fake-auth:
+    image: node:22-alpine
+    command: ["node", "/app/server.js"]
+    volumes:
+      - ./fake-auth:/app:ro
+    networks: [edge]
+
+  whoami:                            # 헤더 확인용 에코 서버
+    image: traefik/whoami
+    networks: [edge]
+
+  # 설정 시드: openclaw/openclaw.json 을 named volume 으로 복사하고 소유자를 node(1000)로 맞춘다.
+  # Windows(Docker Desktop) 호스트 폴더 bind mount 는 chmod 가 안 돼서 doctor 가 EPERM 으로 죽는다.
+  openclaw-team1-init:
+    image: busybox:1.36
+    command: ["sh", "-c", "cp /seed/openclaw.json /state/openclaw.json && chown -R 1000:1000 /state"]
+    volumes:
+      - ./openclaw/openclaw.json:/seed/openclaw.json:ro
+      - team1-state:/state
+    network_mode: none
+
+  openclaw-team1:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
+    depends_on:
+      openclaw-team1-init:
+        condition: service_completed_successfully
+    # 이미지 기본 healthcheck 는 interval 180s 라 부팅 직후 healthy 까지 3분 넘게 걸린다. 테스트는 그대로, 주기만 줄인다.
+    healthcheck:
+      test: ["CMD", "node", "dist/docker-healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      start_interval: 5s
+      retries: 3
+    environment:
+      # 내부 호출용 비밀번호. OPENCLAW_GATEWAY_TOKEN 은 절대 넣지 말 것 (trusted-proxy 와 동시 사용 불가)
+      OPENCLAW_GATEWAY_PASSWORD: ${TEAM1_GATEWAY_PASSWORD}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - team1-state:/home/node/.openclaw
+    # 포트를 호스트에 열지 않는다. Traefik 을 거치는 경로만 존재해야 함.
+    networks:
+      edge:
+        ipv4_address: 172.30.0.20

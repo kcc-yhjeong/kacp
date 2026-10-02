@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpSpin{to{transform:rotate(360deg)}}@keyframes kacpBlink{0%,100%{opacity:1}50%{opacity:.3}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="t9">
+  <div class="dv-thd"><a class="dv-tid" href="#t9">9</a><span class="dv-tname">U-09 MCP 마켓 · U-10 상세·설치 · U-11 우리 팀 설치됨 · U-12 내 배포</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="9a">
+      <div class="dv-olabel"><a class="dv-oid" href="#9a">9a</a>U-09 마켓 목록</div>
+      <div class="dv-card" style="width:1280px;height:760px;display:flex;flex-direction:column" data-screen-label="9a 마켓">
+        <dc-import name="AppHeader" active="market" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px;max-width:1232px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">MCP 마켓</span><span style="font-size:14px;color:oklch(0.556 0 0)">에이전트가 쓸 수 있는 도구를 찾아 팀에 설치해요.</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px">
+              <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">마켓</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">우리 팀 설치됨 6</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">내 배포</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:250px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;color:oklch(0.556 0 0);font-size:13px"><dc-import name="Icon" n="search" size="14" hint-size="14px,14px"></dc-import>이름·설명 검색</div>
+              <div style="height:32px;box-sizing:border-box;border:1px dashed oklch(0.87 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500"><dc-import name="Icon" n="plus" size="14" hint-size="14px,14px"></dc-import>분류</div>
+              <div style="height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500">인기순<dc-import name="Icon" n="chevron-down" size="14" hint-size="14px,14px"></dc-import></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+            <sc-for list="{{ pkgs }}" as="p" hint-placeholder-count="6">
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:flex-start;gap:12px">
+                  <div style="width:40px;height:40px;border-radius:12px;border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:15px;font-weight:600;flex:none">{{ p.mono }}</div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:14.5px;font-weight:600">{{ p.name }}</span><span style="font-size:12px;color:oklch(0.556 0 0)">{{ p.by }} · v{{ p.ver }}</span></div>
+                  <sc-if value="{{ p.installed }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>설치됨</span></sc-if>
+                </div>
+                <span style="font-size:13.5px;line-height:1.5;color:oklch(0.145 0 0);text-wrap:pretty;min-height:40px">{{ p.desc }}</span>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:oklch(0.556 0 0)">
+                  <sc-if value="{{ p.builtin }}" hint-placeholder-val="{{ false }}"><span style="height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;background:oklch(0.97 0 0);color:oklch(0.145 0 0);font-weight:500">기본 제공</span></sc-if>
+                  <span style="height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0)">{{ p.cat }}</span>
+                  <span style="margin-left:auto;display:flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums"><dc-import name="Icon" n="users" size="13" hint-size="13px,13px"></dc-import>{{ p.teams }}팀</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="10a">
+      <div class="dv-olabel"><a class="dv-oid" href="#10a">10a</a>U-10 상세 · 팀 관리자(설치 버튼)</div>
+      <div class="dv-card" style="width:1280px;height:880px;display:flex;flex-direction:column" data-screen-label="10a MCP 상세">
+        <dc-import name="AppHeader" active="market" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:20px 24px">
+          <span style="display:flex;align-items:center;gap:4px;font-size:13px;color:oklch(0.556 0 0)">MCP 마켓<dc-import name="Icon" n="chevron-right" size="14" hint-size="14px,14px"></dc-import>notion-sync</span>
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="width:56px;height:56px;border-radius:12px;border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:20px;font-weight:600">N</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">notion-sync</span><span style="font-size:14px;color:oklch(0.556 0 0)">사내 Notion 페이지를 읽고 드라이브와 주고받아요 · 정우성 · v1.2.0 · 14팀 설치</span></div>
+            <span style="height:36px;padding:0 16px;display:flex;align-items:center;gap:8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500"><dc-import name="Icon" n="download" hint-size="16px,16px"></dc-import>마케팅팀에 설치</span>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;flex:1;min-height:0">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="file-text" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">README</span></div>
+                <div style="padding:20px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.6">
+                  <span style="font-size:16px;font-weight:600">notion-sync</span>
+                  <span>팀이 지정한 Notion 워크스페이스의 페이지를 검색하고 읽어요. 결과는 마크다운으로 드라이브에 저장할 수 있어요.</span>
+                  <span style="color:oklch(0.556 0 0)">NOTION_WORKSPACE와 NOTION_TOKEN은 팀 관리자가 설치할 때 입력해요.</span>
+                </div>
+              </div>
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="plug" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">도구 목록</span><span style="margin-left:auto;font-size:12px;color:oklch(0.556 0 0)">테스트에서 확인 · 3개</span></div>
+                <sc-for list="{{ tools }}" as="t" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:180px minmax(0,1fr) 200px;column-gap:16px;padding:12px 20px;border-bottom:1px solid oklch(0.922 0 0);font-size:13px;align-items:baseline">
+                    <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">{{ t.n }}</span><span>{{ t.d }}</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;color:oklch(0.556 0 0)">{{ t.a }}</span>
+                  </div>
+                </sc-for>
+                <div style="padding:14px 20px;display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:12px;color:oklch(0.556 0 0)">이렇게 말해 보세요</span>
+                  <span style="font-size:13.5px">"이번 주 회의록을 요약해서 드라이브에 저장해줘"</span>
+                  <span style="font-size:13.5px">"Notion에서 캠페인 기획안 찾아서 보여줘"</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="shield-check" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">권한</span></div>
+                <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;font-size:13px">
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:oklch(0.556 0 0)">비밀값</span>
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px">NOTION_WORKSPACE</span><span style="margin-left:auto;height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;background:oklch(0.97 0 0);font-size:11.5px;font-weight:500">팀</span></div>
+                    <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px">NOTION_TOKEN</span><span style="margin-left:auto;height:20px;padding:0 7px;display:flex;align-items:center;border-radius:6px;background:oklch(0.97 0 0);font-size:11.5px;font-weight:500">팀</span></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:oklch(0.556 0 0)">접속하는 곳</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px">api.notion.com</span></div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:oklch(0.556 0 0)">리소스</span><span>CPU 0.25 · 메모리 256 MB</span></div>
+                </div>
+              </div>
+              <div style="border:1px solid oklch(0.922 0 0);border-radius:12px">
+                <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><dc-import name="Icon" n="history" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import><span style="font-size:14px;font-weight:500">버전 이력</span></div>
+                <div style="padding:8px 20px 12px;display:grid;grid-template-columns:52px 1fr auto;column-gap:8px;row-gap:8px;font-size:13px;padding-top:14px">
+                  <span style="font-weight:500">1.2.0</span><span>페이지 쓰기 도구 추가</span><span style="color:oklch(0.556 0 0)">2026-09-28</span>
+                  <span style="font-weight:500">1.1.0</span><span>검색 속도 개선</span><span style="color:oklch(0.556 0 0)">2026-09-10</span>
+                  <span style="font-weight:500">1.0.0</span><span>첫 게시</span><span style="color:oklch(0.556 0 0)">2026-08-22</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="10b">
+      <div class="dv-olabel"><a class="dv-oid" href="#10b">10b</a>U-10 설치 모달 · 2단계 권한 확인</div>
+      <div class="dv-card" style="width:540px" data-screen-label="10b 설치 권한">
+        <div style="display:flex;flex-direction:column;gap:20px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">notion-sync 설치</span><span style="font-size:14px;color:oklch(0.556 0 0)">마케팅팀 · v1.2.0</span></div>
+            <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stInstall }}" hint-size="100%,56px"></dc-import>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:14px;font-weight:500">이 도구가 하는 일에 동의해 주세요</span>
+            <sc-for list="{{ perms }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid oklch(0.922 0 0);border-radius:12px">
+                <span style="width:16px;height:16px;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none;margin-top:1px"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px">{{ c.t }}</span><span style="font-size:12px;color:oklch(0.556 0 0)">{{ c.s }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">이전</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">다음</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="10c">
+      <div class="dv-olabel"><a class="dv-oid" href="#10c">10c</a>U-10 설치 모달 · 3단계 비밀값</div>
+      <div class="dv-card" style="width:540px" data-screen-label="10c 설치 비밀값">
+        <div style="display:flex;flex-direction:column;gap:20px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">notion-sync 설치</span><span style="font-size:14px;color:oklch(0.556 0 0)">마케팅팀 · v1.2.0</span></div>
+            <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stSecret }}" hint-size="100%,56px"></dc-import>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">NOTION_WORKSPACE <span style="font-weight:400;color:oklch(0.556 0 0);font-size:12px">팀</span></span>
+            <div style="display:flex;align-items:center;height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 6px 0 12px"><span style="flex:1;font-size:14px;letter-spacing:2px">••••••••••••••</span><span style="width:28px;height:28px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="eye" hint-size="16px,16px"></dc-import></span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">NOTION_TOKEN <span style="font-weight:400;color:oklch(0.556 0 0);font-size:12px">팀</span></span>
+            <div style="display:flex;align-items:center;height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 6px 0 12px"><span style="flex:1;font-size:14px;letter-spacing:2px">••••••••••••••••••••</span><span style="width:28px;height:28px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="eye" hint-size="16px,16px"></dc-import></span></div>
+          </div>
+          <div style="display:flex;gap:10px;padding:12px 14px;border-radius:8px;background:oklch(0.97 0 0);font-size:13px;line-height:1.5">
+            <dc-import name="Icon" n="users" color="oklch(0.556 0 0)" hint-size="16px,16px" style="margin-top:2px"></dc-import>
+            <span>팀 비밀값은 팀 에이전트가 함께 써요. 저장하면 다시 보여주지 않고, 바꿀 때는 새로 입력해요.</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">이전</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">설치</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="11a">
+      <div class="dv-olabel"><a class="dv-oid" href="#11a">11a</a>U-11 우리 팀 설치됨 · 팀 에이전트 꺼짐 안내 + 제거 중 행 + 행 메뉴 펼침</div>
+      <div class="dv-card" style="width:1280px;height:640px;display:flex;flex-direction:column" data-screen-label="11a 설치됨">
+        <dc-import name="AppHeader" active="market" team-status="stopped" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px;align-self:flex-start">
+            <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">마켓</span>
+            <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">우리 팀 설치됨 6</span>
+            <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">내 배포</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:13.5px">
+            <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span>
+            <span>팀 에이전트가 꺼져 있어 마지막으로 확인한 목록을 보여줘요</span><span style="color:oklch(0.556 0 0)">· 2시간 전 확인</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px 80px 110px 110px 110px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>이름</span><span>출처</span><span>버전</span><span>상태</span><span>설치한 사람</span><span>마지막 확인</span><span></span></div>
+            <sc-for list="{{ installed }}" as="i" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px 80px 110px 110px 110px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+                <span style="font-weight:500">{{ i.name }}</span>
+                <div>
+                  <sc-if value="{{ i.manual }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span><dc-import name="Icon" n="shield-alert" size="12" hint-size="12px,12px"></dc-import>직접 추가 · 검토되지 않음</span></sc-if>
+                  <sc-if value="{{ i.notManual }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500">{{ i.src }}</span></sc-if>
+                </div>
+                <span style="font-size:12.5px;font-family:'Geist Mono',ui-monospace,monospace">{{ i.ver }}</span>
+                <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ i.dot }}"></span>{{ i.st }}</span>
+                <span style="font-size:13px">{{ i.by }}</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ i.chk }}</span>
+                <span style="position:relative;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="more" hint-size="16px,16px"></dc-import>
+                  <sc-if value="{{ i.menu }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:26px;right:0;z-index:10;width:180px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;font-size:14px;color:oklch(0.145 0 0)">
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;background:oklch(0.97 0 0)"><dc-import name="Icon" n="lock" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>비밀값 다시 입력</div>
+                    <div style="height:1px;background:oklch(0.922 0 0);margin:4px -4px"></div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;color:oklch(0.577 0.245 27.325)"><dc-import name="Icon" n="trash" hint-size="16px,16px"></dc-import>제거</div>
+                  </div></sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="11b">
+      <div class="dv-olabel"><a class="dv-oid" href="#11b">11b</a>U-11 · 아직 확인한 적 없음 (platform-mcp는 항상 있음)</div>
+      <div class="dv-card" style="width:1280px;height:400px;display:flex;flex-direction:column" data-screen-label="11b 확인 전">
+        <dc-import name="AppHeader" active="market" team-status="stopped" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px;align-self:flex-start">
+            <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">마켓</span>
+            <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">우리 팀 설치됨 1</span>
+            <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">내 배포</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:13.5px">
+            <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span>
+            <span>아직 확인한 적 없음</span><span style="color:oklch(0.556 0 0)">· 팀 에이전트가 처음 켜지면 설치 상태를 확인해요</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px 80px 110px 110px 150px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>이름</span><span>출처</span><span>버전</span><span>상태</span><span>설치한 사람</span><span>마지막 확인</span><span></span></div>
+            <sc-for list="{{ never }}" as="i" hint-placeholder-count="1">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px 80px 110px 110px 150px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;font-size:13.5px">
+                <span style="font-weight:500">{{ i.name }}</span>
+                <div><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500">{{ i.src }}</span></div>
+                <span style="font-size:12.5px;font-family:'Geist Mono',ui-monospace,monospace">{{ i.ver }}</span>
+                <span style="color:oklch(0.556 0 0)">—</span>
+                <span style="font-size:13px">{{ i.by }}</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">아직 확인한 적 없음</span>
+                <span></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="12a">
+      <div class="dv-olabel"><a class="dv-oid" href="#12a">12a</a>U-12 내 배포 · 업로드 + 버전 펼침(보안 스캔 실패)</div>
+      <div class="dv-card" style="width:1280px;height:820px;display:flex;flex-direction:column" data-screen-label="12a 내 배포">
+        <dc-import name="AppHeader" active="market" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px;align-self:flex-start">
+            <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">마켓</span><span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">우리 팀 설치됨 6</span>
+            <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">내 배포</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:18px 20px;border:1.5px dashed oklch(0.87 0 0);border-radius:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="upload" size="20" hint-size="20px,20px"></dc-import></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500">새 버전 올리기</span><span style="font-size:13px;color:oklch(0.556 0 0)"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px">create-platform-mcp pack</span>으로 만든 zip을 끌어다 놓으세요</span></div>
+            <span style="font-size:13px;text-decoration:underline">만드는 방법</span>
+            <span style="height:32px;padding:0 12px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;font-size:13px;font-weight:500">파일 선택</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 140px 110px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>패키지</span><span>최신 버전</span><span>상태</span><span>설치 팀</span><span></span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 140px 110px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px;background:oklch(0.985 0 0)">
+              <span style="font-weight:500;display:flex;align-items:center;gap:8px"><dc-import name="Icon" n="chevron-down" size="14" hint-size="14px,14px"></dc-import>notion-sync</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">1.3.0</span>
+              <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>실패</span>
+              <span style="font-variant-numeric:tabular-nums">14</span><span></span>
+            </div>
+            <div style="padding:20px 24px;display:flex;flex-direction:column;gap:20px;border-bottom:1px solid oklch(0.922 0 0)">
+              <dc-import name="Stepper" steps="{{ stMcp }}" hint-size="100%,56px"></dc-import>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:13.5px;font-weight:500">보안 스캔에서 멈췄어요</span>
+                  <span style="font-size:13px;color:oklch(0.556 0 0)">High 등급 문제가 1개 있어요. 의존성 버전을 올리고 다시 올려 주세요.</span>
+                  <div style="border-radius:8px;background:oklch(0.97 0 0);padding:12px 14px;font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;line-height:1.6;display:flex;flex-direction:column">
+                    <span style="color:oklch(0.556 0 0)">[scan] 184 packages checked</span>
+                    <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>HIGH  axios@0.21.1  CVE-2021-3749</span>
+                    <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>MED   semver@7.3.2  CVE-2022-25883</span>
+                    <span>[scan] result: fail (high ≥ 1)</span>
+                  </div>
+                </div>
+                <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:grid;grid-template-columns:repeat(4,1fr);text-align:center">
+                  <sc-for list="{{ sev }}" as="s" hint-placeholder-count="4">
+                    <div style="padding:14px 4px;display:flex;flex-direction:column;gap:4px;border-right:1px solid oklch(0.922 0 0)"><span style="font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ s.c }}">{{ s.n }}</span><span style="font-size:11.5px;color:oklch(0.556 0 0)">{{ s.l }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 140px 110px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;font-size:13.5px">
+              <span style="font-weight:500;display:flex;align-items:center;gap:8px"><dc-import name="Icon" n="chevron-right" size="14" hint-size="14px,14px"></dc-import>jira-lite</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">0.4.1</span>
+              <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>심사 대기</span>
+              <span style="font-variant-numeric:tabular-nums">3</span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="12b">
+      <div class="dv-olabel"><a class="dv-oid" href="#12b">12b</a>U-12 · 반려 — 심사 대기에서 X · 추가</div>
+      <div class="dv-card" style="width:1280px;box-sizing:border-box;padding:24px" data-screen-label="12b 반려">
+        <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 140px 110px 32px;align-items:center;column-gap:12px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px;background:oklch(0.985 0 0)">
+            <span style="font-weight:500;display:flex;align-items:center;gap:8px"><dc-import name="Icon" n="chevron-down" size="14" hint-size="14px,14px"></dc-import>jira-lite</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">0.5.0</span>
+            <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>반려됨</span>
+            <span style="font-variant-numeric:tabular-nums">3</span><span></span>
+          </div>
+          <div style="padding:20px 24px;display:flex;flex-direction:column;gap:16px">
+            <dc-import name="Stepper" steps="{{ stRej }}" hint-size="100%,56px"></dc-import>
+            <div style="display:grid;grid-template-columns:88px 1fr;row-gap:8px;font-size:13.5px;line-height:1.5">
+              <span style="color:oklch(0.556 0 0)">반려 사유</span><span>접속하는 곳에 사외 주소(api.atlassian.net)가 새로 생겼어요. 사내 Jira 주소만 쓰도록 고친 뒤 다시 올려 주세요.</span>
+              <span style="color:oklch(0.556 0 0)">처리</span><span>플랫폼 관리자 · 1시간 전</span>
+            </div>
+            <span style="font-size:12.5px;color:oklch(0.556 0 0)">설치한 팀은 이전 버전 0.4.1을 계속 써요.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="10e">
+      <div class="dv-olabel"><a class="dv-oid" href="#10e">10e</a>U-10 설치 모달 · 1단계 대상 팀</div>
+      <div class="dv-card" style="width:540px" data-screen-label="10e 대상 팀">
+        <div style="display:flex;flex-direction:column;gap:20px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">notion-sync 설치</span><span style="font-size:14px;color:oklch(0.556 0 0)">v1.2.0</span></div>
+            <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stTeam }}" hint-size="100%,56px"></dc-import>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">대상 팀</span>
+            <div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;padding:0 12px;font-size:14px">마케팅팀<span style="margin-left:auto;color:oklch(0.556 0 0)"><dc-import name="Icon" n="chevron-down" hint-size="16px,16px"></dc-import></span></div>
+            <span style="font-size:12px;color:oklch(0.556 0 0)">내가 팀 관리자인 팀(플랫폼 관리자는 모든 팀)</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">취소</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">다음</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "<a class="dv-oid" href="#10a">10a</a> 팀원 보기(설치 요청 안내)" · "<a class="dv-oid" href="#9a">9a</a> 빈·로딩 상태" · "U-13 커뮤니티로"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const D = { ok: 'oklch(0.596 0.145 163.225)', wait: 'oklch(0.666 0.179 58.318)', err: 'oklch(0.586 0.253 17.585)', mute: 'oklch(0.556 0 0)' };
+    const P = (name, by, ver, desc, cat, teams, o = {}) => ({ name, by, ver, desc, cat, teams, mono: name[0].toUpperCase(), installed: !!o.i, builtin: !!o.b });
+    return {
+      pkgs: [
+        P('platform-mcp', 'KACP', '2.0.1', '앱 실행·배포와 팀 드라이브 도구. 모든 팀에 기본 설치', '플랫폼', 42, { i: 1, b: 1 }),
+        P('notion-sync', '정우성', '1.2.0', '사내 Notion 페이지를 읽고 드라이브와 주고받아요.', '문서', 14, { i: 1 }),
+        P('ga4-report', '마케팅랩', '0.9.3', 'GA4 지표를 불러와 주간 보고서 표로 만들어요.', '데이터', 9),
+        P('slack-notify', 'KACP', '1.4.0', '정해 둔 채널에 요약이나 알림을 보내요.', '메신저', 31, { b: 1 }),
+        P('hr-calendar', '인사팀', '1.0.2', '휴가·회의실 일정을 조회해요. 사내망 전용이에요.', '일정', 18),
+        P('sql-readonly', '데이터플랫폼', '0.7.0', '승인된 분석 DB를 읽기 전용으로 조회해요.', '데이터', 6),
+      ],
+      tools: [
+        { n: 'search_pages', d: '제목·본문으로 페이지를 찾아요', a: 'query, limit?' },
+        { n: 'read_page', d: '페이지를 마크다운으로 읽어요', a: 'page_id' },
+        { n: 'save_to_drive', d: '읽은 내용을 드라이브에 저장해요', a: 'page_id, path' },
+      ],
+      stInstall: [{ label: '대상 팀', state: 'done', sub: '마케팅팀' }, { label: '권한 확인', state: 'current' }, { label: '비밀값', state: 'todo' }, { label: '설치', state: 'todo' }],
+      stSecret: [{ label: '대상 팀', state: 'done', sub: '마케팅팀' }, { label: '권한 확인', state: 'done' }, { label: '비밀값', state: 'current' }, { label: '설치', state: 'todo' }],
+      perms: [
+        { t: 'api.notion.com 에 접속해요', s: '외부 네트워크' },
+        { t: '팀 비밀값 NOTION_WORKSPACE · NOTION_TOKEN 을 써요', s: '설치할 때 팀 관리자가 입력해요' },
+        { t: '팀 드라이브에 파일을 저장해요', s: 'save_to_drive 도구' },
+      ],
+      installed: [
+        ['platform-mcp', '기본 제공', '2.0.1', 'installed', '시스템', '2시간 전'],
+        ['slack-notify', '기본 제공', '1.4.0', 'removing', '시스템', '2시간 전'],
+        ['notion-sync', '마켓', '1.2.0', 'installed', '김하늘', '2시간 전', true],
+        ['ga4-report', '마켓', '0.9.3', 'error', '김하늘', '2시간 전'],
+        ['hr-calendar', '마켓', '1.0.2', 'installing', '김하늘', '2시간 전'],
+        ['figma-bridge', 'manual', '—', 'installed', '이준호', '2시간 전'],
+      ].map(([name, src, ver, st, by, chk, menu]) => ({ name, src, ver, by, chk, menu: !!menu, manual: src === 'manual', notManual: src !== 'manual',
+        st: { installed: '설치됨', error: '오류', installing: '설치 중', removing: '제거 중' }[st], dot: { installed: D.ok, error: D.err, installing: D.wait, removing: D.mute }[st] })),
+      never: [{ name: 'platform-mcp', src: '기본 제공', ver: '2.0.1', by: '시스템' }],
+      stMcp: [
+        { label: '업로드', state: 'done', sub: '3분 전' }, { label: '검증', state: 'done' }, { label: '빌드', state: 'done' },
+        { label: '보안 스캔', state: 'failed', sub: '실패' }, { label: '테스트', state: 'todo' }, { label: '심사 대기', state: 'todo' }, { label: '게시됨', state: 'todo' },
+      ],
+      stRej: [
+        { label: '업로드', state: 'done', sub: '2시간 전' }, { label: '검증', state: 'done' }, { label: '빌드', state: 'done' }, { label: '보안 스캔', state: 'done' }, { label: '테스트', state: 'done' }, { label: '심사 대기', state: 'failed', sub: '반려됨' }, { label: '게시됨', state: 'todo' },
+      ],
+      stTeam: [{ label: '대상 팀', state: 'current' }, { label: '권한 확인', state: 'todo' }, { label: '비밀값', state: 'todo' }, { label: '설치', state: 'todo' }],
+      sev: [{ n: 0, l: 'Critical', c: 'oklch(0.145 0 0)' }, { n: 1, l: 'High', c: 'oklch(0.145 0 0)' }, { n: 1, l: 'Medium', c: 'oklch(0.145 0 0)' }, { n: 4, l: 'Low', c: 'oklch(0.145 0 0)' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

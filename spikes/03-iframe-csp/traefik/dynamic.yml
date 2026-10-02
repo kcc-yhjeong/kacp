@@ -1,0 +1,77 @@
+http:
+  middlewares:
+    # 1) 클라이언트가 보낸 신원 헤더를 먼저 지운다 ("" = 제거)
+    strip-identity:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-User: ""
+          X-Openclaw-Scopes: ""
+          X-Kacp-User: ""
+    # 2) forward-auth 결과로 다시 넣는다
+    kacp-auth:
+      forwardAuth:
+        address: http://fake-auth:4000/verify
+        trustForwardHeader: false
+        authResponseHeaders:
+          - X-Forwarded-User
+          - X-Openclaw-Scopes
+
+    # 로컬 전용: 운영은 TLS 종료라 Traefik 이 https 를 넣는다. 공개 세션 링크는 정확히 https 여야 열림
+    fake-https:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+
+    # spike 03: Gateway 응답의 frame-ancestors 만 'self' 로, X-Frame-Options 제거 (로컬 플러그인)
+    claw-frame:
+      plugin:
+        cspframe:
+          frameAncestors: "'self'"
+
+    # spike 03: 앱 라우터용. 플랫폼 세션 쿠키만 지우고 나머지 쿠키(앱 자체 쿠키)는 남긴다
+    strip-session-cookie:
+      plugin:
+        cookiestrip:
+          names: ["kacp_session", "kacp_dev_user"]
+
+    to-claw:
+      redirectRegex:
+        regex: "^https?://([^/]+)/?$"
+        replacement: "http://${1}/claw/"
+
+  routers:
+    # 로그인 화면 (인증 없이)
+    auth-ui:
+      rule: Host(`team1.kacp.localhost`) && PathPrefix(`/_kacp`)
+      priority: 100
+      service: fake-auth
+    # 헤더 확인용
+    debug-echo:
+      rule: Host(`team1.kacp.localhost`) && PathPrefix(`/_debug`)
+      priority: 90
+      middlewares: [strip-identity, kacp-auth, strip-session-cookie]   # spike 03: 앱 라우터 흉내
+      service: whoami
+    # 팀 Gateway (Control UI + WebSocket) — spike 02: /claw 만 Gateway 로. prefix 는 벗기지 않는다(basePath 가 /claw)
+    team1:
+      rule: Host(`team1.kacp.localhost`) && PathPrefix(`/claw`)
+      priority: 70
+      middlewares: [strip-identity, kacp-auth, fake-https, claw-frame]
+      service: openclaw-team1
+
+    # 셸(에이전트 셸 자리). spike 03: fake-auth 가 iframe 테스트 페이지를 준다
+    shell:
+      rule: Host(`team1.kacp.localhost`)
+      priority: 1
+      middlewares: [strip-identity, kacp-auth]
+      service: fake-auth
+
+  services:
+    fake-auth:
+      loadBalancer:
+        servers: [{ url: "http://fake-auth:4000" }]
+    whoami:
+      loadBalancer:
+        servers: [{ url: "http://whoami:80" }]
+    openclaw-team1:
+      loadBalancer:
+        servers: [{ url: "http://openclaw-team1:18789" }]

@@ -1,0 +1,6 @@
+displayName: Strip one cookie (KACP spike 03)
+type: middleware
+import: github.com/kacp/cookiestrip
+summary: 요청 Cookie 헤더에서 지정한 이름의 쿠키만 지운다(앱 컨테이너가 플랫폼 세션을 못 보게).
+testData:
+  names: ["kacp_session"]

@@ -1,0 +1,25 @@
+// data/team1/openclaw.json 으로 복사해서 사용 (파일 단위 bind mount 는 설정 저장 시 깨질 수 있음)
+{
+  gateway: {
+    mode: "local",
+    bind: "lan",
+    trustedProxies: ["172.30.0.10"],          // Traefik 고정 IP
+    controlUi: {
+      allowedOrigins: ["http://team1.kacp.localhost"],  // HTTP_PORT 를 80 이외로 바꾸면 포트 포함
+    },
+    auth: {
+      mode: "trusted-proxy",
+      // 팀 관리자에게만 세션 한정 admin 부여 (영구 기기 권한은 넓히지 않음)
+      identityScopes: {
+        "alice@kcc.dev": ["operator.admin"],
+      },
+      trustedProxy: {
+        userHeader: "x-forwarded-user",
+        allowLoopback: false,
+        deviceAutoApprove: {
+          enabled: true,   // 기본 scopes: read, write, approvals, questions
+        },
+      },
+    },
+  },
+}

@@ -1,0 +1,55 @@
+# Traefik v3.7.13 static config — LOCAL (Windows Docker Desktop, http, *.kacp.localhost).
+# Mounted as /etc/traefik/traefik.yml. See README.md.
+#
+# Entry point naming: the serving entry point is called `websecure` in BOTH
+# modes. Locally it listens on :80 without TLS; on the VM (traefik.vm.yml) it
+# listens on :443 with the wildcard certificate. Every router (file provider
+# and orchestrator container labels) therefore always says
+# `entrypoints=websecure` and never carries a `tls` key.
+# Static config cannot use templates or env substitution, hence two files.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+entryPoints:
+  websecure:
+    address: ":80"
+    # Routers that forget `entryPoints` attach here only (not to web/ping).
+    asDefault: true
+    # forwardedHeaders.trustedIPs is intentionally unset: X-Forwarded-* sent by
+    # clients are overwritten by Traefik.
+  ping:
+    # Internal only (not published by compose). Used by `traefik healthcheck --ping`.
+    address: ":8082"
+
+ping:
+  entryPoint: ping
+
+providers:
+  docker:
+    # Read-only socket proxy on its own internal network (README.md).
+    endpoint: tcp://traefik-socket-proxy:2375
+    exposedByDefault: false
+    network: kacp-edge
+    # Only containers created by orchestrator as team / app copies may publish
+    # routes. MCP containers (kacp.kind=mcp) and sandboxes are ignored even if
+    # their image carries traefik.* labels.
+    constraints: "LabelRegex(`kacp.kind`, `^(team|app-work|app-public)$`)"
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+experimental:
+  localPlugins:
+    # Loaded from /plugins-local/src/<moduleName> (Traefik working dir is /).
+    cspframe:
+      moduleName: github.com/kacp/cspframe
+    cookiestrip:
+      moduleName: github.com/kacp/cookiestrip
+
+log:
+  level: INFO
+
+accessLog: {}
+# No `api:` section: dashboard and API are disabled.

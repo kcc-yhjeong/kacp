@@ -1,0 +1,142 @@
+{{- /*
+  Traefik v3.7.13 dynamic config (file provider) — static platform routes.
+  Mounted in /etc/traefik/dynamic/. See README.md and LABELS.md.
+
+  This file is a Go template (Traefik file provider + sprig functions), rendered
+  before YAML parsing:
+    $base   = BASE_DOMAIN env of the traefik container (kacp.localhost | kacp.cloud)
+    $baseRe = $base with every "." escaped as "\." for use inside regexes.
+              sprig `replace` is used (not `regexQuoteMeta`) because it exists in
+              every sprig v3 release; a valid domain only has "." as regex
+              metacharacter, so escaping dots is sufficient.
+  "\\." in a template string literal is the two characters \. — regex rules are
+  written in YAML single quotes so the backslash reaches Traefik unchanged.
+
+  Rules for every router here and in container labels:
+    - entryPoints: [websecure] (same name locally and on the VM)
+    - NO `tls` key (the wildcard certificate is set on the entry point)
+*/ -}}
+{{- $base := env "BASE_DOMAIN" | default "kacp.localhost" -}}
+{{- $baseRe := $base | replace "." "\\." -}}
+http:
+  middlewares:
+    # Remove client-supplied identity headers ("" = delete). Runs first on every
+    # router. Header names are case-insensitive. X-Kacp-Csrf is NOT identity
+    # and is kept (api checks it against the session).
+    strip-identity:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-User: ""
+          X-Openclaw-Scopes: ""
+          X-Kacp-User-Id: ""
+          X-Kacp-User-Email: ""
+          X-Kacp-User-Name: ""
+          X-Kacp-Team: ""
+          X-Kacp-Team-Role: ""
+
+    # forward-auth (docs/design/06-auth.md §5). Traefik itself adds
+    # X-Forwarded-Method/-Proto/-Host/-Uri/-For to the auth request (from the
+    # real request, because trustForwardHeader is false); authRequestHeaders
+    # only limits which ORIGINAL headers are copied.
+    # Note: Traefik drops hop-by-hop headers (Connection, Upgrade) from the auth
+    # request even when listed, so api should detect WebSocket upgrades by
+    # Sec-WebSocket-Version as well.
+    # Each authResponseHeaders entry is first deleted from the request and then
+    # set only if the auth response has it.
+    kacp-auth:
+      forwardAuth:
+        address: http://api:3000/internal/forward-auth
+        trustForwardHeader: false
+        authRequestHeaders:
+          - Cookie
+          - Accept
+          - Upgrade
+          - Connection
+          - Sec-WebSocket-Version
+        authResponseHeaders:
+          - X-Forwarded-User
+          - X-Openclaw-Scopes
+          - X-Kacp-User-Id
+          - X-Kacp-User-Email
+          - X-Kacp-User-Name
+          - X-Kacp-Team
+          - X-Kacp-Team-Role
+
+    # Team Gateway responses: drop X-Frame-Options, frame-ancestors → 'self'
+    # (local plugin plugins/cspframe). Used by team-claw-{team} labels.
+    claw-frame:
+      plugin:
+        cspframe:
+          frameAncestors: "'self'"
+
+    # App copies: remove only kacp_session from the request Cookie, after
+    # kacp-auth (local plugin plugins/cookiestrip). Used by app labels (stage 5).
+    strip-session-cookie:
+      plugin:
+        cookiestrip:
+          names:
+            - kacp_session
+
+    # nosniff everywhere. HSTS only when HSTS_SECONDS is set (VM: 31536000);
+    # locally it stays 0 and Traefik sends no Strict-Transport-Security header.
+    # No frameDeny: the shell embeds /claw in an iframe.
+    secure-headers:
+      headers:
+        contentTypeNosniff: true
+        stsSeconds: {{ env "HSTS_SECONDS" | default "0" }}
+
+    # {{ $base }} → app.{{ $base }} (301), keeping scheme, port, path and query.
+    apex-redirect:
+      redirectRegex:
+        regex: '^(https?)://{{ $baseRe }}(:[0-9]+)?(.*)$'
+        replacement: '${1}://app.{{ $base }}${2}${3}'
+        permanent: true
+
+  routers:
+    # app.{{ $base }}/api/* → api. The /api prefix is NOT stripped: api serves
+    # /api/v1/... directly and authenticates the session itself.
+    # /internal/* on any host never reaches api: no router sends it there
+    # (app.{{ $base }}/internal goes to web, which shows 404).
+    app-api:
+      rule: 'Host(`app.{{ $base }}`) && PathPrefix(`/api`)'
+      priority: 100
+      entryPoints: [websecure]
+      middlewares: [secure-headers, strip-identity]
+      service: api
+
+    # app.{{ $base }} everything else → web (SPA decides with /auth/me).
+    app-web:
+      rule: 'Host(`app.{{ $base }}`)'
+      priority: 90
+      entryPoints: [websecure]
+      middlewares: [secure-headers, strip-identity]
+      service: web
+
+    # Apex → app.{{ $base }}. The service is never reached.
+    apex:
+      rule: 'Host(`{{ $base }}`)'
+      priority: 80
+      entryPoints: [websecure]
+      middlewares: [secure-headers, apex-redirect]
+      service: noop@internal
+
+    # Any single label under the base domain that no higher router matched:
+    # team host shell, sleeping/stopped app copies, unknown names → web.
+    # forward-auth returns 200 without identity for non-team hosts.
+    # Dynamic routers (labels): team-claw 70, app copies 60.
+    fallback-web:
+      rule: 'HostRegexp(`^[a-z0-9-]+\.{{ $baseRe }}$`)'
+      priority: 1
+      entryPoints: [websecure]
+      middlewares: [secure-headers, strip-identity, kacp-auth]
+      service: web
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: http://api:3000
+    web:
+      loadBalancer:
+        servers:
+          - url: http://web:80

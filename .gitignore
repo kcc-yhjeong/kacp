@@ -1,0 +1,6 @@
+.env
+spikes/**/data/
+node_modules/
+dist/
+*.tsbuildinfo
+deploy/infra/.data/

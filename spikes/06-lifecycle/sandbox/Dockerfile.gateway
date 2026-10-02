@@ -1,0 +1,5 @@
+# spike 06 — 팀 Gateway 이미지: 공식 이미지 + docker CLI (샌드박스 형제 컨테이너용)
+# 설계상 deploy/openclaw-image 의 "공식 이미지 기반 Dockerfile(버전 고정)" 자리
+FROM docker:29-cli AS dockercli
+FROM ghcr.io/openclaw/openclaw:2026.9.7
+COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker

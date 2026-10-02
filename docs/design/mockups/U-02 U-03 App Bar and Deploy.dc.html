@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpIndet{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}@keyframes kacpSpin{to{transform:rotate(360deg)}}@keyframes kacpBlink{0%,100%{opacity:1}50%{opacity:.3}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">U-02 앱 막대·미리보기 · U-03 공개 설정 — 작업본/공개본 두 사본 기준</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>앱 막대 · 칩 = 앱(작업본 기준), 잠든 앱은 흐리게, 칩 메뉴 열림</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;flex-direction:column" data-screen-label="2a 앱 막대">
+        <dc-import name="AppHeader" active="agent" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="position:relative;z-index:20;flex:none;height:36px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;border-bottom:1px solid oklch(0.922 0 0);background:#fff;font-size:12.5px">
+          <span style="font-size:12px;color:oklch(0.556 0 0);margin-right:4px">우리 팀 앱 4</span>
+          <div style="position:relative">
+            <div style="display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;background:oklch(0.97 0 0);cursor:pointer">
+              <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>
+              <span style="font-weight:500">lunch-vote</span>
+              <span style="display:flex;align-items:center;gap:3px;height:18px;padding:0 6px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:11px;font-weight:500"><dc-import name="Icon" n="globe" size="11" sw="2" hint-size="11px,11px"></dc-import>Public v2</span>
+            </div>
+            <div style="position:absolute;top:32px;left:0;width:216px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;font-size:14px">
+              <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;background:oklch(0.97 0 0)"><dc-import name="Icon" n="eye" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>작업본 미리보기</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px"><dc-import name="Icon" n="external-link" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>공개본 열기<span style="margin-left:auto;font-size:12px;color:oklch(0.556 0 0)">v2</span></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px"><dc-import name="Icon" n="globe" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>공개 설정</div>
+              <div style="height:1px;background:oklch(0.922 0 0);margin:4px -4px"></div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px"><dc-import name="Icon" n="square" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>작업본 중지</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px">
+            <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span><span style="font-weight:500">campaign-report</span>
+            <span style="display:flex;align-items:center;gap:3px;height:18px;padding:0 6px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:11px;font-weight:500"><dc-import name="Icon" n="globe" size="11" sw="2" hint-size="11px,11px"></dc-import>Public v1</span>
+            <span style="display:flex;align-items:center;gap:4px;height:18px;padding:0 6px;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:11px;font-weight:500"><span style="width:5px;height:5px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>업데이트 대기</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px">
+            <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span><span style="font-weight:500">budget-calc</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;height:26px;padding:0 8px;border:1px dashed oklch(0.87 0 0);border-radius:6px;opacity:.55" title="잠듦 · 접속하면 켜져요">
+            <span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span><span style="font-weight:500">survey-dash</span><span style="display:flex;align-items:center;gap:3px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="moon" size="12" hint-size="12px,12px"></dc-import>잠듦</span>
+          </div>
+          <div style="margin-left:auto;width:28px;height:28px;display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="chevron-up" hint-size="16px,16px"></dc-import></div>
+        </div>
+        <div style="flex:1;background:oklch(0.97 0 0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+          <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">iframe · /claw/</span>
+          <span style="font-size:13px;color:oklch(0.556 0 0)">OpenClaw Control UI</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>미리보기 패널 · 작업본 실행 중 (셸 오른쪽, 폭 조절)</div>
+      <div class="dv-card" style="width:520px;height:620px;display:flex;flex-direction:column" data-screen-label="2b 미리보기 작업본">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 12px 12px 20px;border-bottom:1px solid oklch(0.922 0 0)">
+          <span style="font-size:15px;font-weight:600">lunch-vote</span>
+          <span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span>
+          <span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span>
+          <div style="margin-left:auto;display:flex;gap:2px">
+            <div style="width:32px;height:32px;border-radius:6px;display:grid;place-items:center" title="공개 설정"><dc-import name="Icon" n="globe" hint-size="16px,16px"></dc-import></div>
+            <div style="width:32px;height:32px;border-radius:6px;display:grid;place-items:center" title="새 탭으로 열기"><dc-import name="Icon" n="external-link" hint-size="16px,16px"></dc-import></div>
+            <div style="width:32px;height:32px;border-radius:6px;display:grid;place-items:center" title="닫기"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 8px 20px;border-bottom:1px solid oklch(0.922 0 0)">
+          <span style="flex:1;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">https://lunch-vote--marketing.kacp.cloud</span>
+          <div style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><dc-import name="Icon" n="copy" size="14" hint-size="14px,14px"></dc-import>주소 복사</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)">
+          <dc-import name="Icon" n="info" size="14" hint-size="14px,14px"></dc-import><span>작업본이에요. 에이전트가 고치면 바로 바뀌어요. 공개본(v2)은 따로 있어요.</span>
+        </div>
+        <div style="flex:1;margin:12px;border:1px dashed oklch(0.87 0 0);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:oklch(0.985 0 0)">
+          <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">iframe · lunch-vote--marketing</span>
+          <span style="font-size:13px;color:oklch(0.556 0 0)">앱 화면</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2c">
+      <div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>미리보기 패널 · 잠든 앱 깨우는 중</div>
+      <div class="dv-card" style="width:520px;height:620px;display:flex;flex-direction:column" data-screen-label="2c 깨우는 중">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 12px 12px 20px;border-bottom:1px solid oklch(0.922 0 0)">
+          <span style="font-size:15px;font-weight:600">survey-dash</span>
+          <span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span>
+          <span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500">{{ blinkDot }}시작 중</span>
+          <div style="margin-left:auto;width:32px;height:32px;display:grid;place-items:center"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 8px 20px;border-bottom:1px solid oklch(0.922 0 0)">
+          <span style="flex:1;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">https://survey-dash--marketing.kacp.cloud</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:0 48px">
+          <dc-import name="Icon" n="loader" size="28" spin="{{ true }}" hint-size="28px,28px"></dc-import>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:16px;font-weight:600">앱을 깨우고 있어요</span>
+            <span style="font-size:13.5px;color:oklch(0.556 0 0);text-wrap:pretty">오래 쓰지 않아 잠들어 있었어요. 켜지면 바로 화면이 나와요.</span>
+          </div>
+          <div style="width:240px;height:4px;border-radius:2px;background:oklch(0.97 0 0);overflow:hidden">{{ indet }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2d">
+      <div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>U-03 공개 설정 · (1) 미공개</div>
+      <div class="dv-card" style="width:540px" data-screen-label="2d 공개 설정 미공개">
+        <div style="display:flex;flex-direction:column;gap:20px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">공개 설정</span><span style="font-size:14px;color:oklch(0.556 0 0)">budget-calc · 마케팅팀</span></div>
+            <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid oklch(0.922 0 0);border-radius:12px">
+              <span style="font-size:12px;color:oklch(0.556 0 0)">작업본 · 지금</span>
+              <span style="align-self:flex-start;display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span>
+              <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0)">budget-calc--marketing.kacp.cloud</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:14px;border:1px dashed oklch(0.87 0 0);border-radius:12px">
+              <span style="font-size:12px;color:oklch(0.556 0 0)">공개본 · 승인되면 생겨요</span>
+              <span style="align-self:flex-start;display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:12px;font-weight:500;color:oklch(0.556 0 0)"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>Public v1</span>
+              <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0)">budget-calc.kacp.cloud</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">공개 주소 이름</span>
+            <div style="display:flex;align-items:center;height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;overflow:hidden"><span style="padding:0 12px;font-size:14px;flex:1">budget-calc</span><span style="padding:0 12px;height:100%;display:flex;align-items:center;background:oklch(0.97 0 0);border-left:1px solid oklch(0.922 0 0);font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.556 0 0)">.kacp.cloud</span></div>
+            <span style="font-size:12px;color:oklch(0.556 0 0);line-height:1.5">기본값은 앱 이름이에요. 소문자·숫자·하이픈, 3~30자, 하이픈으로 시작·끝 불가, <span style="font-family:'Geist Mono',ui-monospace,monospace">--</span> 불가, 예약어 불가</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:12px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>사용할 수 있어요</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">공개 이유 <span style="color:oklch(0.586 0.253 17.585)">*</span></span>
+            <div style="min-height:72px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:8px 12px;font-size:14px;line-height:1.5">다른 팀도 분기 예산 계산에 같이 쓰면 좋겠어요.</div>
+          </div>
+          <div style="display:flex;gap:10px;padding:12px 14px;border-radius:8px;background:oklch(0.97 0 0);font-size:13px;line-height:1.5">
+            <dc-import name="Icon" n="info" color="oklch(0.556 0 0)" hint-size="16px,16px" style="margin-top:2px"></dc-import>
+            <span style="text-wrap:pretty">승인되면 그 시점의 작업본이 공개본 v1로 복사돼요. 작업본은 그대로 남고, 이후 수정은 업데이트 요청으로 공개본에 반영해요.</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">취소</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">공개 요청</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2e">
+      <div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>U-03 공개 설정 · (2) 검토 중 — 업데이트 요청 v2→v3</div>
+      <div class="dv-card" style="width:540px" data-screen-label="2e 검토 중">
+        <div style="display:flex;flex-direction:column;gap:24px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">공개 설정</span><span style="font-size:14px;color:oklch(0.556 0 0)">lunch-vote · 마케팅팀</span></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>업데이트 대기 v2→v3</span>
+              <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+            </div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stPending }}" hint-size="100%,56px"></dc-import>
+          <div style="display:grid;grid-template-columns:96px 1fr;row-gap:10px;font-size:13.5px;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:16px">
+            <span style="color:oklch(0.556 0 0)">변경 내용</span><span style="line-height:1.5">투표 마감 시간을 정할 수 있게 했어요. 결과 화면에 그래프를 넣었어요.</span>
+            <span style="color:oklch(0.556 0 0)">요청</span><span style="display:flex;align-items:center;gap:6px"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀 · 12분 전</span>
+          </div>
+          <div style="display:flex;gap:10px;font-size:13px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="globe" hint-size="16px,16px"></dc-import><span>검토 중에도 v2는 계속 공개돼요. 승인되면 <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:oklch(0.145 0 0)">lunch-vote.kacp.cloud</span>가 v3로 바뀌어요.</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">요청 취소</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">닫기</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2f">
+      <div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>U-03 공개 설정 · (3) 공개 중 · 팀 관리자 보기 — 업데이트 요청 + 공개 중지(팀원 보기에서는 숨김)</div>
+      <div class="dv-card" style="width:540px" data-screen-label="2f 공개 중">
+        <div style="display:flex;flex-direction:column;gap:22px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">공개 설정</span><span style="font-size:14px;color:oklch(0.556 0 0)">lunch-vote · 마케팅팀</span></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>Public v2</span>
+              <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:500">공개본</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span></div>
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 10px;display:flex;align-items:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;background:oklch(0.985 0 0)">https://lunch-vote.kacp.cloud</div>
+              <div style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="copy" size="14" hint-size="14px,14px"></dc-import></div>
+              <div style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="external-link" size="14" hint-size="14px,14px"></dc-import></div>
+            </div>
+            <div style="display:grid;grid-template-columns:80px 1fr;row-gap:6px;font-size:13px">
+              <span style="color:oklch(0.556 0 0)">버전</span><span>v2 · 2026-09-27 승인 시점 상태</span>
+              <span style="color:oklch(0.556 0 0)">승인 시각</span><span>2026-09-27 17:41</span>
+              <span style="color:oklch(0.556 0 0)">승인자</span><span>이서진</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">업데이트 요청</span>
+            <span style="font-size:13px;color:oklch(0.556 0 0)">지금 작업본을 v3로 공개해 달라고 요청해요.</span>
+            <div style="min-height:64px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:8px 12px;font-size:14px;color:oklch(0.556 0 0)">무엇이 바뀌었는지 적어 주세요</div>
+            <span style="align-self:flex-end;height:32px;padding:0 14px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:13px;font-weight:500">업데이트 요청</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">공개 이력</span>
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden;font-size:13px">
+              <sc-for list="{{ hist }}" as="h" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:44px 1fr 132px;align-items:center;gap:8px;height:40px;padding:0 14px;border-bottom:1px solid oklch(0.922 0 0)">
+                  <span style="font-weight:500">{{ h.v }}</span>
+                  <span style="display:flex;align-items:center;gap:6px;min-width:0"><sc-if value="{{ h.bot }}" hint-placeholder-val="{{ false }}"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span></sc-if>{{ h.who }}</span>
+                  <span style="font-size:12px;color:oklch(0.556 0 0);font-variant-numeric:tabular-nums;text-align:right">{{ h.at }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid oklch(0.922 0 0);border-radius:12px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;font-weight:500">공개 중지 <span style="font-size:12px;font-weight:400;color:oklch(0.556 0 0)">· 팀 관리자만</span></span><span style="font-size:12.5px;color:oklch(0.556 0 0)">공개본과 공개 주소만 없어져요. 작업본은 남아요. 다른 팀이 이 주소를 쓸 수 있게 돼요.</span></div>
+            <span style="height:32px;padding:0 14px;display:flex;align-items:center;border-radius:6px;background:oklch(0.577 0.245 27.325);color:#fff;font-size:13px;font-weight:500">공개 중지</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="2g">
+      <div class="dv-olabel"><a class="dv-oid" href="#2g">2g</a>U-03 공개 설정 · (2) 첫 공개 요청 — 공개 승인 대기 · 추가</div>
+      <div class="dv-card" style="width:540px" data-screen-label="2g 공개 승인 대기">
+        <div style="display:flex;flex-direction:column;gap:24px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">공개 설정</span><span style="font-size:14px;color:oklch(0.556 0 0)">budget-calc · 마케팅팀</span></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>공개 승인 대기</span>
+              <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+            </div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stFirst }}" hint-size="100%,56px"></dc-import>
+          <div style="display:grid;grid-template-columns:96px 1fr;row-gap:10px;font-size:13.5px;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:16px">
+            <span style="color:oklch(0.556 0 0)">공개 주소</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">budget-calc.kacp.cloud</span>
+            <span style="color:oklch(0.556 0 0)">공개 이유</span><span style="line-height:1.5">다른 팀도 분기 예산 계산에 같이 쓰면 좋겠어요.</span>
+            <span style="color:oklch(0.556 0 0)">요청</span><span>김하늘 · 5분 전</span>
+          </div>
+          <div style="display:flex;gap:10px;font-size:13px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="info" hint-size="16px,16px"></dc-import><span style="text-wrap:pretty">승인되면 그 시점의 작업본이 공개본 v1로 복사돼요. 요청은 팀원 누구나 취소할 수 있어요.</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:0 24px 24px">
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;border:1px solid oklch(0.922 0 0);font-size:14px;font-weight:500">요청 취소</span>
+          <span style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:14px;font-weight:500">닫기</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2h">
+      <div class="dv-olabel"><a class="dv-oid" href="#2h">2h</a>U-03 공개 설정 · (3) 공개 중 + 직전 업데이트 요청 반려 · 추가</div>
+      <div class="dv-card" style="width:540px" data-screen-label="2h 반려됨">
+        <div style="display:flex;flex-direction:column;gap:22px;padding:24px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:18px;font-weight:600">공개 설정</span><span style="font-size:14px;color:oklch(0.556 0 0)">campaign-report · 마케팅팀</span></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>Public v1</span>
+              <div style="color:oklch(0.556 0 0)"><dc-import name="Icon" n="x" hint-size="16px,16px"></dc-import></div>
+            </div>
+          </div>
+          <dc-import name="Stepper" steps="{{ stRejected }}" hint-size="100%,56px"></dc-import>
+          <div style="display:flex;flex-direction:column;gap:10px;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:500">업데이트 요청 v1→v2</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>반려됨</span></div>
+            <div style="display:grid;grid-template-columns:80px 1fr;row-gap:8px;font-size:13px">
+              <span style="color:oklch(0.556 0 0)">반려 사유</span><span style="line-height:1.5">외부 광고 계정 토큰이 화면에 그대로 보여요. 토큰을 지운 뒤 다시 요청해 주세요.</span>
+              <span style="color:oklch(0.556 0 0)">처리</span><span>플랫폼 관리자 · 2시간 전</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;font-size:13px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="globe" hint-size="16px,16px"></dc-import><span>공개본 v1은 그대로 공개되고 있어요.</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;font-weight:500">다시 요청</span>
+            <div style="min-height:64px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:8px 12px;font-size:14px;line-height:1.5">토큰 표시를 지웠어요. 주간 그래프를 추가했어요.</div>
+            <span style="align-self:flex-end;display:flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:13px;font-weight:500"><dc-import name="Icon" n="refresh-cw" size="14" hint-size="14px,14px"></dc-import>다시 요청</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "<a class="dv-oid" href="#2e">2e</a>의 첫 공개(새 공개) 버전" · "<a class="dv-oid" href="#2a">2a</a> 칩을 공개 앱 먼저 정렬" · "A-09 배포 승인"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      blinkDot: React.createElement('span', { style: { width: 6, height: 6, borderRadius: '50%', background: 'oklch(0.666 0.179 58.318)', animation: 'kacpBlink 1.2s ease-in-out infinite' } }),
+      indet: React.createElement('div', { style: { width: '40%', height: '100%', borderRadius: 2, background: 'oklch(0.205 0 0)', animation: 'kacpIndet 1.4s ease-in-out infinite' } }),
+      stFirst: [{ label: '요청됨', state: 'done', sub: '5분 전' }, { label: '검토 중', state: 'current' }, { label: '승인', state: 'todo' }, { label: 'v1 공개됨', state: 'todo' }],
+      stRejected: [{ label: '요청됨', state: 'done', sub: '2026-09-29 10:12' }, { label: '검토 중', state: 'done' }, { label: '반려', state: 'failed' }],
+      hist: [
+        { v: 'v3', who: '에이전트 · 팀', bot: true, at: '12분 전 · 검토 중' },
+        { v: 'v2', who: '김하늘', bot: false, at: '2026-09-27 17:41' },
+        { v: 'v1', who: '김하늘', bot: false, at: '2026-09-12 10:05' },
+      ],
+      stPending: [{ label: '요청됨', state: 'done', sub: '12분 전' }, { label: '검토 중', state: 'current' }, { label: '승인', state: 'todo' }, { label: 'v3 공개됨', state: 'todo' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

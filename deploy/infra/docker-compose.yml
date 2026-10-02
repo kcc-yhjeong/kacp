@@ -1,0 +1,140 @@
+# KACP platform — local (Windows Docker Desktop, http, *.kacp.localhost).
+#   cp deploy/infra/.env.example deploy/infra/.env   (fill the secrets)
+#   docker compose -f deploy/infra/docker-compose.yml --profile build build openclaw-image
+#   docker compose -f deploy/infra/docker-compose.yml up -d --build
+# Only Traefik publishes a port. api, orchestrator and postgres are never exposed (CLAUDE.md).
+# The VM variant (bind mounts under /data, TLS) is an override added in a later stage.
+name: kacp
+
+networks:
+  # Traefik → web, api and dynamic team/app containers. Fixed name: orchestrator attaches team containers by it.
+  kacp-edge:
+    name: kacp-edge
+    ipam:
+      config:
+        # Traefik sits outside ip_range so no dynamic container can take its trusted address.
+        - subnet: 172.30.0.0/16
+          ip_range: 172.30.128.0/17
+  # api ↔ orchestrator ↔ postgres ↔ docker-socket-proxy. No outside access.
+  kacp-core:
+    name: kacp-core
+    internal: true
+  # Traefik ↔ its read-only socket proxy only.
+  kacp-traefik-sock:
+    name: kacp-traefik-sock
+    internal: true
+
+volumes:
+  postgres-data:
+
+services:
+  traefik:
+    image: traefik:v3.7.13
+    restart: unless-stopped
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ../../apps/proxy/traefik.local.yml:/etc/traefik/traefik.yml:ro
+      - ../../apps/proxy/dynamic:/etc/traefik/dynamic:ro
+      - ../../apps/proxy/plugins/cspframe:/plugins-local/src/github.com/kacp/cspframe:ro
+      - ../../apps/proxy/plugins/cookiestrip:/plugins-local/src/github.com/kacp/cookiestrip:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+    networks:
+      kacp-edge:
+        ipv4_address: ${TRAEFIK_IP}   # = openclaw.json gateway.trustedProxies
+      kacp-traefik-sock: {}
+
+  traefik-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1      # read-only: POST stays 0. EVENTS/PING/VERSION are on by default (provider needs them)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [kacp-traefik-sock]
+
+  # orchestrator-only Docker access (spike 06). No images, volumes, networks, exec.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 1
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [kacp-core]
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kacp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: kacp
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kacp"]
+      interval: 5s
+    networks: [kacp-core]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    image: kacp/api:dev
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://kacp:${POSTGRES_PASSWORD}@postgres:5432/kacp
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      ORCHESTRATOR_URL: http://orchestrator:4000
+    networks: [kacp-core, kacp-edge]
+
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: apps/orchestrator/Dockerfile
+    image: kacp/orchestrator:dev
+    restart: unless-stopped
+    depends_on: [docker-socket-proxy]
+    environment:
+      DOCKER_URL: http://docker-socket-proxy:2375
+      OPENCLAW_IMAGE: ${OPENCLAW_IMAGE}
+      STATE_MODE: volume
+      EDGE_NETWORK: kacp-edge
+      TRAEFIK_IP: ${TRAEFIK_IP}
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME}
+      API_URL: http://api:3000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+      TEAM_ENV_PASSTHROUGH: ANTHROPIC_API_KEY,OPENAI_API_KEY
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    networks: [kacp-core]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    image: kacp/web:dev
+    restart: unless-stopped
+    networks: [kacp-edge]
+
+  # Build-only: the team Gateway image (deploy/openclaw-image). Containers are created by orchestrator.
+  openclaw-image:
+    profiles: [build]
+    build:
+      context: ../openclaw-image
+    image: ${OPENCLAW_IMAGE}

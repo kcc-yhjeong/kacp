@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpSpin{to{transform:rotate(360deg)}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}span{flex-shrink:0}.dv-olabel span{white-space:nowrap}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="tls">
+  <div class="dv-thd"><a class="dv-tid" href="#tls">LS</a><span class="dv-tname">목록 화면 빈 · 로딩 · 오류 — 표 카드 부분만 (EmptyState · Skeleton · 오류 슬롯)</span></div>
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <sc-for list="{{ screens }}" as="s" hint-placeholder-count="10">
+      <div style="display:flex;flex-direction:column;gap:10px" id="{{ s.id }}">
+        <div class="dv-olabel"><span class="dv-oid">{{ s.id }}</span><span style="font-weight:600;color:#1a1a1a">{{ s.title }}</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,480px);gap:20px">
+          <sc-if value="{{ s.one }}" hint-placeholder-val="{{ true }}">
+          <div class="dv-card" style="height:300px;display:flex;flex-direction:column">
+            <div style="height:40px;flex:none;border-bottom:1px solid oklch(0.922 0 0);display:flex;align-items:center;white-space:nowrap;padding:0 16px;gap:8px;font-size:11px;color:oklch(0.556 0 0)"><span style="font-weight:600;color:oklch(0.145 0 0)">빈 상태</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:0 32px">
+              <div style="width:56px;height:56px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="{{ s.icon }}" size="28" hint-size="28px,28px"></dc-import></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15px;font-weight:600">{{ s.et }}</span><span style="font-size:13px;color:oklch(0.556 0 0);line-height:1.5;text-wrap:pretty">{{ s.ed }}</span></div>
+              <sc-if value="{{ s.hasBtn }}" hint-placeholder-val="{{ true }}"><span style="height:32px;padding:0 12px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;font-size:13px;font-weight:500">{{ s.eb }}</span></sc-if>
+            </div>
+          </div>
+          <div class="dv-card" style="height:300px;display:flex;flex-direction:column">
+            <div style="height:40px;flex:none;border-bottom:1px solid oklch(0.922 0 0);display:flex;align-items:center;white-space:nowrap;padding:0 16px;font-size:11px;font-weight:600">로딩</div>
+            <sc-for list="{{ skel }}" as="k" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:16px;height:48px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0)">
+                <span style="height:12px;width:{{ k.a }};border-radius:4px;background:oklch(0.97 0 0)"></span>
+                <span style="height:20px;width:64px;border-radius:6px;background:oklch(0.97 0 0)"></span>
+                <span style="height:12px;width:{{ k.b }};border-radius:4px;background:oklch(0.97 0 0);margin-left:auto"></span>
+              </div>
+            </sc-for>
+          </div>
+          </sc-if>
+          <sc-if value="{{ s.two }}" hint-placeholder-val="{{ false }}">
+          <div class="dv-card" style="height:300px;display:flex;flex-direction:column">
+            <div style="height:40px;flex:none;border-bottom:1px solid oklch(0.922 0 0);display:flex;align-items:center;white-space:nowrap;padding:0 16px;font-size:11px;font-weight:600">팀 에이전트 꺼짐 · 마지막 목록</div>
+            <div style="display:flex;align-items:center;gap:8px;margin:12px 16px;padding:8px 12px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:12.5px;line-height:1.4"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0);flex:none"></span>팀 에이전트가 꺼져 있어 마지막으로 확인한 목록을 보여줘요</div>
+            <sc-for list="{{ lastRows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;height:44px;padding:0 16px;border-top:1px solid oklch(0.922 0 0);font-size:13px"><span style="flex:1;font-weight:500">{{ r.n }}</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.c }}"></span>{{ r.st }}</span><span style="font-size:12px;color:oklch(0.556 0 0)">2시간 전 확인</span></div>
+            </sc-for>
+          </div>
+          <div class="dv-card" style="height:300px;display:flex;flex-direction:column">
+            <div style="height:40px;flex:none;border-bottom:1px solid oklch(0.922 0 0);display:flex;align-items:center;white-space:nowrap;padding:0 16px;font-size:11px;font-weight:600">아직 확인한 적 없음</div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:0 32px">
+              <div style="width:56px;height:56px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="plug" size="28" hint-size="28px,28px"></dc-import></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15px;font-weight:600">아직 확인한 적 없음</span><span style="font-size:13px;color:oklch(0.556 0 0);line-height:1.5;text-wrap:pretty">팀 에이전트가 처음 켜지면 설치 상태를 확인해요. platform-mcp는 기본으로 들어 있어요.</span></div>
+            </div>
+          </div>
+          </sc-if>
+          <div class="dv-card" style="height:300px;display:flex;flex-direction:column">
+            <div style="height:40px;flex:none;border-bottom:1px solid oklch(0.922 0 0);display:flex;align-items:center;white-space:nowrap;padding:0 16px;font-size:11px;font-weight:600">오류</div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:0 32px">
+              <div style="width:56px;height:56px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="cloud-off" size="28" hint-size="28px,28px"></dc-import></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:15px;font-weight:600">{{ s.xt }}</span><span style="font-size:13px;color:oklch(0.556 0 0)">연결이 잠시 끊겼어요. 다시 시도해 주세요.</span></div>
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>다시 시도</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const S = (id, title, icon, et, ed, eb, xt) => ({ id, title, icon, et, ed, eb: eb || '', hasBtn: !!eb, xt, two: false });
+    const norm = (s) => ({ ...s, one: !s.two });
+    return {
+      lastRows: [['platform-mcp', '설치됨', 'oklch(0.596 0.145 163.225)'], ['notion-sync', '설치됨', 'oklch(0.596 0.145 163.225)'], ['ga4-report', '오류', 'oklch(0.586 0.253 17.585)']].map(([n, st, c]) => ({ n, st, c })),
+      skel: [['40%', '18%'], ['52%', '12%'], ['34%', '16%'], ['46%', '14%'], ['30%', '18%']].map(([a, b]) => ({ a, b })),
+      screens: [
+        S('LS-U07', 'U-07 배포관리', 'app-window', '아직 실행한 앱이 없어요', "에이전트에게 '이 폴더를 웹 앱으로 띄워줘'라고 말해 보세요", '에이전트로 가기', '앱 목록을 불러오지 못했어요'),
+        S('LS-U09', 'U-09 MCP 마켓 (검색 결과 없음)', 'search', '찾는 MCP가 없어요', '다른 이름으로 검색하거나 분류 필터를 풀어 보세요', '필터 초기화', '마켓을 불러오지 못했어요'),
+        { ...S('LS-U11', 'U-11 우리 팀 설치됨 · 빈 상태 없음(platform-mcp가 항상 있음)', 'plug', '', '', '', '설치 목록을 불러오지 못했어요'), two: true },
+        S('LS-U12', 'U-12 내 배포', 'upload', '올린 MCP가 없어요', 'create-platform-mcp pack으로 만든 zip을 올리면 여기에 보여요', '만드는 방법 보기', '내 패키지를 불러오지 못했어요'),
+        S('LS-U13', 'U-13 커뮤니티', 'messages-square', '아직 글이 없어요', '쓰는 요령이나 만든 앱을 먼저 나눠 보세요', '글쓰기', '글 목록을 불러오지 못했어요'),
+        S('LS-A02', 'A-02 사용자 (검색 결과 없음)', 'user', '일치하는 사용자가 없어요', '이름이나 이메일을 다시 확인해 주세요', '', '사용자 목록을 불러오지 못했어요'),
+        S('LS-A04', 'A-04 팀', 'users', '아직 팀이 없어요', '첫 팀을 만들면 팀 주소와 에이전트가 준비돼요', '팀 만들기', '팀 목록을 불러오지 못했어요'),
+        S('LS-A07', 'A-07 MCP 심사', 'shield-check', '심사할 버전이 없어요', '새로 올라온 버전이 테스트를 통과하면 여기에 보여요', '', '심사 목록을 불러오지 못했어요'),
+        S('LS-A09', 'A-09 배포 승인', 'badge-check', '처리할 공개 요청이 없어요', '새 공개와 업데이트 요청이 여기에 모여요', '', '요청 목록을 불러오지 못했어요'),
+        S('LS-A11', 'A-11 활동 기록 (필터 결과 없음)', 'history', '이 기간에 기록이 없어요', '기간을 늘리거나 필터를 풀어 보세요', '필터 초기화', '활동 기록을 불러오지 못했어요'),
+      ].map(norm),
+    };
+  }
+}
+</script>
+</body>
+</html>

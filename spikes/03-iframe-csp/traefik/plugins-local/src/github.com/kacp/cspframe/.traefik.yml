@@ -1,0 +1,6 @@
+displayName: CSP frame-ancestors rewrite (KACP spike 03)
+type: middleware
+import: github.com/kacp/cspframe
+summary: 응답 CSP 의 frame-ancestors 지시문만 바꾸고 X-Frame-Options 를 지운다. 나머지 CSP(스크립트 해시 등)는 그대로 둔다.
+testData:
+  frameAncestors: "'self'"

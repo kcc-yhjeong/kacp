@@ -1,0 +1,10 @@
+# OpenClaw 문서 gateway/sandboxing/images-and-setup.md 의 기본 샌드박스 이미지(npm 설치용 인라인 빌드) 그대로
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash ca-certificates curl git jq python3 ripgrep \
+  && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash sandbox
+USER sandbox
+WORKDIR /home/sandbox
+CMD ["sleep", "infinity"]

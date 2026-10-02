@@ -1,0 +1,8 @@
+{
+  "name": "@kacp/proxy",
+  "private": true,
+  "scripts": {
+    "typecheck": "echo no-ts",
+    "test": "echo 'go tests run in CI/VM: go test ./... inside each plugins/* module'"
+  }
+}

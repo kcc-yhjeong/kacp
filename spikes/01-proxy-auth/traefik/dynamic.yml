@@ -1,0 +1,47 @@
+http:
+  middlewares:
+    # 1) 클라이언트가 보낸 신원 헤더를 먼저 지운다 ("" = 제거)
+    strip-identity:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-User: ""
+          X-Openclaw-Scopes: ""
+          X-Kacp-User: ""
+    # 2) forward-auth 결과로 다시 넣는다
+    kacp-auth:
+      forwardAuth:
+        address: http://fake-auth:4000/verify
+        trustForwardHeader: false
+        authResponseHeaders:
+          - X-Forwarded-User
+          - X-Openclaw-Scopes
+
+  routers:
+    # 로그인 화면 (인증 없이)
+    auth-ui:
+      rule: Host(`team1.kacp.localhost`) && PathPrefix(`/_kacp`)
+      priority: 100
+      service: fake-auth
+    # 헤더 확인용
+    debug-echo:
+      rule: Host(`team1.kacp.localhost`) && PathPrefix(`/_debug`)
+      priority: 90
+      middlewares: [strip-identity, kacp-auth]
+      service: whoami
+    # 팀 Gateway (Control UI + WebSocket)
+    team1:
+      rule: Host(`team1.kacp.localhost`)
+      priority: 1
+      middlewares: [strip-identity, kacp-auth]
+      service: openclaw-team1
+
+  services:
+    fake-auth:
+      loadBalancer:
+        servers: [{ url: "http://fake-auth:4000" }]
+    whoami:
+      loadBalancer:
+        servers: [{ url: "http://whoami:80" }]
+    openclaw-team1:
+      loadBalancer:
+        servers: [{ url: "http://openclaw-team1:18789" }]

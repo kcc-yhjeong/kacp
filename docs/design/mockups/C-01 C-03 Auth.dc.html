@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="tc1">
+  <div class="dv-thd"><a class="dv-tid" href="#tc1">C1</a><span class="dv-tname">C-01 로그인 · C-02 첫 비밀번호 변경 · C-03 소속 팀 없음 · 1280×720</span></div>
+  <div class="dv-opts">
+
+    <sc-for list="{{ logins }}" as="l" hint-placeholder-count="3">
+      <div class="dv-opt" id="{{ l.id }}">
+        <div class="dv-olabel"><span class="dv-oid">{{ l.id }}</span>{{ l.label }}</div>
+        <div class="dv-card" style="width:1280px;height:720px;display:flex;align-items:center;justify-content:center;background:oklch(0.985 0 0)">
+          <div style="width:380px;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+              <div style="width:40px;height:40px;border-radius:12px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px">K</div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em">KACP에 로그인</span><span style="font-size:14px;color:oklch(0.556 0 0)">팀 에이전트와 드라이브를 함께 써요</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">이메일</span><div style="height:36px;box-sizing:border-box;border:1px solid {{ l.bd }};border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">haneul.kim@kcc.co.kr</div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">비밀번호</span><div style="height:36px;box-sizing:border-box;border:1px solid {{ l.bd }};border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;letter-spacing:2px">••••••••••</div></div>
+              <sc-if value="{{ l.err }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:8px;padding:10px 12px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:13px;line-height:1.5"><dc-import name="Icon" n="alert" color="oklch(0.586 0.253 17.585)" hint-size="16px,16px" style="margin-top:2px"></dc-import><span>{{ l.msg }}</span></div>
+              </sc-if>
+              <span style="height:36px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;opacity:{{ l.op }}">로그인</span>
+            </div>
+            <span style="font-size:13px;color:oklch(0.556 0 0);text-align:center;text-wrap:pretty">계정이 없거나 비밀번호를 잊었다면 관리자에게 문의하세요</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div class="dv-opt" id="C2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#C2a">C2a</a>C-02 첫 로그인 비밀번호 변경 · 규칙 충족 표시</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;align-items:center;justify-content:center;background:oklch(0.985 0 0)" data-screen-label="C2a 비밀번호 변경">
+        <div style="width:400px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;flex-direction:column;gap:4px;text-align:center"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em">새 비밀번호를 정해 주세요</span><span style="font-size:14px;color:oklch(0.556 0 0)">비밀번호를 바꿔야 다른 화면을 쓸 수 있어요.</span></div>
+          <div style="background:#fff;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">새 비밀번호</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.205 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;letter-spacing:2px">••••••••••••</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:{{ r.c }}"><dc-import name="Icon" n="{{ r.ic }}" size="14" sw="2.25" hint-size="14px,14px"></dc-import>{{ r.t }}</div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">새 비밀번호 확인</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;letter-spacing:2px">••••••••••••</div><span style="font-size:12px;display:flex;align-items:center;gap:4px"><dc-import name="Icon" n="check" size="13" sw="2.25" hint-size="13px,13px"></dc-import>일치해요</span></div>
+            <span style="height:36px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500">저장하고 시작하기</span>
+          </div>
+          <span style="font-size:13px;color:oklch(0.556 0 0);text-align:center;text-decoration:underline">로그아웃</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="C2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#C2b">C2b</a>C-02 · 저장 실패(규칙 위반) · 추가</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;align-items:center;justify-content:center;background:oklch(0.985 0 0)" data-screen-label="C2b 저장 실패">
+        <div style="width:400px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;flex-direction:column;gap:4px;text-align:center"><span style="font-size:22px;font-weight:700;letter-spacing:-0.02em">새 비밀번호를 정해 주세요</span><span style="font-size:14px;color:oklch(0.556 0 0)">비밀번호를 바꿔야 다른 화면을 쓸 수 있어요.</span></div>
+          <div style="background:#fff;border:1px solid oklch(0.922 0 0);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;gap:8px;padding:10px 12px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:13px;line-height:1.5"><dc-import name="Icon" n="alert" color="oklch(0.586 0.253 17.585)" hint-size="16px,16px" style="margin-top:2px"></dc-import><span>저장하지 못했어요. 직전 비밀번호와 같아요. 다른 비밀번호를 정해 주세요.</span></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">새 비밀번호</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.586 0.253 17.585);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;letter-spacing:2px">••••••••••••</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ rulesFail }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:{{ r.c }}"><dc-import name="Icon" n="{{ r.ic }}" size="14" sw="2.25" hint-size="14px,14px"></dc-import>{{ r.t }}</div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:500">새 비밀번호 확인</span><div style="height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;letter-spacing:2px">••••••••••••</div><span style="font-size:12px;display:flex;align-items:center;gap:4px"><dc-import name="Icon" n="check" size="13" sw="2.25" hint-size="13px,13px"></dc-import>일치해요</span></div>
+            <span style="height:36px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500">저장하고 시작하기</span>
+          </div>
+          <span style="font-size:13px;color:oklch(0.556 0 0);text-align:center;text-decoration:underline">로그아웃</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="C3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#C3a">C3a</a>C-03 소속 팀 없음 · 헤더는 전사 메뉴만</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;flex-direction:column" data-screen-label="C3a 소속 팀 없음">
+        <div style="height:48px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 12px 0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:14px">
+          <div style="width:24px;height:24px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px">K</div><span style="font-weight:600">KACP</span>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:2px"><span style="padding:6px 10px;color:oklch(0.556 0 0)">커뮤니티</span><span style="padding:6px 10px;color:oklch(0.556 0 0)">MCP 마켓</span></div>
+          <div style="width:1px;height:20px;background:oklch(0.922 0 0);margin:0 8px"></div>
+          <div style="width:32px;height:32px;display:grid;place-items:center"><dc-import name="Icon" n="bell" hint-size="16px,16px"></dc-import></div>
+          <div style="width:28px;height:28px;box-sizing:border-box;border-radius:50%;background:oklch(0.97 0 0);border:1px solid oklch(0.922 0 0);display:grid;place-items:center;font-size:12px;font-weight:600">최</div>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="width:440px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center">
+            <div style="width:160px;height:120px;border:1.5px dashed oklch(0.87 0 0);border-radius:12px;display:grid;place-items:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:oklch(0.556 0 0)">일러스트 자리</div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:20px;font-weight:600">아직 소속된 팀이 없어요</span><span style="font-size:14px;color:oklch(0.556 0 0)">관리자에게 팀 배정을 요청하세요</span></div>
+            <div style="display:flex;gap:8px">
+              <span style="height:36px;padding:0 16px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><dc-import name="Icon" n="messages-square" hint-size="16px,16px"></dc-import>커뮤니티 둘러보기</span>
+              <span style="height:36px;padding:0 16px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><dc-import name="Icon" n="store" hint-size="16px,16px"></dc-import>MCP 마켓 둘러보기</span>
+            </div>
+            <span style="font-size:13px;color:oklch(0.556 0 0);text-decoration:underline">로그아웃</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "C3a 일러스트 넣기" · "로그인 화면 왼쪽에 서비스 소개 패널"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const ok = 'oklch(0.596 0.145 163.225)', mute = 'oklch(0.556 0 0)';
+    return {
+      logins: [
+        { id: 'C1a', label: 'C-01 기본', err: false, bd: 'oklch(0.922 0 0)', op: 1 },
+        { id: 'C1b', label: 'C-01 잘못된 계정/비밀번호 (어느 쪽인지 알리지 않음)', err: true, msg: '이메일 또는 비밀번호가 맞지 않아요.', bd: 'oklch(0.586 0.253 17.585)', op: 1 },
+        { id: 'C1c', label: 'C-01 시도 제한 잠김 · 제출 뒤 오류로만 보임', err: true, msg: '로그인 시도가 너무 많아요. 잠시 후 다시 시도하세요.', bd: 'oklch(0.922 0 0)', op: 1 },
+        { id: 'C1d', label: 'C-01 비활성 계정', err: true, msg: '비활성화된 계정이에요. 관리자에게 문의하세요.', bd: 'oklch(0.922 0 0)', op: 1 },
+      ],
+      rules: [['10자 이상', 1], ['영문·숫자 포함', 1], ['이메일 아이디(@ 앞) 포함 불가', 1], ['직전 비밀번호와 다름 · 저장할 때 확인해요', 2]].map(([t, m]) => ({ t, c: m === 1 ? 'oklch(0.145 0 0)' : mute, ic: m === 1 ? 'check' : m === 2 ? 'info' : 'x' })),
+      rulesFail: [['10자 이상', 1], ['영문·숫자 포함', 1], ['이메일 아이디(@ 앞) 포함 불가', 1], ['직전 비밀번호와 다름 · 저장할 때 확인해요', 2]].map(([t, m]) => ({ t, c: m === 1 ? 'oklch(0.145 0 0)' : mute, ic: m === 1 ? 'check' : 'info' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

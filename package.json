@@ -1,0 +1,16 @@
+{
+  "name": "kacp",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>@keyframes kacpSpin{to{transform:rotate(360deg)}}@keyframes kacpBlink{0%,100%{opacity:1}50%{opacity:.3}}body{margin:0;background:#f0eee9;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0)}a:hover{color:oklch(0.205 0 0)}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{white-space:nowrap;display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<a href="Index.dc.html" style="position:fixed;top:12px;right:12px;z-index:1000;height:32px;padding:0 12px;box-sizing:border-box;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.08);font-family:Inter,'Pretendard Variable',sans-serif;font-size:13px;font-weight:500;color:oklch(0.145 0 0);text-decoration:none" style-hover="background:oklch(0.97 0 0)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>목차</a>
+<section class="dv-turn" id="t7">
+  <div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">U-07 배포관리 목록 · U-08 앱 상세 — 작업본/공개본 분리</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="7a">
+      <div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a>목록 · 한 앱 = 한 행, 작업본/공개본 열 분리 + 실행 수 안내 띠</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;flex-direction:column" data-screen-label="7a 배포관리 목록">
+        <dc-import name="AppHeader" active="apps" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">배포관리</span><span style="font-size:14px;color:oklch(0.556 0 0)">마케팅팀이 에이전트로 띄운 앱이에요.</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid oklch(0.922 0 0);border-radius:12px;font-size:13.5px">
+            <dc-import name="Icon" n="info" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>
+            <span style="flex:1">실행 중인 앱이 5개 중 4개예요. 오래 안 쓴 앱은 자동으로 잠들어요</span>
+            <div style="width:120px;height:6px;border-radius:3px;background:oklch(0.97 0 0);overflow:hidden"><div style="width:80%;height:100%;background:oklch(0.205 0 0)"></div></div>
+            <span style="font-size:12px;font-variant-numeric:tabular-nums">4 / 5</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:250px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;color:oklch(0.556 0 0);font-size:13px"><dc-import name="Icon" n="search" size="14" hint-size="14px,14px"></dc-import>앱 이름으로 검색</div>
+            <div style="height:32px;box-sizing:border-box;border:1px dashed oklch(0.87 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500"><dc-import name="Icon" n="plus" size="14" hint-size="14px,14px"></dc-import>작업본<span style="width:1px;height:16px;background:oklch(0.922 0 0);margin:0 2px"></span><span style="padding:1px 6px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px">실행 중</span><span style="padding:1px 6px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px">잠듦</span></div>
+            <div style="height:32px;box-sizing:border-box;border:1px dashed oklch(0.87 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:13px;font-weight:500"><dc-import name="Icon" n="plus" size="14" hint-size="14px,14px"></dc-import>공개</div>
+            <span style="font-size:13px;color:oklch(0.556 0 0);padding:0 8px">초기화</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) 104px minmax(0,1.25fr) 124px 84px 96px 32px;align-items:center;column-gap:12px;height:40px;padding:0 16px;border-bottom:1px solid oklch(0.922 0 0);font-size:12.5px;color:oklch(0.556 0 0)"><span>앱 이름</span><span>작업본 주소</span><span>작업본 상태</span><span>공개 상태</span><span>만든 이</span><span>마지막 접속</span><span>메모리</span><span></span></div>
+            <sc-for list="{{ apps }}" as="a" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) 104px minmax(0,1.25fr) 124px 84px 96px 32px;align-items:center;column-gap:12px;min-height:56px;padding:6px 16px;box-sizing:border-box;border-bottom:1px solid oklch(0.922 0 0);font-size:13.5px">
+                <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span>
+                <div style="display:flex;align-items:center;gap:6px;min-width:0"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;color:oklch(0.556 0 0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}--marketing.kacp.cloud</span><span style="width:24px;height:24px;flex:none;border-radius:6px;display:grid;place-items:center;color:oklch(0.556 0 0)" style-hover="background:oklch(0.97 0 0)" title="주소 복사"><dc-import name="Icon" n="copy" size="13" hint-size="13px,13px"></dc-import></span></div>
+                <span style="justify-self:start;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ a.wDot }}"></span>{{ a.wText }}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-width:0">
+                  <sc-if value="{{ a.pNone }}" hint-placeholder-val="{{ true }}"><span style="color:oklch(0.556 0 0)">—</span></sc-if>
+                  <sc-if value="{{ a.pVer }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>{{ a.ver }}</span></div></sc-if>
+                  <sc-if value="{{ a.pWait }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:11.5px;font-weight:500;white-space:nowrap;height:20px"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>{{ a.wait }}</span></sc-if>
+                </div>
+                <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀</span>
+                <span style="font-size:12.5px;color:oklch(0.556 0 0)">{{ a.last }}</span>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:oklch(0.556 0 0);font-variant-numeric:tabular-nums"><div style="flex:1;height:4px;border-radius:2px;background:oklch(0.97 0 0);overflow:hidden"><div style="height:100%;width:{{ a.mem }};background:oklch(0.205 0 0)"></div></div><span style="width:28px;text-align:right">{{ a.mem }}</span></div>
+                <span style="display:grid;place-items:center;color:oklch(0.556 0 0)"><dc-import name="Icon" n="more" hint-size="16px,16px"></dc-import></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="7b">
+      <div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a>목록 · 빈 상태</div>
+      <div class="dv-card" style="width:1280px;height:480px;display:flex;flex-direction:column" data-screen-label="7b 빈 상태">
+        <dc-import name="AppHeader" active="apps" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:24px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">배포관리</span><span style="font-size:14px;color:oklch(0.556 0 0)">마케팅팀이 에이전트로 띄운 앱이에요.</span></div>
+          <div style="flex:1;border:1px solid oklch(0.922 0 0);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center">
+            <div style="width:64px;height:64px;border-radius:50%;background:oklch(0.97 0 0);display:grid;place-items:center"><dc-import name="Icon" n="app-window" size="32" hint-size="32px,32px"></dc-import></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:16px;font-weight:600">아직 실행한 앱이 없어요</span><span style="font-size:14px;color:oklch(0.556 0 0)">에이전트에게 '이 폴더를 웹 앱으로 띄워줘'라고 말해 보세요</span></div>
+            <div style="height:36px;padding:0 16px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><dc-import name="Icon" n="bot" hint-size="16px,16px"></dc-import>에이전트로 가기</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="7c">
+      <div class="dv-olabel"><a class="dv-oid" href="#7c">7c</a>목록 필터 값 · 작업본 / 공개 (02 §6 파생 값)</div>
+      <div class="dv-card" style="width:560px;box-sizing:border-box;padding:24px;display:flex;gap:24px;align-items:flex-start;background:oklch(0.985 0 0)" data-screen-label="7c 필터">
+          <div style="width:220px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;font-size:13.5px">
+            <div style="padding:6px 8px;font-size:12px;color:oklch(0.556 0 0)">작업본</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="flex:1">전체</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:oklch(0.97 0 0)"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span><span style="flex:1">실행 중</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:oklch(0.97 0 0)"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span><span style="flex:1">잠듦</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span><span style="flex:1">멈춤</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span><span style="flex:1">오류</span></div>
+          </div>
+          <div style="width:220px;background:#fff;border:1px solid oklch(0.922 0 0);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;font-size:13.5px">
+            <div style="padding:6px 8px;font-size:12px;color:oklch(0.556 0 0)">공개</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:oklch(0.97 0 0)"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center"><dc-import name="Icon" n="check" size="11" sw="3" hint-size="11px,11px"></dc-import></span><span style="flex:1">전체</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="flex:1">미공개</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span><span style="flex:1">공개 승인 대기</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span><span style="flex:1">업데이트 대기</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px"><span style="width:16px;height:16px;box-sizing:border-box;border-radius:4px;border:1px solid oklch(0.87 0 0)"></span><span style="flex:1">공개 중</span></div>
+          </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="8a">
+      <div class="dv-olabel"><a class="dv-oid" href="#8a">8a</a>U-08 앱 상세 · 작업본/공개본 카드 + 리소스 탭(사본 전환)</div>
+      <div class="dv-card" style="width:1280px;height:820px;display:flex;flex-direction:column" data-screen-label="8a 앱 상세 리소스">
+        <dc-import name="AppHeader" active="apps" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:20px 24px 24px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="display:flex;align-items:center;gap:4px;font-size:13px;color:oklch(0.556 0 0)">배포관리<dc-import name="Icon" n="chevron-right" size="14" hint-size="14px,14px"></dc-import>lunch-vote</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">lunch-vote</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀이 만듦</span>
+              <div style="margin-left:auto;display:flex;gap:8px">
+                <span style="height:36px;padding:0 14px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><dc-import name="Icon" n="globe" hint-size="16px,16px"></dc-import>공개 설정</span>
+                <span style="width:36px;height:36px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="more" hint-size="16px,16px"></dc-import></span>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;flex:1">작업본</span><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="flex:1;font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">lunch-vote--marketing.kacp.cloud</span><dc-import name="Icon" n="copy" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import><dc-import name="Icon" n="external-link" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import></div>
+              <div style="display:grid;grid-template-columns:72px 1fr;row-gap:6px;font-size:12.5px"><span style="color:oklch(0.556 0 0)">원본 폴더</span><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;text-decoration:underline">팀 공유/이벤트/lunch-vote</span><span style="color:oklch(0.556 0 0)">마지막 접속</span><span>3분 전 · 에이전트가 고치면 바로 반영돼요</span></div>
+              <div style="display:flex;gap:8px">
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;opacity:.5"><dc-import name="Icon" n="play" size="14" hint-size="14px,14px"></dc-import>시작</span>
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="square" size="14" hint-size="14px,14px"></dc-import>중지</span>
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>재시작</span>
+              </div>
+            </div>
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;flex:1">공개본</span><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>Public v2</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="flex:1;font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">lunch-vote.kacp.cloud</span><dc-import name="Icon" n="copy" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import><dc-import name="Icon" n="external-link" size="14" color="oklch(0.556 0 0)" hint-size="14px,14px"></dc-import></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12.5px"><span style="color:oklch(0.556 0 0)">2026-09-27 17:41 승인 · 마지막 접속 1분 전</span><span style="margin-left:auto;display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318)"></span>업데이트 대기 v2→v3</span></div>
+              <div style="display:flex;gap:8px">
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;opacity:.5"><dc-import name="Icon" n="play" size="14" hint-size="14px,14px"></dc-import>시작</span>
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="square" size="14" hint-size="14px,14px"></dc-import>중지</span>
+                <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>재시작</span>
+                <span style="margin-left:auto;align-self:center;font-size:12px;color:oklch(0.556 0 0)">팀원 누구나</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px">
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">개요</span>
+              <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">리소스</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">로그</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">데이터</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">공개 이력</span>
+            </div>
+            <div style="display:flex;border:1px solid oklch(0.922 0 0);border-radius:6px;overflow:hidden;font-size:13px;font-weight:500">
+              <span style="padding:6px 12px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;gap:6px"><dc-import name="Icon" n="lock" size="13" hint-size="13px,13px"></dc-import>작업본</span>
+              <span style="padding:6px 12px;display:flex;align-items:center;gap:6px"><dc-import name="Icon" n="globe" size="13" hint-size="13px,13px"></dc-import>공개본 v2</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;flex:1;min-height:0">
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:flex;flex-direction:column">
+              <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid oklch(0.922 0 0)"><span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)">CPU</span><span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">0.18 <span style="font-size:14px;font-weight:400;color:oklch(0.556 0 0)">/ 0.5 코어</span></span><span style="font-size:12px;color:oklch(0.556 0 0)">한도의 36%</span></div>
+              <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;color:oklch(0.556 0 0)">메모리</span><span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">212 MB <span style="font-size:14px;font-weight:400;color:oklch(0.556 0 0)">/ 512 MB</span></span><span style="font-size:12px;color:oklch(0.556 0 0)">한도의 41%</span></div>
+            </div>
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid oklch(0.922 0 0)"><span style="font-size:14px;font-weight:500;flex:1">최근 1시간 · 작업본</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:oklch(0.556 0 0)"><span style="width:12px;height:2px;background:oklch(0.205 0 0)"></span>CPU</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:oklch(0.556 0 0)"><span style="width:12px;border-top:1.5px dashed oklch(0.556 0 0)"></span>메모리</span></div>
+              <div style="flex:1;padding:16px 20px">{{ chart }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="8b">
+      <div class="dv-olabel"><a class="dv-oid" href="#8b">8b</a>U-08 · 미공개 앱 + 로그 탭</div>
+      <div class="dv-card" style="width:1280px;height:720px;display:flex;flex-direction:column" data-screen-label="8b 미공개 로그">
+        <dc-import name="AppHeader" active="apps" hint-size="100%,48px" style="position:relative;z-index:30;flex:none"></dc-import>
+        <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:20px 24px 24px;min-height:0">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">budget-calc</span>
+            <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀이 만듦</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;flex:1">작업본</span><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.596 0.145 163.225)"></span>실행 중</span></div>
+              <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">budget-calc--marketing.kacp.cloud</span>
+              <div style="display:flex;gap:8px"><span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="square" size="14" hint-size="14px,14px"></dc-import>중지</span><span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>재시작</span></div>
+            </div>
+            <div style="border:1px dashed oklch(0.87 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;justify-content:center">
+              <span style="font-size:14px;font-weight:500">공개본</span>
+              <span style="font-size:13.5px;color:oklch(0.556 0 0)">아직 공개되지 않았어요. 공개하면 로그인한 모든 사원이 볼 수 있어요.</span>
+              <span style="align-self:flex-start;height:32px;padding:0 12px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="globe" size="14" hint-size="14px,14px"></dc-import>공개 요청</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px">
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">개요</span><span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">리소스</span>
+              <span style="padding:5px 12px;border-radius:6px;background:#fff;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.06)">로그</span>
+              <span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">데이터</span><span style="padding:5px 12px;border-radius:6px;color:oklch(0.556 0 0)">공개 이력</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:18px;border-radius:9px;background:oklch(0.205 0 0);position:relative"><span style="position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff"></span></span>자동 새로고침</span>
+              <div style="display:flex;border:1px solid oklch(0.922 0 0);border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:6px 12px;background:oklch(0.205 0 0);color:#fff">작업본</span><span style="padding:6px 12px;color:oklch(0.556 0 0)">공개본 —</span></div>
+              <span style="width:32px;height:32px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:grid;place-items:center"><dc-import name="Icon" n="download" hint-size="16px,16px"></dc-import></span>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;border:1px solid oklch(0.922 0 0);border-radius:12px;background:oklch(0.97 0 0);padding:14px 16px;display:flex;flex-direction:column;gap:4px;overflow:hidden;font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;line-height:1.6">
+            <sc-for list="{{ logs }}" as="l" hint-placeholder-count="8"><div style="display:flex;gap:16px"><span style="color:oklch(0.556 0 0);flex:none">{{ l.t }}</span><span style="display:flex;align-items:center;gap:6px;color:{{ l.c }}"><sc-if value="{{ l.warn }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.666 0.179 58.318);flex:none"></span></sc-if>{{ l.m }}</span></div></sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="8c">
+      <div class="dv-olabel"><a class="dv-oid" href="#8c">8c</a>U-08 · 데이터 탭 · 폴더 크기만</div>
+      <div class="dv-card" style="width:760px;box-sizing:border-box;padding:24px;display:flex;flex-direction:column;gap:16px" data-screen-label="8c 데이터 탭">
+        <div style="display:flex;gap:10px;padding:12px 14px;border-radius:8px;background:oklch(0.97 0 0);font-size:13.5px;line-height:1.55">
+          <dc-import name="Icon" n="info" color="oklch(0.556 0 0)" hint-size="16px,16px" style="margin-top:2px"></dc-import>
+          <span style="text-wrap:pretty">작업본과 공개본은 데이터를 따로 저장해요. 팀이 작업본에서 입력한 내용은 공개본에 보이지 않고, 공개본을 업데이트해도 공개본 데이터는 그대로 남아요.</span>
+        </div>
+        <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;display:grid;grid-template-columns:1fr 1fr">
+          <div style="padding:20px;display:flex;flex-direction:column;gap:8px;border-right:1px solid oklch(0.922 0 0)">
+            <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="lock" size="14" hint-size="14px,14px"></dc-import>작업본 데이터</span>
+            <span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">18.4 MB</span>
+            <span style="font-size:12px;color:oklch(0.556 0 0)">작업본 데이터 폴더 크기</span>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:8px">
+            <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)"><dc-import name="Icon" n="globe" size="14" hint-size="14px,14px"></dc-import>공개본 데이터 · v2</span>
+            <span style="font-size:24px;font-weight:600;font-variant-numeric:tabular-nums">146.2 MB</span>
+            <span style="font-size:12px;color:oklch(0.556 0 0)">공개본 데이터 폴더 크기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="8d">
+      <div class="dv-olabel"><a class="dv-oid" href="#8d">8d</a>U-08 · 공개 이력 탭 · 버전 타임라인</div>
+      <div class="dv-card" style="width:760px;box-sizing:border-box;padding:24px" data-screen-label="8d 공개 이력">
+        <sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center;width:24px">
+              <span style="width:24px;height:24px;box-sizing:border-box;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:600;flex:none;background:{{ v.bg }};color:{{ v.fg }};border:{{ v.bd }}">{{ v.short }}</span>
+              <sc-if value="{{ v.line }}" hint-placeholder-val="{{ true }}"><span style="width:1px;flex:1;background:oklch(0.922 0 0)"></span></sc-if>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;padding-bottom:22px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500">{{ v.title }}</span><span style="display:flex;align-items:center;gap:6px;height:20px;padding:0 7px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:11.5px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ v.dot }}"></span>{{ v.st }}</span><span style="margin-left:auto;font-size:12px;color:oklch(0.556 0 0);font-variant-numeric:tabular-nums">{{ v.when }}</span></div>
+              <span style="font-size:13.5px;line-height:1.5">{{ v.note }}</span>
+              <span style="font-size:12px;color:oklch(0.556 0 0)">{{ v.who }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div class="dv-opt" id="8f">
+      <div class="dv-olabel"><a class="dv-oid" href="#8f">8f</a>U-08 · 공개본을 플랫폼 관리자가 강제 중지함 · 추가</div>
+      <div class="dv-card" style="width:1280px;box-sizing:border-box;padding:20px 24px 24px;display:flex;flex-direction:column;gap:20px" data-screen-label="8f 관리자가 중지함">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">survey-dash</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:oklch(0.556 0 0)"><span style="width:20px;height:20px;border-radius:50%;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;flex:none"><dc-import name="Icon" n="bot" size="12" hint-size="12px,12px"></dc-import></span>에이전트 · 팀이 만듦</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;flex:1">작업본</span><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.97 0 0);font-size:12px;font-weight:500"><dc-import name="Icon" n="lock" size="12" hint-size="12px,12px"></dc-import>Private · 팀만</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500;color:oklch(0.556 0 0)"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.556 0 0)"></span>잠듦 · 접속하면 켜져요</span></div>
+            <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px">survey-dash--marketing.kacp.cloud</span>
+            <span style="font-size:12.5px;color:oklch(0.556 0 0)">작업본은 그대로 있어요. 고친 뒤 업데이트를 요청하세요.</span>
+          </div>
+          <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:500;flex:1">공개본</span><span style="display:flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:oklch(0.205 0 0);color:#fff;font-size:12px;font-weight:500"><dc-import name="Icon" n="globe" size="12" hint-size="12px,12px"></dc-import>Public v3</span><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 8px;border:1px solid oklch(0.922 0 0);border-radius:6px;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:oklch(0.586 0.253 17.585)"></span>관리자가 중지함</span></div>
+            <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;color:oklch(0.556 0 0)">survey-dash.kacp.cloud</span>
+            <div style="display:grid;grid-template-columns:72px 1fr;row-gap:6px;padding:12px 14px;border-radius:8px;background:oklch(0.97 0 0);font-size:13px;line-height:1.5"><span style="color:oklch(0.556 0 0)">사유</span><span>응답 결과에 개인 연락처가 그대로 보여요.</span><span style="color:oklch(0.556 0 0)">처리</span><span>플랫폼 관리자가 중지함 · 2시간 전</span></div>
+            <div style="display:flex;gap:8px;opacity:.5">
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="play" size="14" hint-size="14px,14px"></dc-import>시작</span>
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="square" size="14" hint-size="14px,14px"></dc-import>중지</span>
+              <span style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500"><dc-import name="Icon" n="retry" size="14" hint-size="14px,14px"></dc-import>재시작</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "<a class="dv-oid" href="#7a">7a</a> 카드 보기 버전" · "<a class="dv-oid" href="#8a">8a</a> 개요 탭" · "A-09 배포 승인으로"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const D = { run: 'oklch(0.596 0.145 163.225)', wait: 'oklch(0.666 0.179 58.318)', err: 'oklch(0.586 0.253 17.585)', mute: 'oklch(0.556 0 0)' };
+    const W = { running: [D.run, '실행 중'], sleeping: [D.mute, '잠듦'], stopped: [D.mute, '멈춤'], error: [D.err, '오류'] };
+    const app = (name, w, pub, by, last, cpu, mem) => {
+      const o = { name, wDot: W[w][0], wText: W[w][1], last, mem, pNone: !pub, pVer: false, pWait: false };
+      if (pub && pub.ver) Object.assign(o, { pVer: true, ver: 'Public ' + pub.ver, pDot: pub.sleep ? D.mute : D.run, pText: pub.sleep ? '잠듦' : '실행 중' });
+      if (pub && pub.wait) Object.assign(o, { pWait: true, wait: pub.wait });
+      return o;
+    };
+    const pts = [22, 26, 24, 31, 35, 30, 28, 34, 40, 36, 33, 38, 42, 37, 35, 39];
+    const pts2 = [38, 39, 40, 40, 41, 41, 40, 42, 43, 42, 41, 41, 42, 41, 41, 41];
+    const W2 = 820, H = 200;
+    const path = (arr) => arr.map((v, i) => `${(i / (arr.length - 1)) * W2},${H - (v / 60) * H}`).join(' ');
+    const e = React.createElement;
+    const chart = e('svg', { width: '100%', height: 220, viewBox: `0 0 ${W2} ${H + 20}`, preserveAspectRatio: 'none', style: { display: 'block' } },
+      [0, 1, 2, 3].map(i => e('line', { key: 'g' + i, x1: 0, x2: W2, y1: i * (H / 3), y2: i * (H / 3), stroke: 'oklch(0.922 0 0)', strokeDasharray: '3 4' })),
+      e('polyline', { points: path(pts2), fill: 'none', stroke: 'oklch(0.556 0 0)', strokeWidth: 1.5, strokeDasharray: '4 4', vectorEffect: 'non-scaling-stroke' }),
+      e('polyline', { points: path(pts), fill: 'none', stroke: 'oklch(0.205 0 0)', strokeWidth: 2, strokeLinejoin: 'round', vectorEffect: 'non-scaling-stroke' }));
+    return {
+      apps: [
+        app('lunch-vote', 'running', { ver: 'v2' }, '김하늘', '방금', '36%', '41%'),
+        app('campaign-report', 'running', { ver: 'v1', wait: '업데이트 대기 v1→v2' }, '이준호', '5분 전', '22%', '58%'),
+        app('budget-calc', 'running', { wait: '공개 승인 대기' }, '김하늘', '1시간 전', '8%', '20%'),
+        app('event-map', 'stopped', null, '박소연', '2시간 전', '0%', '0%'),
+        app('survey-dash', 'sleeping', { ver: 'v3', sleep: true }, '박소연', '3일 전', '0%', '0%'),
+        app('data-clean', 'error', null, '이준호', '어제', '0%', '0%'),
+      ],
+      chart,
+      logs: [
+        { t: '14:21:08', m: 'GET /api/budget?quarter=Q4 200 12ms', c: 'oklch(0.145 0 0)' },
+        { t: '14:21:02', m: 'GET / 200 4ms', c: 'oklch(0.145 0 0)' },
+        { t: '14:20:44', m: 'POST /api/budget 201 38ms', c: 'oklch(0.145 0 0)' },
+        { t: '14:18:10', m: 'WARN slow query: sum_by_team 820ms', c: 'oklch(0.556 0 0)', warn: true },
+        { t: '14:15:31', m: 'GET /static/app.js 200 2ms', c: 'oklch(0.145 0 0)' },
+        { t: '14:15:30', m: 'server listening on :8080', c: 'oklch(0.145 0 0)' },
+        { t: '14:15:29', m: 'woke up from sleep (request from budget-calc--marketing)', c: 'oklch(0.556 0 0)' },
+        { t: '13:02:11', m: 'idle 60m → sleeping', c: 'oklch(0.556 0 0)' },
+      ],
+      versions: [
+        { short: 'v3', title: 'v3 업데이트 요청', st: '검토 중', dot: 'oklch(0.666 0.179 58.318)', when: '12분 전', note: '투표 마감 시간을 정할 수 있게 했어요. 결과 화면에 그래프를 넣었어요.', who: '요청 에이전트 · 팀 (deploy_app)', bg: '#fff', fg: 'oklch(0.145 0 0)', bd: '2px solid oklch(0.205 0 0)', line: true },
+        { short: 'v2', title: 'v2 공개', st: '공개 중', dot: 'oklch(0.596 0.145 163.225)', when: '2026-09-27 17:41', note: '메뉴 후보를 팀별로 추가할 수 있어요.', who: '요청 김하늘 · 승인 이서진', bg: 'oklch(0.205 0 0)', fg: '#fff', bd: 'none', line: true },
+        { short: '—', title: '업데이트 요청 반려', st: '반려됨', dot: 'oklch(0.586 0.253 17.585)', when: '2026-09-25 10:03', note: '반려 사유: 화면에 사번이 그대로 보여요.', who: '요청 김하늘 · 반려 이서진', bg: '#fff', fg: 'oklch(0.556 0 0)', bd: '1px solid oklch(0.922 0 0)', line: true },
+        { short: 'v1', title: 'v1 첫 공개', st: '이전 버전', dot: 'oklch(0.556 0 0)', when: '2026-09-18 15:20', note: '점심 메뉴 투표 첫 버전.', who: '요청 김하늘 · 승인 이서진', bg: 'oklch(0.97 0 0)', fg: 'oklch(0.145 0 0)', bd: '1px solid oklch(0.922 0 0)', line: false },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

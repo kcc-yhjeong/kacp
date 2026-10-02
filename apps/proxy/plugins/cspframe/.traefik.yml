@@ -1,0 +1,9 @@
+# Traefik plugin manifest (local plugin, loaded via experimental.localPlugins).
+displayName: KACP CSP frame-ancestors rewrite
+type: middleware
+import: github.com/kacp/cspframe
+summary: >-
+  Removes X-Frame-Options and rewrites only the frame-ancestors directive of
+  Content-Security-Policy, keeping every other directive (script hashes etc.) as is.
+testData:
+  frameAncestors: "'self'"

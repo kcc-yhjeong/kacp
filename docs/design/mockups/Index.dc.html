@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><style>body{margin:0;background:#fff;font-family:Inter,'Pretendard Variable',Pretendard,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:oklch(0.145 0 0);word-break:keep-all}a{color:oklch(0.145 0 0);text-decoration:none}a:hover{color:oklch(0.205 0 0)}</style></helmet>
+<div style="max-width:1080px;margin:0 auto;padding:48px 24px 64px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="width:32px;height:32px;border-radius:8px;background:oklch(0.205 0 0);color:#fff;display:grid;place-items:center;font-weight:700;font-size:15px">K</div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:24px;font-weight:700;letter-spacing:-0.025em">KACP 화면 시안 목차</span><span style="font-size:14px;color:oklch(0.556 0 0)">01-screens.md 화면 ID 기준 · shadcn neutral · 1280 기준(관리자 1440)</span></div>
+  </div>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span style="font-size:14px;font-weight:600">{{ g.t }}</span>
+      <div style="border:1px solid oklch(0.922 0 0);border-radius:12px;overflow:hidden">
+        <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4">
+          <a href="{{ i.href }}" style="display:grid;grid-template-columns:168px minmax(0,1fr) minmax(0,1.2fr) 20px;align-items:center;column-gap:16px;min-height:52px;padding:8px 20px;box-sizing:border-box;border-bottom:1px solid oklch(0.922 0 0)" style-hover="background:oklch(0.985 0 0)">
+            <span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;font-weight:500">{{ i.ids }}</span>
+            <span style="font-size:14px;font-weight:500">{{ i.name }}</span>
+            <span style="font-size:12.5px;color:oklch(0.556 0 0);line-height:1.5">{{ i.note }}</span>
+            <dc-import name="Icon" n="chevron-right" color="oklch(0.556 0 0)" hint-size="16px,16px"></dc-import>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <span style="font-size:14px;font-weight:600">공용 부품</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <sc-for list="{{ parts }}" as="p" hint-placeholder-count="6"><a href="{{ p.href }}" style="height:32px;padding:0 12px;box-sizing:border-box;border:1px solid oklch(0.922 0 0);border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500"><span style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px">{{ p.n }}</span><span style="color:oklch(0.556 0 0);font-weight:400">{{ p.d }}</span></a></sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const f = (file, hash) => encodeURI(file + '.dc.html') + (hash ? '#' + hash : '');
+    const I = (ids, name, file, note, hash) => ({ ids, name, href: f(file, hash), note });
+    return {
+      groups: [
+        { t: '공통 (C)', items: [
+          I('C-00', '헤더 · 드롭다운', 'U-01 Agent Shell', '팀 스위처, 알림 패널(C-06), 프로필 메뉴', 't1h'),
+          I('C-01~03', '로그인 · 첫 비밀번호 · 소속 팀 없음', 'C-01 C-03 Auth', '오류·잠김·비활성 상태 포함'),
+          I('C-04', '오류·안내 페이지', 'C-04 Error Pages', '앱 깨우는 중(유휴·한도) / 강제 중지(팀원·비팀원) / 404 / 403 / 점검 중'),
+          I('C-05', '확인 모달 · 토스트', 'Missing Details', '', 'C5a'),
+        ] },
+        { t: '사원 (U)', items: [
+          I('U-01', '에이전트 셸', 'U-01 Agent Shell', '실행 중 · 기동 중 · 오류(관리자/팀원) · 에이전트 없음'),
+          I('U-02 · U-03', '앱 막대 · 공개 설정', 'U-02 U-03 App Bar and Deploy', '작업본 기준 칩, 깨우는 중, 미공개/검토 중/공개 중'),
+          I('U-04~06', '드라이브 · 파일 상세 · 휴지통', 'U-04 U-06 Drive', '선택·업로드·빈·로딩·오류'),
+          I('U-07 · U-08', '배포관리 · 앱 상세', 'U-07 U-08 Apps', '작업본/공개본 열 분리, 두 사본 카드, 데이터·공개 이력 탭'),
+          I('U-08', '앱 상세 개요 탭', 'Missing Details', '', '8e'),
+          I('U-09~12', 'MCP 마켓 · 상세·설치 · 설치됨 · 내 배포', 'U-09 U-12 MCP Market', '팀원 보기는 Missing Details 10d'),
+          I('U-13~15', '커뮤니티 · 프로필 · 팀 설정', 'U-13 U-15 Community Profile Team', ''),
+        ] },
+        { t: '관리자 (A)', items: [
+          I('A-01~05', '대시보드 · 사용자 · 팀', 'A-01 A-05 Admin Dashboard Users Teams', '작업본 n · 공개본 n, 사용자 부서·직위 열, 부서 필터'),
+          I('A-05 · A-04', '팀 상세 나머지 탭 · 팀 만들기', 'A-05 Team Detail Tabs', '멤버·할당·리소스·MCP·위험 영역, 처리 이력(A-09)'),
+          I('A-03 · A-05', '사용자 상세 · 에이전트 할당 모달', 'Missing Details', '', 'A3c'),
+          I('A-06~08', '에이전트 템플릿 · MCP 심사 · MCP 관리', 'A-06 A-08 Agents MCP Review', '심사 목록·팀별 설치 현황은 Missing Details'),
+          I('A-09~11', '배포 승인 · 플랫폼 설정 · 활동 기록', 'A-09 A-11 Deploy Settings Audit', '새 공개/업데이트 배지, 파일 변경 목록, 유휴 정지 시간'),
+          I('A-12', '조직 관리', 'A-12 A-13 Org Import', '6단계 부서 트리, 검색·드래그 금지, 접힌 브레드크럼, 빈 상태, 이동 확인', 'A12a'),
+          I('A-13', '가져오기(CSV)', 'A-12 A-13 Org Import', '파일 선택 → 미리보기(오류 사유) → 결과(초기 비밀번호 CSV)', 'A13a'),
+        ] },
+        { t: '이번에 추가한 카드', items: [
+          I('1i', '정리 중 (stopping)', 'U-01 Agent Shell', '', '1i'),
+          I('2g · 2h', '첫 공개 승인 대기 · 업데이트 반려', 'U-02 U-03 App Bar and Deploy', '', '2g'),
+          I('4g~4i', '비우기 확인(팀원/관리자) · 권한 없음', 'U-04 U-06 Drive', '', '4g'),
+          I('7c · 8f', '목록 필터 값 · 공개본 강제 중지됨', 'U-07 U-08 Apps', '', '7c'),
+          I('10e · 11b · 12b', '설치 대상 팀 · 아직 확인한 적 없음 · 반려', 'U-09 U-12 MCP Market', '', '10e'),
+          I('13d · 15d', 'Public 앱 첨부 · 팀 MCP 탭', 'U-13 U-15 Community Profile Team', '', '13d'),
+          I('C2b', '비밀번호 저장 실패', 'C-01 C-03 Auth', '', 'C2b'),
+          I('C4a · C4g · C4i · C4j', '깨우는 중(유휴/한도) · 강제 중지(팀원/비팀원)', 'C-04 Error Pages', ''),
+          I('A1b · A1c · A5h', '경고 2단계 · 접힌 사이드바 · 이름 인라인 수정', 'A-01 A-05 Admin Dashboard Users Teams', '', 'A1b'),
+          I('A4d', '팀 이름 사용 불가', 'A-05 Team Detail Tabs', '', 'A4d'),
+          I('A8c · A8d · A8e', '게시 중단 확인 · 직접 추가된 MCP · 팀별 설치 현황', 'A-06 A-08 Agents MCP Review', '', 'A8c'),
+          I('A9e · A9f', '새 공개 요청 상세 · 강제 중지 해제', 'A-09 A-11 Deploy Settings Audit', '', 'A9e'),
+          I('A12h · A13d', '보관된 부서 보기 · 가져오기 적용 중', 'A-12 A-13 Org Import', '', 'A12h'),
+          I('A3d · A3e · 8g', '비활성화 · 비밀번호 초기화 · 앱 삭제 확인', 'Missing Details', '', 'A3d'),
+        ] },
+        { t: '상태 모음', items: [
+          I('목록 10종', '빈 · 로딩 · 오류', 'List States', 'U-07·09·11·12·13, A-02·04·07·09·11'),
+        ] },
+      ],
+      parts: [['AppHeader', 'C-00 헤더'], ['AdminSidebar', '관리자 사이드바'], ['Icon', 'Lucide 아이콘'], ['Stepper', '진행 단계'], ['DriveTree', '드라이브 트리']].map(([n, d]) => ({ n, d, href: f(n) })),
+    };
+  }
+}
+</script>
+</body>
+</html>
