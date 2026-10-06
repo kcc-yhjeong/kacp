@@ -134,12 +134,12 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/Page'
-                  - properties:
-                      items:
-                        type: array
-                        items: { $ref: '#/components/schemas/Notification' }
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                  unread: { type: integer, description: 안 읽은 전체 개수 }
   /me/notifications/unread-count:
     get:
       tags: [me]
@@ -2103,9 +2103,11 @@ components:
       type: object
       properties:
         id: { type: string, format: uuid }
-        type: { type: string }
+        type:
+          type: string
+          enum: [deploy_approved, deploy_rejected, mcp_build_succeeded, mcp_build_failed, mcp_approved, mcp_rejected, team_container_error, agent_assignment_changed, admin_review_requested, app_force_stopped]
         title: { type: string }
-        link: { type: string }
+        link: { type: [string, 'null'], description: '앱 경로(/…) 또는 팀 주소(https://…)' }
         createdAt: { type: string, format: date-time }
         readAt: { type: [string, 'null'], format: date-time }
     ResourceLimits:
@@ -2451,7 +2453,19 @@ components:
             bodyMd: { type: string }
             updatedAt: { type: string, format: date-time }
             attachedPackage: { oneOf: [{ $ref: '#/components/schemas/McpPackageSummary' }, { type: 'null' }] }
-            attachedApp: { oneOf: [{ $ref: '#/components/schemas/App' }, { type: 'null' }] }
+            attachedApp:
+              oneOf:
+                - type: 'null'
+                - type: object
+                  description: 공개 중인 앱. 공개가 중지되면 available=false, 나머지는 null
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: [string, 'null'] }
+                    slug: { type: [string, 'null'] }
+                    team: { type: [string, 'null'] }
+                    url: { type: [string, 'null'] }
+                    version: { type: [integer, 'null'] }
+                    available: { type: boolean }
             canEdit: { type: boolean }
 
     AdminUser:

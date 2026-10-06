@@ -303,12 +303,12 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - **스캐폴딩 배포**: npm 저장소에 올리지 않고 **플랫폼이 직접 나눠 준다**. 웹 이미지 빌드 때 `create-platform-mcp`를 의존성까지 묶은 `.tgz`(esbuild 번들 + 템플릿 + 플랫폼 Dockerfile)를 만들어 `app.{base}/tools/create-platform-mcp.tgz`로 로그인 없이 제공(비밀값 없는 개발 도구, `npx`는 로그인할 수 없음). 개발자는 Node 22 + npm만 있으면 `npx {app 주소}/tools/create-platform-mcp.tgz create my-mcp`. 만든 프로젝트는 그 주소를 **선택 의존성**으로 가져 `npm install` 뒤 `npx create-platform-mcp validate|pack`이 되고, 주소에 닿지 않아도 설치는 계속된다. 플랫폼 Dockerfile은 빌드 전에 그 의존성을 지운다. 로컬(Windows)에서는 Node가 `*.localhost`를 못 풀어 이 명령이 안 된다 — 브라우저로 받은 파일을 `npx ./create-platform-mcp.tgz …`로 쓴다.
 - **백업**: VM `/opt/kacp/deploy/infra/backup.sh` — `pg_dump -Fc`를 `/data/backups/postgres/kacp-YYYYMMDD-HHMM.dump`로, 14개 보관. `vm-deploy.sh`가 매일 03:30 cron(`/etc/cron.d/kacp-backup`)을 설치한다. 복구 절차는 `deploy/infra/RESTORE.md`. 데이터 디스크(`/data`) 전체는 GCP 스냅샷 일정으로(콘솔 설정, 문서에 절차만).
 
-- [ ] 문서: `03`(notifications·posts 세부), `04`(알림·게시글 API 확정), `openapi.yaml`, `01` C-06·U-13 차이
-- [ ] api: `notifications`·`posts` 스키마, `notify()`와 위 7곳 연결, 알림 목록·안 읽은 수·읽음, 게시글 목록·보기·쓰기·수정·삭제(권한·첨부 검사), 90일 정리
-- [ ] web: C-06(두 헤더), U-13 목록·보기·쓰기·수정(미리보기), MCP 첨부 카드에서 설치 모달, 공개 앱 카드
-- [ ] 스캐폴딩 배포: `/tools/create-platform-mcp.tgz`(로그인 없이), U-12 "만드는 방법" 명령, 템플릿 README
-- [ ] 백업: `backup.sh`·cron·`RESTORE.md`, VM에서 덤프 1회·복구 리허설(임시 DB에 `pg_restore`)
-- [ ] 테스트: 알림 받는 사람 계산, 게시글 권한(공지·수정·삭제)·첨부 검사
+- [x] 문서: `03`(notifications·posts 세부), `04`(알림·게시글 API 확정), `openapi.yaml`, `01` C-06·U-13 차이
+- [x] api: `notifications`·`posts` 스키마, `notify()`와 위 7곳 연결, 알림 목록·안 읽은 수·읽음, 게시글 목록·보기·쓰기·수정·삭제(권한·첨부 검사), 90일 정리
+- [x] web: C-06(두 헤더), U-13 목록·보기·쓰기·수정(미리보기), MCP 첨부 카드에서 설치 모달, 공개 앱 카드
+- [x] 스캐폴딩 배포: `/tools/create-platform-mcp.tgz`(로그인 없이), U-12 "만드는 방법" 명령, 템플릿 README
+- [x] 백업: `backup.sh`·cron·`RESTORE.md`, VM에서 덤프 1회·복구 리허설(임시 DB에 `pg_restore`)
+- [x] 테스트: 알림 받는 사람 계산, 게시글 권한(공지·수정·삭제)·첨부 검사
 - [ ] 데모(사용자 확인): 네 장면을 새 사용자·새 팀으로 처음부터 — 장면마다 알림이 맞는 사람에게 오는지
 - [ ] VM: 같은 데모 + 백업·복구 리허설
 ## 다음 단계와의 연결
