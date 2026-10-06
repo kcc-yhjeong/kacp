@@ -31,6 +31,14 @@ describe('manifestProblems', () => {
   });
 });
 
+describe('mcpGatewayKey', () => {
+  it('turns hyphens into underscores so tool names are `my_weather__get_weather`', async () => {
+    const { mcpGatewayKey } = await import('./mcp-manifest.js');
+    expect(mcpGatewayKey('my-weather')).toBe('my_weather');
+    expect(mcpGatewayKey('platform')).toBe('platform');
+  });
+});
+
 describe('hostAllowed', () => {
   it('matches exact hosts and wildcard subdomains only', () => {
     const allow = ['api.notion.com', '*.example.com'];

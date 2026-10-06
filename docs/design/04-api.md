@@ -250,7 +250,7 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | `PUT /internal/teams/{team}/mcp/{key}` | 설치·업그레이드 `{pkg, version, network, resources, secrets\|null}` → 202. Secret Store에 쓰고(`null`이면 유지) MCP 컨테이너·egress 프록시를 다시 만든 뒤 팀이 실행 중이면 켠다. 결과 `mcp.install` 이벤트 `{id: team, key, status: installed\|error\|removed}` → api가 apply-config |
 | `PUT /internal/teams/{team}/mcp/{key}/secrets` · `DELETE /internal/teams/{team}/mcp/{key}` | 비밀값 병합 후 재생성 · 컨테이너와 Secret Store 제거 |
 | `PUT /internal/gateway/{team}/mcp-manual/{key}` | 직접 추가 `{server: {url, headers?}\|null}` → 실행 중 Gateway에 `config.patch` 한 항목(동기) |
-| (apply-config `mcpServers`) | 설치된 마켓·기본 MCP `[{key, url}]` → `mcp.servers.{key}`. URL이 `http://kacp-mcp-*:8080/mcp`인 관리 항목만 지운다(직접 추가·Control UI 항목은 건드리지 않음) |
+| (apply-config `mcpServers`) | 설치된 마켓·기본 MCP `[{key, url}]` → `mcp.servers.{key}`. **Gateway 키는 패키지 이름의 `-`를 `_`로 바꾼 것**(`my-weather` → `my_weather`, shared `mcpGatewayKey`). OpenClaw 도구 이름이 `{key}__{tool}`이 되는데, 일부 모델(VM gpt-5.6-luna)은 하이픈이 든 함수 이름을 호출하지 못한다(6단계 VM 확인). 컨테이너·Secret Store·DB(`server_key`)는 패키지 이름 그대로. URL이 `http://kacp-mcp-*:8080/mcp`인 관리 항목만 지운다(직접 추가·Control UI 항목은 건드리지 않음) |
 | `GET /internal/gateway/{team}/rpc` | api 대신 admin-http-rpc 호출(프록시) — `config.get` 등. 팀 Gateway 비밀번호를 쓰는 유일한 곳. 실제 호출은 팀 사이드카 `kacp-gwagent-{team}` → loopback(`06-auth.md` §6, spike 04). HTTP 허용 메서드만 된다(`config.*`, `agents.*`, `models.authStatus`, `health`, `status` 등. `users.*`·`session.*` 없음) |
 
 `config.patch` 규칙(spike 04): `config.get`의 `hash`를 `baseHash`로 보낸다. 400 "config changed since last load"면 다시 get. 삭제는 `null`(JSON merge patch). **배열 값을 가진 항목**(예: `identityScopes.{email}`)을 지우려면 `replacePaths: ["gateway.auth.identityScopes.{email}"]`가 필요하다. 응답에는 비밀값 평문이 없다(SecretRef만).

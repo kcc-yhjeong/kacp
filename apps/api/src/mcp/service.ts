@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
-import type { McpManifest } from '@kacp/shared';
+import { mcpGatewayKey, type McpManifest } from '@kacp/shared';
 import { db } from '../db/client.js';
 import { departments, mcpInstalls, mcpPackages, mcpVersions, teams, users, type McpFinding, type McpToolInfo } from '../db/schema.js';
 import { config } from '../config.js';
@@ -345,5 +345,5 @@ export async function ensureInstalled(team: { id: string; name: string }, names:
 export async function desiredMcpServers(teamId: string, teamName: string) {
   const rows = await db.select({ key: mcpInstalls.serverKey }).from(mcpInstalls)
     .where(and(eq(mcpInstalls.teamId, teamId), inArray(mcpInstalls.source, ['market', 'default']), eq(mcpInstalls.status, 'installed')));
-  return rows.map((r) => ({ key: r.key, url: mcpServerUrl(r.key, teamName) }));
+  return rows.map((r) => ({ key: mcpGatewayKey(r.key), url: mcpServerUrl(r.key, teamName) }));
 }

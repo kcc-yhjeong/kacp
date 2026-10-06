@@ -79,4 +79,15 @@ describe('mcp rules', () => {
     expect(plan.dropManual).toEqual(['gone']);
     expect(plan.reapply).toBe(true);
   });
+
+  it('matches rows to Gateway keys with hyphens turned into underscores', () => {
+    const plan = planSync(
+      { my_weather: { url: 'http://kacp-mcp-my-weather--team1:8080/mcp' }, my_remote: { url: 'https://x.example.com/mcp' } },
+      [
+        { serverKey: 'my-weather', source: 'market', status: 'installed' },
+        { serverKey: 'my-remote', source: 'manual', status: 'installed' },
+      ],
+    );
+    expect(plan).toEqual({ addManual: [], dropManual: [], reapply: false });
+  });
 });

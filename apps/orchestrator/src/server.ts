@@ -14,6 +14,9 @@ import { appLogs, removeApp, runApp, stopApp } from './apps.js';
 // Internal API — called by the api only, over kacp-core with the shared token (04-api.md §3).
 // The orchestrator is also on kacp-edge (to reach sidecars); anything arriving from there is refused.
 
+/** `mcp.servers` keys: package names with `-` → `_` (shared mcpGatewayKey), or keys added in the Control UI. */
+const GATEWAY_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
 const Limits = z.object({ cpu: z.number().positive(), memoryMb: z.number().int().positive(), diskGb: z.number().int().positive() });
 const Spec = z.object({
   gatewayPassword: z.string().min(16),
@@ -36,7 +39,7 @@ const Desired = z.object({
   agents: z.array(Agent),
   adminEmails: z.array(z.string()),
   platformMcp: z.object({ url: z.url(), token: z.string().min(20) }).optional(),
-  mcpServers: z.array(z.object({ key: z.string().regex(NAME_PATTERN), url: z.url() })).optional(),
+  mcpServers: z.array(z.object({ key: z.string().regex(GATEWAY_KEY), url: z.url() })).optional(),
 });
 const TeamParams = z.object({ team: z.string().regex(NAME_PATTERN) });
 
@@ -198,7 +201,7 @@ app.delete('/internal/teams/:team/mcp/:key', async (req, reply) => {
 
 // "직접 추가" (U-15): one Gateway entry, values go straight to the Gateway config.
 app.put('/internal/gateway/:team/mcp-manual/:key', async (req) => {
-  const { team, key } = McpParams.parse(req.params);
+  const { team, key } = z.object({ team: z.string().regex(NAME_PATTERN), key: z.string().regex(GATEWAY_KEY) }).parse(req.params);
   const body = z.object({
     server: z.object({ url: z.url().refine((u) => /^https?:/.test(u)), headers: z.record(z.string(), z.string().max(4096)).optional() }).nullable(),
   }).parse(req.body);

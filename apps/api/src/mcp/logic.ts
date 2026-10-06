@@ -1,4 +1,4 @@
-import type { McpManifest } from '@kacp/shared';
+import { mcpGatewayKey, type McpManifest } from '@kacp/shared';
 
 // Pure MCP rules (tested without a database).
 
@@ -6,14 +6,14 @@ export type Servers = Record<string, { url?: string; command?: string } | null>;
 
 export interface SyncPlan { addManual: { key: string; url: string | null }[]; dropManual: string[]; reapply: boolean }
 
-/** Pure: what to change for one team. `platform` is ours and never recorded. */
+/** Pure: what to change for one team. `platform` is ours and never recorded. Gateway keys are `mcpGatewayKey(serverKey)`. */
 export function planSync(servers: Servers, rows: { serverKey: string; source: string; status: string }[]): SyncPlan {
-  const known = new Map(rows.map((r) => [r.serverKey, r]));
+  const known = new Map(rows.map((r) => [mcpGatewayKey(r.serverKey), r]));
   const addManual = Object.entries(servers)
     .filter(([key, s]) => key !== 'platform' && s && !known.has(key))
     .map(([key, s]) => ({ key, url: s?.url ?? (s?.command ? `(명령) ${s.command}` : null) }));
-  const dropManual = rows.filter((r) => r.source === 'manual' && !servers[r.serverKey]).map((r) => r.serverKey);
-  const reapply = rows.some((r) => r.source !== 'manual' && r.status === 'installed' && !servers[r.serverKey]);
+  const dropManual = rows.filter((r) => r.source === 'manual' && !servers[mcpGatewayKey(r.serverKey)]).map((r) => r.serverKey);
+  const reapply = rows.some((r) => r.source !== 'manual' && r.status === 'installed' && !servers[mcpGatewayKey(r.serverKey)]);
   return { addManual, dropManual, reapply };
 }
 

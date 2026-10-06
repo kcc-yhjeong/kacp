@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { McpManifest } from '@kacp/shared';
+import { mcpGatewayKey, type McpManifest } from '@kacp/shared';
 import { requirePlatformAdmin } from '../auth/guards.js';
 import { audit } from '../audit.js';
 import { db } from '../db/client.js';
@@ -177,7 +177,7 @@ export async function adminMcpRoutes(app: FastifyInstance) {
         .where(eq(mcpInstalls.id, req.params.id));
       if (!r) throw new ApiError(404, 'MCP_NOT_FOUND');
       if (r.i.source === 'manual') {
-        if (r.t.containerStatus === 'running') await orchestrator.mcpManual(r.t.name, r.i.serverKey, null);
+        if (r.t.containerStatus === 'running') await orchestrator.mcpManual(r.t.name, mcpGatewayKey(r.i.serverKey), null);
         await db.delete(mcpInstalls).where(eq(mcpInstalls.id, r.i.id));
       } else {
         await removeInstall(r.t, r.i);

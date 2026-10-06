@@ -172,7 +172,7 @@
 | `kacp-mcp/{pkg}:{ver}` | 업로드된 패키지 이미지. 플랫폼 Dockerfile(`packages/create-platform-mcp/platform/Dockerfile`, orchestrator 이미지 `/app/platform/Dockerfile`)로 빌드. 실패·반려·대체된 버전은 지운다 | — |
 | `kacp-mcp-{key}--{team}` | 팀별 MCP 서버(`key` = 패키지 이름). uid 1000, 읽기 전용 루트, `/tmp` tmpfs, CapDrop ALL, 헬스 `GET /healthz`. 팀 컨테이너와 함께 켜지고 꺼진다 | `kacp-mcpnet-{team}`만 |
 | `kacp-mcpproxy-{key}--{team}` | egress 프록시(orchestrator 이미지 `node dist/egress-proxy.js`, 포트 3128). 매니페스트 `network` 도메인만 80·443으로 허용, IP 직접 접속·내부 주소로 풀리는 이름은 거절(403). MCP 컨테이너는 `HTTPS_PROXY`·`HTTP_PROXY`로 안다 | `kacp-mcpnet-{team}` + `kacp-egress` |
-| `kacp-mcpnet-{team}` | 팀 MCP 내부 네트워크(`internal`). 팀 컨테이너도 붙는다. Gateway는 `http://kacp-mcp-{key}--{team}:8080/mcp` | — |
+| `kacp-mcpnet-{team}` | 팀 MCP 내부 네트워크(`internal`). 팀 컨테이너도 붙는다. Gateway는 `mcp.servers.{key의 -를 _로}` = `http://kacp-mcp-{key}--{team}:8080/mcp` | — |
 | `kacp-egress` | 바깥으로 나가는 브리지. egress 프록시만 붙는다 | — |
 | `kacp-mcp-test` | 빌드 테스트용 내부 네트워크(compose). orchestrator가 붙어 `tools/list`를 부른다 | — |
 | `docker-build-proxy` | orchestrator 전용 빌드 socket-proxy(`BUILD IMAGES POST`), `kacp-core` | — |

@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { readFile } from 'node:fs/promises';
 import { and, desc, eq, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { MCP_CATEGORIES, MCP_PACKAGE_MAX_BYTES, NAME_PATTERN, type McpManifest } from '@kacp/shared';
+import { MCP_CATEGORIES, MCP_PACKAGE_MAX_BYTES, NAME_PATTERN, mcpGatewayKey, type McpManifest } from '@kacp/shared';
 import { requireAuth } from '../auth/guards.js';
 import { audit } from '../audit.js';
 import { db } from '../db/client.js';
@@ -253,7 +253,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       if (row.status === 'removing') return reply.code(202).send((await installsOut([row]))[0]);
       if (row.source === 'manual') {
         if (t.containerStatus !== 'running') throw new ApiError(409, 'TEAM_NOT_RUNNING', undefined, '직접 추가한 MCP는 팀 에이전트가 켜져 있을 때 제거할 수 있어요.');
-        await orchestrator.mcpManual(t.name, row.serverKey, null);
+        await orchestrator.mcpManual(t.name, mcpGatewayKey(row.serverKey), null);
         await db.delete(mcpInstalls).where(eq(mcpInstalls.id, row.id));
       } else {
         await removeInstall(t, row);
@@ -272,10 +272,10 @@ export async function mcpRoutes(app: FastifyInstance) {
       }).parse(req.body);
       if (body.name === 'platform') throw new ApiError(409, 'NAME_TAKEN');
       if (t.containerStatus !== 'running') throw new ApiError(409, 'TEAM_NOT_RUNNING', undefined, '팀 에이전트가 켜져 있을 때 추가할 수 있어요.');
-      const [taken] = await db.select({ id: mcpInstalls.id }).from(mcpInstalls).where(and(eq(mcpInstalls.teamId, t.id), eq(mcpInstalls.serverKey, body.name)));
-      if (taken) throw new ApiError(409, 'NAME_TAKEN');
+      const keys = await db.select({ k: mcpInstalls.serverKey }).from(mcpInstalls).where(eq(mcpInstalls.teamId, t.id));
+      if (keys.some((r) => mcpGatewayKey(r.k) === mcpGatewayKey(body.name))) throw new ApiError(409, 'NAME_TAKEN');
       // Header values (tokens) go to the Gateway only; the row keeps the header names.
-      await orchestrator.mcpManual(t.name, body.name, { url: body.url, headers: body.headers });
+      await orchestrator.mcpManual(t.name, mcpGatewayKey(body.name), { url: body.url, headers: body.headers });
       const [row] = await db.insert(mcpInstalls).values({
         id: newId(), teamId: t.id, source: 'manual', manualName: body.name, manualUrl: body.url, serverKey: body.name,
         status: 'installed', secretNames: Object.keys(body.headers).sort(), installedBy: me(req).id, lastCheckedAt: sql`now()`,

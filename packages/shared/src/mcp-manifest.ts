@@ -50,6 +50,13 @@ export function hostAllowed(host: string, allow: readonly string[]): boolean {
   return allow.some((d) => (d.startsWith('*.') ? h.endsWith(d.slice(1)) && h.length > d.length - 1 : h === d));
 }
 
+/**
+ * Key of an MCP server in the team Gateway's `mcp.servers`. OpenClaw names tools `{key}__{tool}`, and
+ * some models cannot call function names with hyphens (VM, gpt-5.6-luna), so hyphens become underscores.
+ * Containers, the Secret Store and the DB keep the package name.
+ */
+export const mcpGatewayKey = (key: string) => key.replace(/-/g, '_');
+
 /** Files a package zip must contain (create-platform-mcp layout). */
 export const MCP_PACKAGE_REQUIRED_FILES = ['platform-plugin.yaml', 'package.json', 'README.md'] as const;
 export const MCP_PACKAGE_MAX_BYTES = 50 * 1024 * 1024;
