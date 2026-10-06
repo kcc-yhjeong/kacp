@@ -164,6 +164,9 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+      args:
+        # Where developers download create-platform-mcp (and where scaffolded projects point).
+        TOOL_ORIGIN: ${PUBLIC_SCHEME:-http}://app.${BASE_DOMAIN}
     image: kacp/web:dev
     restart: unless-stopped
     networks: [kacp-edge]

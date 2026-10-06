@@ -265,8 +265,12 @@ export function SecretInput({
   );
 }
 
+/** Where this platform serves the scaffolding tool (apps/web nginx /tools/, built with the web image). */
+export const toolUrl = (origin: string) => `${origin}/tools/create-platform-mcp.tgz`;
+
 /** "만드는 방법" (U-12): create-platform-mcp usage. */
 export function HowToDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const tool = toolUrl(window.location.origin);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -277,9 +281,12 @@ export function HowToDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         <ol className="flex flex-col gap-4 text-[13px]">
           <li className="flex flex-col gap-1.5">
             <span className="font-medium">1. 새 프로젝트 만들기</span>
-            <CopyField value="npx create-platform-mcp create my-mcp" />
+            <span className="text-xs text-muted-foreground">Node.js 22와 npm만 있으면 돼요. 도구는 이 플랫폼에서 바로 받아요(npm 계정 필요 없음).</span>
+            <CopyField value={`npx ${tool} create my-mcp`} />
+            <CopyField value="cd my-mcp && npm install && npm run dev" />
             <span className="text-xs text-muted-foreground">
               도구는 <span className="font-mono">src/tools/</span>에 파일 하나씩 추가해요. <span className="font-mono">src/platform/</span>은 고치지 않아요.
+              비밀값은 <span className="font-mono">getSecret()</span>으로만 읽어요(서버 하나를 여러 팀이 같이 써요).
             </span>
           </li>
           <li className="flex flex-col gap-1.5">

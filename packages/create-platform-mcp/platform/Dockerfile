@@ -5,7 +5,10 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY . .
+# The scaffolding tool (optional dependency from the platform URL) is not needed to build: drop it so the
+# build never fetches it (`npm ci` then fails on the changed lock and `npm install` re-resolves).
 RUN rm -f Dockerfile .dockerignore \
+ && npm pkg delete optionalDependencies.create-platform-mcp devDependencies.create-platform-mcp \
  && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund) \
  && npm run build \
  && npm prune --omit=dev

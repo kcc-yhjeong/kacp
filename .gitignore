@@ -4,3 +4,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 deploy/infra/.data/
+
+# create-platform-mcp downloadable tool build
+packages/create-platform-mcp/.tool-stage/
+packages/create-platform-mcp/tool-dist/

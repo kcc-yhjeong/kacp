@@ -93,7 +93,7 @@ Transport는 **Streamable HTTP**, URL은 `http://localhost:8080/mcp`로 연결�
 ## 검증하고 올리기
 
 ```bash
-npx create-platform-mcp validate   # 업로드 때 서버와 같은 규칙으로 검사
+npx create-platform-mcp validate   # 업로드 때 서버와 같은 규칙으로 검사 (npm install 뒤에는 이 이름으로 바로 돼요)
 npx create-platform-mcp pack       # 이름-버전.zip 생성 (node_modules·dist·.git·.env* 제외, 50MB 이하)
 ```
 

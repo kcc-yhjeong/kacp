@@ -65,6 +65,8 @@
 
 ## 4. 웹 경로 (app.kacp.cloud)
 
+`/tools/create-platform-mcp.tgz`는 **로그인 없이** 받는 개발 도구(웹 이미지에 포함, nginx 정적 파일). 그 밖의 경로는 아래 표와 같다.
+
 | 경로 | 화면 |
 |---|---|
 | `/login`, `/password/setup`, `/no-team` | C-01, C-02, C-03 |

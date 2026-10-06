@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
-import { fillTemplate, scaffold, TEMPLATE_DIR } from './create.js';
+import { fillTemplate, scaffold, TEMPLATE_DIR, withToolDependency } from './create.js';
 import { isPackable } from './pack.js';
 import { validateDir } from './validate.js';
 
@@ -102,5 +102,15 @@ describe('scaffold', () => {
     expect(r.manifest).toMatchObject({ name: 'my-tools', displayName: '내 도구', version: '0.1.0' });
     await expect(scaffold(dir, 'my-tools')).rejects.toThrow('비어 있지 않아요');
     await expect(scaffold(path.join(root, 'x'), 'Bad--Name')).rejects.toThrow('쓸 수 없어요');
+  });
+});
+
+describe('downloadable tool', () => {
+  it('adds the platform tool URL as an optional dependency only when known', () => {
+    const pkg = '{"name":"x","devDependencies":{"tsx":"^4"}}';
+    expect(withToolDependency(pkg, null)).toBe(pkg);
+    const out = JSON.parse(withToolDependency(pkg, 'https://app.kacp.cloud/tools/create-platform-mcp.tgz'));
+    expect(out.devDependencies).toEqual({ tsx: '^4' });
+    expect(out.optionalDependencies).toEqual({ 'create-platform-mcp': 'https://app.kacp.cloud/tools/create-platform-mcp.tgz' });
   });
 });
