@@ -44,7 +44,7 @@ describe('computePatch', () => {
   it('replaces a changed entry whole', () => {
     const current = { agents: { entries: { 'kacp-a': agentEntry(agent('kacp-a')) } } };
     const plan = computePatch(current, { agents: [agent('kacp-a', { tools: { allow: ['web.fetch'], deny: [] } })], adminEmails: [] });
-    expect((plan?.patch.agents as { entries: Record<string, { tools: unknown }> }).entries['kacp-a']!.tools).toEqual({ allow: ['web.fetch'] });
+    expect((plan?.patch.agents as { entries: Record<string, { tools: unknown }> }).entries['kacp-a']!.tools).toEqual({ allow: ['web.fetch', 'bundle-mcp'] });
     expect(plan?.replacePaths).toEqual(['agents.entries.kacp-a']);
   });
 });
@@ -161,5 +161,13 @@ describe('sandbox origin', () => {
     expect(plan?.patch).toEqual({ mcp: { apps: { sandboxOrigin: 'http://team1--sbx.kacp.localhost', sandboxPort: 18790 } } });
     const current = { mcp: { apps: { sandboxOrigin: 'http://team1--sbx.kacp.localhost', sandboxPort: 18790 } } };
     expect(computePatch(current, desired, { sandboxOrigin: 'http://team1--sbx.kacp.localhost' })).toBeNull();
+  });
+});
+
+describe('tool allow list', () => {
+  it('keeps MCP tools when a template uses an allow list', () => {
+    expect(agentEntry(agent('kacp-a', { tools: { allow: ['web_search'], deny: [] } })).tools).toEqual({ allow: ['web_search', 'bundle-mcp'] });
+    expect(agentEntry(agent('kacp-a', { tools: { allow: ['group:plugins'], deny: [] } })).tools).toEqual({ allow: ['group:plugins'] });
+    expect(agentEntry(agent('kacp-a', { tools: { allow: [], deny: ['group:runtime'] } })).tools).toEqual({ deny: ['group:runtime'] });
   });
 });

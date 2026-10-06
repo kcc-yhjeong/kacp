@@ -11,6 +11,7 @@ export const NOTIFICATION_TYPES = [
   'agent_assignment_changed',
   'admin_review_requested',
   'app_force_stopped',
+  'post_commented',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -29,7 +30,7 @@ export interface NotificationList {
   unread: number;
 }
 
-export type NotificationIcon = 'globe' | 'plug' | 'alert' | 'bot' | 'shield' | 'bell';
+export type NotificationIcon = 'globe' | 'plug' | 'alert' | 'bot' | 'shield' | 'comment' | 'bell';
 
 /** Icon per type. `danger` = the icon itself is red (failures and errors only, like the C-00 mockup). */
 export function notificationVisual(type: string): { icon: NotificationIcon; danger: boolean } {
@@ -49,6 +50,8 @@ export function notificationVisual(type: string): { icon: NotificationIcon; dang
       return { icon: 'bot', danger: false };
     case 'admin_review_requested':
       return { icon: 'shield', danger: false };
+    case 'post_commented':
+      return { icon: 'comment', danger: false };
     default:
       return { icon: 'bell', danger: false };
   }

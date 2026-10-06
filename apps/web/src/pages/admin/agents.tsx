@@ -4,22 +4,21 @@ import { EmptyState, ListState, PageContainer, PageHeader } from '@/components/a
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAdminSettings, useTemplates } from '@/lib/admin/api';
+import { useTemplates } from '@/lib/admin/api';
+import { REASONING_LABEL } from '@/lib/admin/labels';
 import { formatTime } from '@/lib/format';
 
 /** A-06 agent templates. */
 export function AgentsPage() {
   const navigate = useNavigate();
   const templates = useTemplates();
-  const settings = useAdminSettings();
   const items = templates.data ?? [];
-  const modelLabel = (id: string | undefined) => settings.data?.models.allowed.find((m) => m.id === id)?.label;
 
   return (
     <PageContainer>
       <PageHeader
         title="에이전트 템플릿"
-        description="팀에 할당할 에이전트의 모델·지시문·도구를 정해요."
+        description="팀에 할당할 에이전트의 지시문·스킬·도구 권한을 정해요."
         actions={
           <Button asChild>
             <Link to="/admin/agents/new" search={{}}>
@@ -56,7 +55,7 @@ export function AgentsPage() {
               <TableRow>
                 <TableHead>이름</TableHead>
                 <TableHead>설명</TableHead>
-                <TableHead>기본 모델</TableHead>
+                <TableHead>추론 수준</TableHead>
                 <TableHead>할당 팀</TableHead>
                 <TableHead>수정</TableHead>
                 <TableHead className="w-10" />
@@ -77,11 +76,8 @@ export function AgentsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="max-w-[320px] truncate text-muted-foreground">{t.description || '—'}</TableCell>
-                  <TableCell>
-                    <span className="flex flex-col">
-                      <span className="text-[13px]">{modelLabel(t.spec.model?.id) ?? t.spec.model?.id ?? '—'}</span>
-                      {modelLabel(t.spec.model?.id) && <span className="font-mono text-[11px] text-muted-foreground">{t.spec.model?.id}</span>}
-                    </span>
+                  <TableCell className="text-[13px]">
+                    {t.spec.model?.reasoning ? REASONING_LABEL[t.spec.model.reasoning] : <span className="text-muted-foreground">기본값</span>}
                   </TableCell>
                   <TableCell className="tabular-nums">{t.assignedTeams.length}팀</TableCell>
                   <TableCell className="text-xs text-muted-foreground tabular-nums">{formatTime(t.updatedAt)}</TableCell>

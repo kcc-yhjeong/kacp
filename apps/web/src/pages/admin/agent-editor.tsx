@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
-import { ChevronRight, Copy, Info, Plug, ShieldCheck, Sparkles, Trash2, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronRight, Copy, Info, Plug, ShieldCheck, Sparkles, Trash2, TriangleAlert, Upload } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ApplyStatusBadge } from '@/components/admin/badges';
 import { ErrorState, Field, PageContainer, PageHeader, SectionCard, TagInput } from '@/components/admin/page';
@@ -9,16 +9,17 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageLoader } from '@/components/page-loader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SegmentList, SegmentTrigger, Tabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { adminApi, adminKeys, useAdminSettings } from '@/lib/admin/api';
+import { joinDeny, joinSkills, SKILL_GROUPS, splitDeny, splitSkills, TOOL_BLOCKS, TOOL_IDS } from '@/lib/admin/agent-catalog';
+import { adminApi, adminKeys } from '@/lib/admin/api';
 import { REASONING_LABEL } from '@/lib/admin/labels';
 import { DefaultMcpPicker } from '@/components/mcp/default-mcp-picker';
-import type { AgentSkill, AgentTemplate, AgentTemplateInput, Reasoning } from '@/lib/admin/types';
+import type { AgentTemplate, AgentTemplateInput, Reasoning } from '@/lib/admin/types';
 import { errorMessage } from '@/lib/api';
 import { formatTime } from '@/lib/format';
 
@@ -26,9 +27,12 @@ const newRoute = getRouteApi('/admin/agents/new');
 const editRoute = getRouteApi('/admin/agents/$templateId');
 
 const EMOJIS = ['🤖', '📊', '📝', '📈', '🧾', '📅', '💡', '🔍', '📚', '🧠', '✉️', '💬', '🛠️', '📦', '🎯', '🧪', '🗂️', '📣', '🧮', '🌐', '🔒', '🎨', '⚙️', '🚀'];
-/** Bundled skill / tool names: lowercase letters, digits, `.`, `_`, `-`. */
+/** Bundled skill names: lowercase letters, digits, `.`, `_`, `-`. */
 const IDENT = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const identProblem = (t: string) => (IDENT.test(t) ? null : '소문자·숫자·. _ -만 쓸 수 있어요.');
+/** Tool names also allow `:` (`group:web`) and `*` (wildcards). */
+const TOOL_IDENT = /^[a-z0-9][a-z0-9._:*-]{0,63}$/;
+const toolProblem = (t: string) => (TOOL_IDENT.test(t) ? null : '소문자·숫자·. _ - : *만 쓸 수 있어요.');
 
 /** A-06 new template (optionally duplicated from `?from=`). */
 export function AgentNewPage() {
@@ -52,7 +56,7 @@ export function AgentNewPage() {
       initial={
         s
           ? { name: `${s.name} 복사본`, icon: s.icon, description: s.description, spec: structuredClone(s.spec) }
-          : { name: '', icon: '🤖', description: '', spec: { model: { reasoning: 'medium' }, instructions: '', skills: [], tools: { allow: [], deny: [] } } }
+          : { name: '', icon: '🤖', description: '', spec: { instructions: '', skills: [], tools: { allow: [], deny: [] } } }
       }
     />
   );
@@ -81,40 +85,46 @@ export function AgentEditPage() {
 function AgentEditor({ template, initial }: { template?: AgentTemplate; initial: AgentTemplateInput }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const settings = useAdminSettings();
-  const models = settings.data?.models.allowed ?? [];
-  const defaultModel = models.find((m) => m.default)?.id ?? models[0]?.id ?? '';
 
   const [name, setName] = useState(initial.name);
   const [icon, setIcon] = useState(initial.icon || '🤖');
   const [description, setDescription] = useState(initial.description ?? '');
-  const [modelId, setModelId] = useState(initial.spec.model?.id ?? '');
-  const [reasoning, setReasoning] = useState<Reasoning>(initial.spec.model?.reasoning ?? 'medium');
+  /** Legacy `spec.model.id` from before models were dropped: shown read-only, removed on save. */
+  const legacyModelId = initial.spec.model?.id;
+  const [reasoning, setReasoning] = useState<Reasoning | ''>(initial.spec.model?.reasoning ?? '');
   const [instructions, setInstructions] = useState(initial.spec.instructions ?? '');
-  const [skills, setSkills] = useState<AgentSkill[]>(initial.spec.skills ?? []);
+  const [initialSkills] = useState(() => splitSkills(initial.spec.skills ?? []));
+  const [knownSkills, setKnownSkills] = useState<string[]>(initialSkills.known);
+  const [customSkills, setCustomSkills] = useState<string[]>(initialSkills.custom);
+  const uploadedSkills = initialSkills.uploaded;
+  const [initialDeny] = useState(() => splitDeny(initial.spec.tools?.deny ?? []));
+  const [blocked, setBlocked] = useState<string[]>(initialDeny.checked);
+  const [denyRest, setDenyRest] = useState<string[]>(initialDeny.rest);
   const [allow, setAllow] = useState<string[]>(initial.spec.tools?.allow ?? []);
-  const [deny, setDeny] = useState<string[]>(initial.spec.tools?.deny ?? []);
   const [defaultMcp, setDefaultMcp] = useState<string[]>(initial.spec.defaultMcp ?? []);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const effectiveModel = modelId || defaultModel;
   const assigned = template?.assignedTeams ?? [];
-  const canSave = name.trim().length > 0 && !!effectiveModel && !saving;
+  const canSave = name.trim().length > 0 && !saving;
 
-  const body = (): AgentTemplateInput => ({
-    name: name.trim(),
-    icon,
-    description: description.trim(),
-    spec: {
-      ...initial.spec,
-      model: { id: effectiveModel, reasoning },
-      instructions,
-      skills,
-      defaultMcp,
-      tools: { allow, deny },
-    },
-  });
+  const body = (): AgentTemplateInput => {
+    const { model: _legacy, ...rest } = initial.spec;
+    return {
+      name: name.trim(),
+      icon,
+      description: description.trim(),
+      spec: {
+        ...rest,
+        ...(reasoning ? { model: { reasoning } } : {}),
+        instructions,
+        skills: joinSkills(knownSkills, customSkills, uploadedSkills),
+        defaultMcp,
+        tools: { allow, deny: joinDeny(blocked, denyRest) },
+      },
+    };
+  };
+  const toggle = (list: string[], item: string, on: boolean) => (on ? [...list, item] : list.filter((x) => x !== item));
 
   const save = async () => {
     setSaving(true);
@@ -156,9 +166,6 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
       setSaving(false);
     }
   };
-
-  const bundled = skills.filter((s) => s.source === 'bundled').map((s) => s.name);
-  const uploaded = skills.filter((s) => s.source !== 'bundled');
 
   return (
     <PageContainer>
@@ -207,27 +214,29 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
             <Field id="a-desc" label="설명" className="col-span-2">
               <Input id="a-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
             </Field>
-            <Field id="a-model" label="기본 모델" className="col-span-2 sm:col-span-1">
-              <NativeSelect id="a-model" value={effectiveModel} onChange={(e) => setModelId(e.target.value)} className="w-full">
-                {models.length === 0 && <option value="">플랫폼 설정에서 모델을 먼저 추가하세요</option>}
-                {modelId && !models.some((m) => m.id === modelId) && <option value={modelId}>{modelId} (허용 목록에 없음)</option>}
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label} — {m.id}
+            <Field
+              id="a-reasoning"
+              label="추론 수준 (선택)"
+              className="col-span-2 max-w-sm"
+              hint={
+                <>
+                  모델은 팀 기본 모델을 써요. 추론 수준이 높을수록 더 꼼꼼하지만 느려요.
+                  {legacyModelId && (
+                    <span className="mt-1 block">
+                      이전 설정: <span className="font-mono">{legacyModelId}</span> (저장하면 지워져요)
+                    </span>
+                  )}
+                </>
+              }
+            >
+              <NativeSelect id="a-reasoning" value={reasoning} onChange={(e) => setReasoning(e.target.value as Reasoning | '')} className="w-full">
+                <option value="">기본값(팀 설정)</option>
+                {(['low', 'medium', 'high'] as const).map((r) => (
+                  <option key={r} value={r}>
+                    {REASONING_LABEL[r]}
                   </option>
                 ))}
               </NativeSelect>
-            </Field>
-            <Field label="추론 수준" className="col-span-2 sm:col-span-1">
-              <Tabs value={reasoning} onValueChange={(v) => setReasoning(v as Reasoning)}>
-                <SegmentList>
-                  {(['low', 'medium', 'high'] as const).map((r) => (
-                    <SegmentTrigger key={r} value={r}>
-                      {REASONING_LABEL[r]}
-                    </SegmentTrigger>
-                  ))}
-                </SegmentList>
-              </Tabs>
             </Field>
           </section>
 
@@ -237,8 +246,8 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
             bodyClassName="flex flex-col gap-2 p-5"
           >
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Info className="size-3.5" strokeWidth={1.75} />
-              플랫폼 기본 지시문이 앞에 자동으로 붙어요
+              <Info className="size-3.5 shrink-0" strokeWidth={1.75} />
+              모든 에이전트에는 플랫폼 기본 지시문(팀 드라이브·웹 앱 사용법)이 앞에 자동으로 붙어요. 여기에는 이 에이전트의 역할과 규칙만 적어요.
             </span>
             <Textarea
               aria-label="지시문"
@@ -267,31 +276,80 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
             }
             bodyClassName="flex flex-col gap-2 p-5"
           >
-            <TagInput
-              ariaLabel="번들 스킬"
-              value={bundled}
-              validate={identProblem}
-              placeholder="번들 스킬 이름 입력 후 Enter"
-              onChange={(names) => setSkills([...names.map((n) => ({ name: n, source: 'bundled' as const })), ...uploaded])}
-            />
-            {uploaded.length > 0 && (
-              <span className="text-xs text-muted-foreground">업로드 스킬: {uploaded.map((s) => s.name).join(', ')}</span>
+            <span className="text-xs text-muted-foreground">아무것도 고르지 않으면 기본 스킬을 모두 쓸 수 있어요. 고르면 고른 것만 써요.</span>
+            {SKILL_GROUPS.map((g) => (
+              <fieldset key={g.title} className="flex flex-col gap-1">
+                <legend className="mb-1 text-[13px] font-medium">{g.title}</legend>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-1 md:grid-cols-2">
+                  {g.skills.map((sk) => (
+                    <CheckRow
+                      key={sk.name}
+                      id={`skill-${sk.name}`}
+                      checked={knownSkills.includes(sk.name)}
+                      onChange={(on) => setKnownSkills((l) => toggle(l, sk.name, on))}
+                      label={sk.label}
+                      sub={sk.name}
+                    >
+                      {sk.description}
+                      {sk.needs && <span className="mt-0.5 block text-[11.5px]">필요: {sk.needs}</span>}
+                    </CheckRow>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+            <Disclosure title="직접 입력" count={customSkills.length} defaultOpen={customSkills.length > 0}>
+              <TagInput
+                ariaLabel="직접 입력한 스킬"
+                value={customSkills}
+                validate={identProblem}
+                placeholder="스킬 이름 입력 후 Enter"
+                onChange={setCustomSkills}
+              />
+              <span className="text-xs text-muted-foreground">목록에 없는 OpenClaw 기본 스킬을 이름으로 추가해요. 이름이 틀리면 무시돼요.</span>
+            </Disclosure>
+            {uploadedSkills.length > 0 && (
+              <span className="text-xs text-muted-foreground">업로드 스킬(그대로 유지돼요): {uploadedSkills.map((sk) => sk.name).join(', ')}</span>
             )}
-            <span className="text-xs text-muted-foreground">OpenClaw 번들 스킬 중 허용된 이름만 저장돼요.</span>
           </SectionCard>
 
           <SectionCard icon={Plug} title="기본 MCP" bodyClassName="flex flex-col gap-2 p-5">
             <DefaultMcpPicker value={defaultMcp} onChange={setDefaultMcp} />
-            <span className="text-xs text-muted-foreground">할당하면 팀에 함께 설치돼요. platform-mcp는 모든 팀에 항상 들어 있어요</span>
+            <span className="text-xs text-muted-foreground">
+              이 에이전트를 팀에 할당할 때 팀에 자동으로 설치돼요. 비밀값이 필요한 MCP는 팀 관리자가 나중에 입력해요. platform-mcp는 모든 팀에 항상 들어 있어요.
+            </span>
           </SectionCard>
 
-          <SectionCard icon={ShieldCheck} title="도구 권한" bodyClassName="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
-            <Field label="허용">
-              <TagInput ariaLabel="허용 도구" value={allow} onChange={setAllow} validate={identProblem} placeholder="예: drive.read" />
-            </Field>
-            <Field label="차단">
-              <TagInput ariaLabel="차단 도구" value={deny} onChange={setDeny} validate={identProblem} placeholder="예: shell.exec" />
-            </Field>
+          <SectionCard icon={ShieldCheck} title="도구 권한" bodyClassName="flex flex-col gap-3 p-5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[13px] font-medium">막을 기능</span>
+              <span className="text-xs text-muted-foreground">체크하지 않은 기능은 모두 쓸 수 있어요. 막으면 이 에이전트는 그 기능을 쓰지 못해요.</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {TOOL_BLOCKS.map((b) => (
+                <CheckRow
+                  key={b.label}
+                  id={`block-${b.deny.join('-')}`}
+                  checked={blocked.includes(b.label)}
+                  onChange={(on) => setBlocked((l) => toggle(l, b.label, on))}
+                  label={b.label}
+                >
+                  {b.description}
+                  <span className="mt-0.5 block text-[11.5px] text-muted-foreground/80">{b.impact}</span>
+                </CheckRow>
+              ))}
+            </div>
+            <Disclosure title="고급" count={denyRest.length + allow.length} defaultOpen={denyRest.length + allow.length > 0}>
+              <Field label="추가로 막을 도구" hint="OpenClaw 도구 이름이나 그룹(group:…)을 적어요. 위에서 체크한 기능과 함께 막혀요.">
+                <TagInput ariaLabel="추가 차단 도구" value={denyRest} onChange={setDenyRest} validate={toolProblem} suggestions={TOOL_IDS} placeholder="예: group:memory" />
+              </Field>
+              <Field label="허용 목록" hint="비워 두면 막지 않은 도구를 모두 쓸 수 있어요.">
+                <p className="flex items-start gap-1.5 rounded-md border px-3 py-2 text-xs">
+                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" strokeWidth={1.75} />
+                  허용 목록을 쓰면 여기 적은 도구만 쓸 수 있어요(MCP 도구는 플랫폼이 자동으로 열어 둬요). 잘 모르면 비워 두세요.
+                </p>
+                <TagInput ariaLabel="허용 도구" value={allow} onChange={setAllow} validate={toolProblem} suggestions={TOOL_IDS} placeholder="예: group:fs" />
+              </Field>
+            </Disclosure>
           </SectionCard>
         </div>
 
@@ -394,5 +452,49 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (v: string)
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** Checkbox with a label, optional mono id, and a muted description. */
+function CheckRow({
+  id,
+  checked,
+  onChange,
+  label,
+  sub,
+  children,
+}: {
+  id: string;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  label: string;
+  sub?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-muted/40">
+      <Checkbox id={id} checked={checked} onCheckedChange={(v) => onChange(v === true)} className="mt-0.5" />
+      <label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer flex-col">
+        <span className="flex items-baseline gap-1.5 text-[13.5px]">
+          {label}
+          {sub && <span className="font-mono text-[11px] text-muted-foreground">{sub}</span>}
+        </span>
+        {children && <span className="text-xs text-muted-foreground">{children}</span>}
+      </label>
+    </div>
+  );
+}
+
+/** Collapsed section (native details), open by default when it already holds values. */
+function Disclosure({ title, count, defaultOpen, children }: { title: string; count: number; defaultOpen: boolean; children: ReactNode }) {
+  return (
+    <details open={defaultOpen} className="group rounded-md border">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[13px] select-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight className="size-3.5 text-muted-foreground transition-transform group-open:rotate-90" strokeWidth={1.75} />
+        {title}
+        {count > 0 && <span className="text-xs text-muted-foreground tabular-nums">· {count}</span>}
+      </summary>
+      <div className="flex flex-col gap-3 border-t px-3 py-3">{children}</div>
+    </details>
   );
 }

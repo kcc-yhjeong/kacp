@@ -4,11 +4,15 @@ import type { PostCategory } from './logic';
 
 // U-13 shapes (04-api.md §2 /posts).
 
+export type PostAuthor = DriveUserRef & { email: string; departmentName: string | null };
+
 export interface PostSummary {
   id: string;
   category: PostCategory;
+  categoryLabel: string;
+  commentCount: number;
   title: string;
-  author: (DriveUserRef & { email: string; departmentName: string | null }) | null;
+  author: PostAuthor | null;
   createdAt: string;
   updatedAt: string;
   hasPackage: boolean;
@@ -53,4 +57,12 @@ export interface PostInput {
   bodyMd: string;
   attachedPackage?: string | null;
   attachedAppId?: string | null;
+}
+
+export interface PostComment {
+  id: string;
+  body: string;
+  author: PostAuthor | null;
+  createdAt: string;
+  canDelete: boolean;
 }

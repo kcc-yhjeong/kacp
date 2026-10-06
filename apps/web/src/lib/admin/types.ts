@@ -151,6 +151,7 @@ export interface AgentSkill {
 }
 
 export interface AgentSpec {
+  /** No `model` = team defaults. `id` is legacy (pre-stage 7): shown read-only and dropped on save. */
   model?: { id?: string; reasoning?: Reasoning };
   instructions?: string;
   skills?: AgentSkill[];
@@ -202,19 +203,7 @@ export interface CapacityThresholds {
   disk: number;
 }
 
-export interface AllowedModel {
-  id: string;
-  label: string;
-  provider: string;
-  default: boolean;
-}
-
 export interface PlatformSettings {
-  models: {
-    allowed: AllowedModel[];
-    /** Read-only. */
-    apiKeysConfigured?: Record<string, boolean>;
-  };
   limits: { teamDefault: ResourceLimits; appDefault: ResourceLimits; mcpDefault: ResourceLimits };
   ops: {
     idleStopMinutes: number;

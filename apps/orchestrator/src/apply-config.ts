@@ -46,9 +46,14 @@ export function agentEntry(a: DesiredAgent): Record<string, unknown> {
   if (a.model) entry.model = a.model;
   if (a.thinking) entry.thinkingDefault = a.thinking;
   if (a.skills.length) entry.skills = a.skills;
-  if (a.tools.allow.length || a.tools.deny.length) {
+  // An allow list admits only what it names. MCP tools (platform-mcp, market MCP) must survive it,
+  // otherwise one "허용" entry silently takes run_app and the drive tools away.
+  const allow = a.tools.allow.length && !a.tools.allow.some((t) => t === 'bundle-mcp' || t === 'group:plugins')
+    ? [...a.tools.allow, 'bundle-mcp']
+    : a.tools.allow;
+  if (allow.length || a.tools.deny.length) {
     entry.tools = {
-      ...(a.tools.allow.length ? { allow: a.tools.allow } : {}),
+      ...(allow.length ? { allow } : {}),
       ...(a.tools.deny.length ? { deny: a.tools.deny } : {}),
     };
   }

@@ -1,5 +1,5 @@
 import { CloudOff, Copy, RotateCw, X, type LucideIcon } from 'lucide-react';
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -238,10 +238,13 @@ export function TagInput({
   mono = true,
   disabled,
   ariaLabel,
+  suggestions,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  /** Autocomplete candidates (native datalist). */
+  suggestions?: string[];
   /** Returns an error message to block the tag. */
   validate?: (tag: string) => string | null;
   mono?: boolean;
@@ -249,6 +252,7 @@ export function TagInput({
   ariaLabel?: string;
 }) {
   const [draft, setDraft] = useState('');
+  const listId = useId();
   const add = () => {
     const tag = draft.trim();
     if (!tag) return;
@@ -301,9 +305,19 @@ export function TagInput({
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={add}
+        list={suggestions ? listId : undefined}
         placeholder={value.length === 0 ? placeholder : ''}
         className="h-6 min-w-[120px] flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
       />
+      {suggestions && (
+        <datalist id={listId}>
+          {suggestions
+            .filter((s) => !value.includes(s))
+            .map((s) => (
+              <option key={s} value={s} />
+            ))}
+        </datalist>
+      )}
     </div>
   );
 }

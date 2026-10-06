@@ -6,7 +6,8 @@ const ToolList = z.array(z.string().trim().min(1).max(200)).max(200);
 
 export const AgentSpecSchema = z.object({
   model: z.object({
-    id: z.string().trim().min(1).max(200),
+    /** Optional: without it the agent uses the team's default model (Control UI). */
+    id: z.string().trim().min(1).max(200).optional(),
     reasoning: z.enum(['low', 'medium', 'high']).default('medium'),
   }).optional(),
   instructions: z.string().max(100_000).default(''),

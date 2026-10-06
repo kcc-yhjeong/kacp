@@ -8,7 +8,6 @@ import { InstallDialog } from '@/components/mcp/install-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { categoryLabel } from '@/lib/community/logic';
 import type { AttachedApp } from '@/lib/community/types';
 import { hostOf } from '@/lib/host';
 import { useMcpPackage } from '@/lib/mcp/api';
@@ -18,10 +17,10 @@ import { cn } from '@/lib/utils';
 const SMALL = 'h-[18px] gap-1 px-1.5 text-[11px] [&>svg]:size-[11px]';
 
 /** Category badge: 공지 is black-filled, the rest outline (no semantic color). */
-export function CategoryBadge({ category, small, className }: { category: string; small?: boolean; className?: string }) {
+export function CategoryBadge({ category, label, small, className }: { category: string; label: string; small?: boolean; className?: string }) {
   return (
     <Badge variant={category === 'notice' ? 'default' : 'outline'} className={cn(small && SMALL, category !== 'notice' && 'text-muted-foreground', className)}>
-      {categoryLabel(category)}
+      {label}
     </Badge>
   );
 }

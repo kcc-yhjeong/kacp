@@ -1,17 +1,18 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Loader2, MessagesSquare, PenLine, Search, X } from 'lucide-react';
+import { EyeOff, ListOrdered, Loader2, MessageSquare, MessagesSquare, PenLine, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState, ErrorState, ListSkeleton, PageContainer, PageHeader } from '@/components/admin/page';
 import { useDebounced } from '@/components/admin/user-picker';
+import { CategoryDialog } from '@/components/community/category-dialog';
 import { AttachmentBadges, CategoryBadge } from '@/components/community/parts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { usePosts } from '@/lib/community/api';
-import { POST_CATEGORIES, POST_CATEGORY_LABEL, type PostCategory } from '@/lib/community/logic';
+import { usePostCategories, usePosts } from '@/lib/community/api';
+import type { PostCategory } from '@/lib/community/logic';
 import type { PostSummary } from '@/lib/community/types';
 import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { CommunityLayout } from './community-layout';
+import { CommunityLayout, type CommunityContext } from './community-layout';
 
 const tabClass = (on: boolean) =>
   cn(
@@ -21,12 +22,16 @@ const tabClass = (on: boolean) =>
 
 /** U-13 커뮤니티 목록 — `/community?category=&q=`. */
 export function CommunityPage({ category, q }: { category?: PostCategory; q?: string }) {
-  return <CommunityLayout>{() => <PostList category={category} q={q ?? ''} />}</CommunityLayout>;
+  return <CommunityLayout>{(ctx) => <PostList ctx={ctx} category={category} q={q ?? ''} />}</CommunityLayout>;
 }
 
-function PostList({ category, q }: { category?: PostCategory; q: string }) {
+function PostList({ ctx, category, q }: { ctx: CommunityContext; category?: PostCategory; q: string }) {
   const navigate = useNavigate();
   const [text, setText] = useState(q);
+  const [manageOpen, setManageOpen] = useState(false);
+  const categories = usePostCategories();
+  const cats = categories.data ?? [];
+  const canPostHere = cats.find((c) => c.key === category)?.canPost ?? false;
   const dq = useDebounced(text.trim());
 
   // Keep the search in the URL so "뒤로" comes back to the same list.
@@ -45,27 +50,36 @@ function PostList({ category, q }: { category?: PostCategory; q: string }) {
         title="커뮤니티"
         description="MCP와 앱, 쓰는 요령을 전사에 나눠요."
         actions={
-          <Button asChild>
-            <Link to="/community/new" search={category && category !== 'notice' ? { category } : {}}>
-              <PenLine strokeWidth={1.75} />
-              글쓰기
-            </Link>
-          </Button>
+          <>
+            {ctx.isAdmin && (
+              <Button variant="outline" onClick={() => setManageOpen(true)} disabled={!categories.data}>
+                <ListOrdered strokeWidth={1.75} />
+                분류 관리
+              </Button>
+            )}
+            <Button asChild>
+              <Link to="/community/new" search={category && canPostHere ? { category } : {}}>
+                <PenLine strokeWidth={1.75} />
+                글쓰기
+              </Link>
+            </Button>
+          </>
         }
       />
       <nav aria-label="분류" className="flex flex-wrap items-center gap-1 border-b">
         <Link to="/community" search={{ q: q || undefined }} className={tabClass(!category)} aria-current={!category ? 'page' : undefined}>
           전체
         </Link>
-        {POST_CATEGORIES.map((c) => (
+        {cats.map((c) => (
           <Link
-            key={c}
+            key={c.key}
             to="/community"
-            search={{ category: c, q: q || undefined }}
-            className={tabClass(category === c)}
-            aria-current={category === c ? 'page' : undefined}
+            search={{ category: c.key, q: q || undefined }}
+            className={tabClass(category === c.key)}
+            aria-current={category === c.key ? 'page' : undefined}
           >
-            {POST_CATEGORY_LABEL[c]}
+            {c.hidden && <EyeOff className="mr-1 size-3.5 text-muted-foreground" strokeWidth={1.75} aria-label="숨김" />}
+            {c.label}
           </Link>
         ))}
       </nav>
@@ -119,6 +133,7 @@ function PostList({ category, q }: { category?: PostCategory; q: string }) {
           </Button>
         </div>
       )}
+      {ctx.isAdmin && categories.data && <CategoryDialog open={manageOpen} onOpenChange={setManageOpen} categories={categories.data} />}
     </PageContainer>
   );
 }
@@ -131,7 +146,7 @@ function PostRow({ post }: { post: PostSummary }) {
       className="flex flex-col gap-1.5 px-5 py-3.5 outline-none hover:bg-muted/40 focus-visible:bg-muted/40"
     >
       <span className="flex min-w-0 items-center gap-2">
-        <CategoryBadge category={post.category} small />
+        <CategoryBadge category={post.category} label={post.categoryLabel} small />
         <span className="truncate font-medium">{post.title}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
           <AttachmentBadges hasPackage={post.hasPackage} hasApp={post.hasApp} />
@@ -142,6 +157,12 @@ function PostRow({ post }: { post: PostSummary }) {
         {post.author?.departmentName && <span>· {post.author.departmentName}</span>}
         <span aria-hidden>·</span>
         <span className="tabular-nums">{formatTime(post.createdAt)}</span>
+        {post.commentCount > 0 && (
+          <span className="ml-1 inline-flex items-center gap-1 tabular-nums" aria-label={`댓글 ${post.commentCount}개`}>
+            <MessageSquare className="size-3" strokeWidth={1.75} />
+            {post.commentCount.toLocaleString()}
+          </span>
+        )}
       </span>
     </Link>
   );

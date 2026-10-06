@@ -4,6 +4,7 @@ import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, ErrorState, PageContainer } from '@/components/admin/page';
+import { PostComments } from '@/components/community/comments';
 import { AttachedAppCard, AttachedPackageCard, CategoryBadge } from '@/components/community/parts';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { MarkdownView } from '@/components/mcp/markdown-view';
@@ -11,7 +12,6 @@ import { PageLoader } from '@/components/page-loader';
 import { Button } from '@/components/ui/button';
 import { ApiError, errorMessage } from '@/lib/api';
 import { postApi, postKeys, usePost } from '@/lib/community/api';
-import { categoryLabel, isPostCategory } from '@/lib/community/logic';
 import { formatTime } from '@/lib/format';
 import { CommunityLayout, type CommunityContext } from './community-layout';
 
@@ -64,12 +64,12 @@ function PostView({ postId, ctx }: { postId: string; ctx: CommunityContext }) {
 
   return (
     <PageContainer className="max-w-4xl">
-      <Crumb category={p.category} />
+      <Crumb category={p.category} label={p.categoryLabel} />
       <article className="flex flex-col gap-5">
         <header className="flex flex-col gap-3 border-b pb-5">
           <div className="flex flex-wrap items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <CategoryBadge category={p.category} className="self-start" />
+              <CategoryBadge category={p.category} label={p.categoryLabel} className="self-start" />
               <h1 className="text-2xl font-bold tracking-tight text-pretty break-words">{p.title}</h1>
             </div>
             {p.canEdit && (
@@ -114,6 +114,8 @@ function PostView({ postId, ctx }: { postId: string; ctx: CommunityContext }) {
         )}
       </article>
 
+      <PostComments postId={p.id} />
+
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
@@ -128,7 +130,7 @@ function PostView({ postId, ctx }: { postId: string; ctx: CommunityContext }) {
   );
 }
 
-function Crumb({ category }: { category?: string }) {
+function Crumb({ category, label }: { category?: string; label?: string }) {
   return (
     <nav className="flex items-center gap-1 text-[13px] text-muted-foreground">
       <Link to="/community" className="hover:text-foreground">
@@ -137,8 +139,8 @@ function Crumb({ category }: { category?: string }) {
       {category && (
         <>
           <ChevronRight className="size-3.5" />
-          <Link to="/community" search={isPostCategory(category) ? { category } : {}} className="hover:text-foreground">
-            {categoryLabel(category)}
+          <Link to="/community" search={{ category }} className="hover:text-foreground">
+            {label ?? category}
           </Link>
         </>
       )}

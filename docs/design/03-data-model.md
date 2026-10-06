@@ -430,12 +430,33 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 |---|---|---|
 | id | uuid PK | |
 | author_id | uuid | |
-| category | text | `notice` \| `question` \| `tip` \| `mcp_share` \| `app_share` |
+| category | text | `post_categories.key` (api가 검사) |
 | title | text | |
 | body_md | text | |
 | attached_package_id | uuid | null 허용 |
 | attached_app_id | uuid | Public 앱만(첨부 때 검사. 나중에 공개가 중지되면 글에는 "공개가 중지된 앱"으로 보임) |
 | created_at, updated_at, deleted_at | timestamptz | 삭제는 `deleted_at`만. 플랫폼 관리자가 남의 글을 지우면 감사 기록 `post.delete` |
+
+#### `post_categories`
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| key | text PK | 소문자로 시작, 소문자·숫자·밑줄 2~30자. 만든 뒤 바꾸지 않음 |
+| label | text | 표시 이름 |
+| sort_order | int | 탭·선택 순서 |
+| admin_only | bool | 플랫폼 관리자만 글쓰기(공지) |
+| hidden | bool | 새 글을 받지 않고 탭에서도 숨김(관리자에게만 보임) |
+
+기본: `notice` 공지(관리자만), `question` 질문, `tip` 팁, `mcp_share` MCP 공유, `free` 자유게시판. 글이 있는 분류는 지울 수 없고 숨기기만 된다. 변경은 감사 기록 `post_category.update`.
+
+#### `post_comments`
+
+| 컬럼 | 타입 | 설명 |
+|---|---|---|
+| id | uuid PK | |
+| post_id, author_id | uuid FK | |
+| body | text | 1~2000자, 일반 텍스트 |
+| created_at, deleted_at | timestamptz | 지우기는 `deleted_at`. 플랫폼 관리자가 남의 댓글을 지우면 `post_comment.delete` |
 
 #### `notifications`
 
@@ -443,7 +464,7 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 |---|---|---|
 | id | uuid PK | |
 | user_id | uuid | 받는 사람 |
-| type | text | `deploy_approved` `deploy_rejected` `mcp_build_succeeded` `mcp_build_failed` `mcp_approved` `mcp_rejected` `team_container_error` `agent_assignment_changed` `admin_review_requested` `app_force_stopped` |
+| type | text | `deploy_approved` `deploy_rejected` `mcp_build_succeeded` `mcp_build_failed` `mcp_approved` `mcp_rejected` `team_container_error` `agent_assignment_changed` `admin_review_requested` `app_force_stopped` `post_commented` |
 | title | text | |
 | link | text | 클릭 시 이동 경로 |
 | payload | jsonb | |
@@ -470,8 +491,8 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 
 | key | value 예 |
 |---|---|
-| `models.allowed` | `[{id, label, provider, default}]` |
-| `models.api_keys` | `{anthropic: <enc>}` (값은 bytea 컬럼 `value_enc`) |
+| ~~`models.allowed`~~ | 7단계에서 없앰(모델·키는 팀별 Control UI) |
+| ~~`models.api_keys`~~ | 7단계에서 없앰. 남아 있는 값은 쓰지 않는다 |
 | `limits.team_default` | `{cpu: 2, memoryMb: 4096, diskGb: 20}` |
 | `limits.app_default` | `{cpu: 0.5, memoryMb: 512}` |
 | `limits.mcp_default` | `{cpu: 0.25, memoryMb: 256}` |

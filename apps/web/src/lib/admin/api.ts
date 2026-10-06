@@ -142,7 +142,6 @@ export const adminApi = {
 
   settings: () => api.get<PlatformSettings>('/admin/settings'),
   saveSettings: (body: PlatformSettings) => api.put<PlatformSettings>('/admin/settings', body),
-  setApiKey: (provider: string, key: string) => api.put<void>(`/admin/settings/api-keys/${enc(provider)}`, { key }),
 
   audit: (f: AuditFilters, cursor?: string, limit = 50) =>
     api.get<Page<AuditEvent>>(`/admin/audit-events${qs({ ...f, cursor, limit })}`),

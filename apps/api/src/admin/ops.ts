@@ -9,7 +9,7 @@ import {
   agentTemplates, auditEvents, departments, names, posts, teamPresence, teams, usageSamples, users,
 } from '../db/schema.js';
 import { ApiError } from '../lib/errors.js';
-import { configuredApiKeys, getAllSettings, getSetting, setApiKey, setSetting, type Limits } from '../settings.js';
+import { getAllSettings, getSetting, setSetting, type Limits } from '../settings.js';
 import { teamUsage } from '../drive/service.js';
 import { seedReservedNames } from './service.js';
 
@@ -19,9 +19,6 @@ const LimitsSchema = z.object({ cpu: z.number().positive(), memoryMb: z.number()
 const Thresholds = z.object({ cpu: z.number().int().min(1).max(100), memory: z.number().int().min(1).max(100), disk: z.number().int().min(1).max(100) });
 
 const SettingsBody = z.object({
-  models: z.object({
-    allowed: z.array(z.object({ id: z.string().min(1), label: z.string().min(1), provider: z.string().min(1), default: z.boolean() })).min(1),
-  }).partial().optional(),
   limits: z.object({ teamDefault: LimitsSchema, appDefault: LimitsSchema, mcpDefault: LimitsSchema }).partial().optional(),
   ops: z.object({
     idleStopMinutes: z.number().int().min(5).max(1440),
@@ -36,7 +33,6 @@ const SettingsBody = z.object({
 async function settingsOut() {
   const s = await getAllSettings();
   return {
-    models: { allowed: s['models.allowed'], apiKeysConfigured: await configuredApiKeys() },
     limits: { teamDefault: s['limits.team_default'], appDefault: s['limits.app_default'], mcpDefault: s['limits.mcp_default'] },
     ops: {
       idleStopMinutes: s['ops.idle_stop_minutes'],
@@ -149,10 +145,6 @@ export async function opsRoutes(app: FastifyInstance) {
     const b = SettingsBody.parse(req.body);
     const actorId = req.session!.user.id;
     const before = await settingsOut();
-    if (b.models?.allowed) {
-      if (b.models.allowed.filter((m) => m.default).length !== 1) throw new ApiError(400, 'VALIDATION_FAILED', undefined, '기본 모델을 하나 정해 주세요.');
-      await setSetting('models.allowed', b.models.allowed, actorId);
-    }
     if (b.limits?.teamDefault) await setSetting('limits.team_default', b.limits.teamDefault, actorId);
     if (b.limits?.appDefault) await setSetting('limits.app_default', b.limits.appDefault, actorId);
     if (b.limits?.mcpDefault) await setSetting('limits.mcp_default', b.limits.mcpDefault, actorId);
@@ -175,16 +167,6 @@ export async function opsRoutes(app: FastifyInstance) {
     await audit({ actorId, action: 'settings.update', targetType: 'settings', detail: { changed: Object.keys(b) } });
     return after;
   });
-
-  app.put('/api/v1/admin/settings/api-keys/:provider', { preHandler: requirePlatformAdmin },
-    async (req: FastifyRequest<{ Params: { provider: string } }>, reply) => {
-      const provider = z.string().regex(/^[a-z0-9-]{2,30}$/).parse(req.params.provider);
-      const { key } = z.object({ key: z.string().min(8).max(500) }).parse(req.body);
-      await setApiKey(provider, key, req.session!.user.id);
-      // Only the provider name is recorded, never the key.
-      await audit({ actorId: req.session!.user.id, action: 'settings.update', targetType: 'settings', targetId: `api_key:${provider}` });
-      return reply.code(204).send();
-    });
 
   // ── A-11 ──
   app.get('/api/v1/admin/audit-events', { preHandler: requirePlatformAdmin }, async (req) => {

@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigat
 import { lazy, Suspense } from 'react';
 import { ForbiddenPage, NotFoundPage } from '@/components/message-page';
 import { PageLoader } from '@/components/page-loader';
-import { isPostCategory, type PostCategory } from '@/lib/community/logic';
+import { isCategoryKey, type PostCategory } from '@/lib/community/logic';
 import { currentHost } from '@/lib/host';
 import { HomePage } from '@/pages/home';
 import { LoginPage } from '@/pages/login';
@@ -209,7 +209,7 @@ const communityRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/community',
   validateSearch: (search: Record<string, unknown>): { category?: PostCategory; q?: string } => ({
-    ...(isPostCategory(search.category) ? { category: search.category } : {}),
+    ...(isCategoryKey(search.category) ? { category: search.category } : {}),
     ...(typeof search.q === 'string' && search.q.trim() ? { q: search.q.trim() } : {}),
   }),
   component: function CommunityRoute() {
@@ -226,7 +226,7 @@ const communityNewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/community/new',
   validateSearch: (search: Record<string, unknown>): { category?: PostCategory } =>
-    isPostCategory(search.category) ? { category: search.category } : {},
+    isCategoryKey(search.category) ? { category: search.category } : {},
   component: function CommunityNewRoute() {
     const { category } = communityNewRoute.useSearch();
     return (

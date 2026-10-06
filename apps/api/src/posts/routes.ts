@@ -1,30 +1,45 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { and, desc, eq, ilike, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { NAME_PATTERN } from '@kacp/shared';
-import { requireAuth } from '../auth/guards.js';
+import { requireAuth, requirePlatformAdmin } from '../auth/guards.js';
 import { audit } from '../audit.js';
 import { db } from '../db/client.js';
-import { apps, mcpPackages, posts, teams } from '../db/schema.js';
+import { apps, mcpPackages, postCategories, postComments, posts, teams } from '../db/schema.js';
 import { newId } from '../lib/crypto.js';
 import { ApiError } from '../lib/errors.js';
 import { originOf, publicHost } from '../apps/service.js';
 import { packagesOut, userRefs } from '../mcp/service.js';
-import { canEditPost, canUseCategory, likePattern, POST_CATEGORIES } from './logic.js';
+import { CATEGORY_KEY, canEditPost, canUseCategory, categoryListProblem, likePattern } from './logic.js';
+import { notify } from '../notify/service.js';
 
-// 커뮤니티 (U-13, 04-api.md §2 /posts). Everyone signed in reads and writes; 공지 is admins only.
+// 커뮤니티 (U-13, 04-api.md §2 /posts). Everyone signed in reads, writes and comments. Categories are
+// managed by platform admins; admin-only ones (공지) take posts from platform admins only.
 
 type PostRow = typeof posts.$inferSelect;
 const PAGE = 50;
 const viewer = (req: FastifyRequest) => req.session!.user;
 
 const Input = z.object({
-  category: z.enum(POST_CATEGORIES),
+  category: z.string().regex(CATEGORY_KEY),
   title: z.string().trim().min(1, '제목을 입력하세요.').max(200),
   bodyMd: z.string().max(50_000).default(''),
   attachedPackage: z.string().regex(NAME_PATTERN).nullable().optional(),
   attachedAppId: z.uuid().nullable().optional(),
 });
+
+async function categoryMap() {
+  const rows = await db.select().from(postCategories).orderBy(asc(postCategories.sortOrder), asc(postCategories.key));
+  return new Map(rows.map((c) => [c.key, c]));
+}
+
+async function requireCategory(req: FastifyRequest, key: string) {
+  const c = (await categoryMap()).get(key);
+  if (!c) throw new ApiError(422, 'VALIDATION_FAILED', undefined, '없는 분류예요.');
+  if (!canUseCategory(viewer(req), c)) {
+    throw new ApiError(403, 'FORBIDDEN', undefined, c.hidden ? '지금은 글을 쓸 수 없는 분류예요.' : `"${c.label}" 분류는 플랫폼 관리자만 쓸 수 있어요.`);
+  }
+}
 
 /** Attachments: a published, active MCP package; a public app. null clears, undefined keeps. */
 async function resolveAttachments(body: { attachedPackage?: string | null; attachedAppId?: string | null }) {
@@ -46,9 +61,16 @@ async function resolveAttachments(body: { attachedPackage?: string | null; attac
 
 async function summaries(rows: PostRow[]) {
   const authors = await userRefs(rows.map((r) => r.authorId));
+  const cats = await categoryMap();
+  const counts = rows.length
+    ? new Map((await db.select({ postId: postComments.postId, n: count() }).from(postComments)
+      .where(and(inArray(postComments.postId, rows.map((r) => r.id)), isNull(postComments.deletedAt))).groupBy(postComments.postId)).map((c) => [c.postId, c.n]))
+    : new Map<string, number>();
   return rows.map((r) => ({
     id: r.id,
     category: r.category,
+    categoryLabel: cats.get(r.category)?.label ?? r.category,
+    commentCount: counts.get(r.id) ?? 0,
     title: r.title,
     author: authors.get(r.authorId) ?? null,
     createdAt: r.createdAt.toISOString(),
@@ -89,7 +111,7 @@ async function detail(req: FastifyRequest, p: PostRow, team: string | undefined)
 export async function postRoutes(app: FastifyInstance) {
   app.get('/api/v1/posts', { preHandler: requireAuth }, async (req) => {
     const q = z.object({
-      category: z.enum(POST_CATEGORIES).optional(),
+      category: z.string().regex(CATEGORY_KEY).optional(),
       q: z.string().trim().max(100).optional(),
       cursor: z.iso.datetime().optional(),
     }).parse(req.query);
@@ -110,7 +132,7 @@ export async function postRoutes(app: FastifyInstance) {
 
   app.post('/api/v1/posts', { preHandler: requireAuth }, async (req, reply) => {
     const body = Input.parse(req.body);
-    if (!canUseCategory(viewer(req), body.category)) throw new ApiError(403, 'FORBIDDEN', undefined, '공지는 플랫폼 관리자만 쓸 수 있어요.');
+    await requireCategory(req, body.category);
     const att = await resolveAttachments(body);
     const [p] = await db.insert(posts).values({
       id: newId(), authorId: viewer(req).id, category: body.category, title: body.title, bodyMd: body.bodyMd,
@@ -124,7 +146,7 @@ export async function postRoutes(app: FastifyInstance) {
       const p = await loadPost(req.params.id);
       if (!canEditPost(viewer(req), p.authorId)) throw new ApiError(403, 'FORBIDDEN');
       const body = Input.partial().parse(req.body);
-      if (body.category && !canUseCategory(viewer(req), body.category)) throw new ApiError(403, 'FORBIDDEN', undefined, '공지는 플랫폼 관리자만 쓸 수 있어요.');
+      if (body.category && body.category !== p.category) await requireCategory(req, body.category);
       const att = await resolveAttachments(body);
       const [u] = await db.update(posts).set({
         ...(body.category ? { category: body.category } : {}),
@@ -149,4 +171,81 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.code(204).send();
     });
 
+  // ── categories ──
+
+  app.get('/api/v1/post-categories', { preHandler: requireAuth }, async (req) => {
+    const admin = viewer(req).platformRole === 'admin';
+    const items = [...(await categoryMap()).values()].filter((c) => admin || !c.hidden).map((c) => ({
+      key: c.key, label: c.label, adminOnly: c.adminOnly, hidden: c.hidden, canPost: canUseCategory(viewer(req), c),
+    }));
+    return { items };
+  });
+
+  /** Whole list in display order: add, rename, reorder, hide, or remove (only when it has no posts). */
+  app.put('/api/v1/admin/post-categories', { preHandler: requirePlatformAdmin }, async (req) => {
+    const { items } = z.object({
+      items: z.array(z.object({
+        key: z.string().trim(), label: z.string().trim().max(30), adminOnly: z.boolean().default(false), hidden: z.boolean().default(false),
+      })).max(30),
+    }).parse(req.body);
+    const used = new Set((await db.selectDistinct({ c: posts.category }).from(posts).where(isNull(posts.deletedAt))).map((r) => r.c));
+    const problem = categoryListProblem(items, used);
+    if (problem) throw new ApiError(422, 'VALIDATION_FAILED', undefined, problem);
+    const before = [...(await categoryMap()).values()];
+    await db.transaction(async (tx) => {
+      const keep = items.map((c) => c.key);
+      const gone = before.filter((c) => !keep.includes(c.key)).map((c) => c.key);
+      if (gone.length) await tx.delete(postCategories).where(inArray(postCategories.key, gone));
+      for (const [i, c] of items.entries()) {
+        await tx.insert(postCategories).values({ key: c.key, label: c.label, sortOrder: i, adminOnly: c.adminOnly, hidden: c.hidden })
+          .onConflictDoUpdate({ target: postCategories.key, set: { label: c.label, sortOrder: i, adminOnly: c.adminOnly, hidden: c.hidden } });
+      }
+      await audit({
+        actorId: viewer(req).id, action: 'post_category.update', targetType: 'settings', targetId: 'post_categories',
+        detail: { before: before.map((c) => c.key), after: items.map((c) => c.key) }, ip: req.ip,
+      }, tx);
+    });
+    return { items: [...(await categoryMap()).values()].map((c) => ({ key: c.key, label: c.label, adminOnly: c.adminOnly, hidden: c.hidden, canPost: true })) };
+  });
+
+  // ── comments ──
+
+  const commentsOut = async (req: FastifyRequest, rows: (typeof postComments.$inferSelect)[]) => {
+    const authors = await userRefs(rows.map((r) => r.authorId));
+    return rows.map((c) => ({
+      id: c.id, body: c.body, author: authors.get(c.authorId) ?? null, createdAt: c.createdAt.toISOString(), canDelete: canEditPost(viewer(req), c.authorId),
+    }));
+  };
+
+  app.get('/api/v1/posts/:id/comments', { preHandler: requireAuth },
+    async (req: FastifyRequest<{ Params: { id: string } }>) => {
+      const p = await loadPost(req.params.id);
+      const rows = await db.select().from(postComments).where(and(eq(postComments.postId, p.id), isNull(postComments.deletedAt))).orderBy(asc(postComments.createdAt));
+      return { items: await commentsOut(req, rows) };
+    });
+
+  app.post('/api/v1/posts/:id/comments', { preHandler: requireAuth },
+    async (req: FastifyRequest<{ Params: { id: string } }>, reply) => {
+      const p = await loadPost(req.params.id);
+      const { body } = z.object({ body: z.string().trim().min(1, '내용을 입력하세요.').max(2000) }).parse(req.body);
+      const [c] = await db.insert(postComments).values({ id: newId(), postId: p.id, authorId: viewer(req).id, body }).returning();
+      void notify([p.authorId], { type: 'post_commented', title: `"${p.title}"에 댓글이 달렸어요: ${body.slice(0, 60)}`, link: `/community/${p.id}` }, viewer(req).id);
+      return reply.code(201).send((await commentsOut(req, [c!]))[0]);
+    });
+
+  app.delete('/api/v1/posts/:id/comments/:commentId', { preHandler: requireAuth },
+    async (req: FastifyRequest<{ Params: { id: string; commentId: string } }>, reply) => {
+      const p = await loadPost(req.params.id);
+      if (!z.uuid().safeParse(req.params.commentId).success) throw new ApiError(404, 'NOT_FOUND');
+      const [c] = await db.select().from(postComments)
+        .where(and(eq(postComments.id, req.params.commentId), eq(postComments.postId, p.id), isNull(postComments.deletedAt)));
+      if (!c) throw new ApiError(404, 'NOT_FOUND');
+      const v = viewer(req);
+      if (!canEditPost(v, c.authorId)) throw new ApiError(403, 'FORBIDDEN');
+      await db.update(postComments).set({ deletedAt: sql`now()` }).where(eq(postComments.id, c.id));
+      if (v.id !== c.authorId) {
+        await audit({ actorId: v.id, action: 'post_comment.delete', targetType: 'post', targetId: p.id, detail: { commentAuthorId: c.authorId }, ip: req.ip });
+      }
+      return reply.code(204).send();
+    });
 }

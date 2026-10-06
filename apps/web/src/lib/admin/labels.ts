@@ -45,6 +45,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'mcp.manual_add': '직접 추가',
   'mcp.secrets_update': '비밀값 다시 입력',
   'post.delete': '게시글 삭제(관리자)',
+  'post_category.update': '커뮤니티 분류 변경',
+  'post_comment.delete': '댓글 삭제(관리자)',
   'mcp.version_replace': '실패·반려 버전 다시 올림',
   'settings.update': '설정 변경',
   'settings.api_key': 'API 키 변경',

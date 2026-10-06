@@ -43,6 +43,13 @@
       "when": 1791259496061,
       "tag": "0005_stage7_community",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791270125225,
+      "tag": "0006_stage7_comments",
+      "breakpoints": true
     }
   ]
 }

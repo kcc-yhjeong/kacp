@@ -1823,23 +1823,21 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PlatformSettings' }
-  /admin/settings/api-keys/{provider}:
-    parameters:
-      - { name: provider, in: path, required: true, schema: { type: string } }
+  /admin/post-categories:
     put:
       tags: [admin]
-      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      summary: 커뮤니티 분류 전체 저장(배열 순서 = 표시 순서). 글 있는 분류 삭제는 422
+      parameters: [{ $ref: "#/components/parameters/Csrf" }]
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [key]
               properties:
-                key: { type: string }
+                items: { type: array, items: { $ref: "#/components/schemas/PostCategoryItem" } }
       responses:
-        '204': { description: 저장됨 }
+        "200": { description: 저장된 분류 }
   /admin/audit-events:
     get:
       tags: [admin]
@@ -1997,7 +1995,16 @@ components:
       enum: [pending, applied, failed]
     PostCategory:
       type: string
-      enum: [notice, question, tip, mcp_share, app_share]
+      description: post_categories.key (플랫폼 관리자가 관리, 기본 notice·question·tip·mcp_share·free)
+      pattern: "^[a-z][a-z0-9_]{1,29}$"
+    PostCategoryItem:
+      type: object
+      properties:
+        key: { $ref: "#/components/schemas/PostCategory" }
+        label: { type: string }
+        adminOnly: { type: boolean }
+        hidden: { type: boolean }
+        canPost: { type: boolean }
 
     UserRef:
       type: object

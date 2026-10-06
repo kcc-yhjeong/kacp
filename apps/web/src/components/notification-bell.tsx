@@ -1,5 +1,5 @@
 import { useRouter } from '@tanstack/react-router';
-import { Bell, Bot, Globe, Plug, ShieldCheck, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Bell, Bot, Globe, MessageSquare, Plug, ShieldCheck, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,6 +23,7 @@ const ICONS: Record<NotificationIcon, LucideIcon> = {
   alert: TriangleAlert,
   bot: Bot,
   shield: ShieldCheck,
+  comment: MessageSquare,
   bell: Bell,
 };
 

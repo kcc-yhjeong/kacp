@@ -157,6 +157,11 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 | POST | `/posts` | 로그인 | 작성 `{category, title, bodyMd, attachedPackage?: 패키지 이름, attachedAppId?}`(`notice`는 관리자만 `403`, 게시 안 된 MCP `422 MCP_NOT_PUBLISHED`, 공개 안 된 앱 `422 APP_NOT_PUBLIC`) → `201` | U-13 |
 | PATCH | `/posts/{id}` | 본인·관리자 | 수정(일부 필드, 첨부 `null`이면 떼기) | U-13 |
 | DELETE | `/posts/{id}` | 본인·관리자 | 삭제 | U-13 |
+| GET | `/posts/{id}/comments` | 로그인 | 댓글(오래된 순) `{items: [{id, body, author, createdAt, canDelete}]}` | U-13 |
+| POST | `/posts/{id}/comments` | 로그인 | `{body}`(1~2000자) → `201`, 글쓴이에게 `post_commented` 알림 | U-13 |
+| DELETE | `/posts/{id}/comments/{commentId}` | 본인·관리자 | 지우기 → `204` | U-13 |
+| GET | `/post-categories` | 로그인 | 분류 `{items: [{key, label, adminOnly, hidden, canPost}]}`(숨김은 관리자에게만) | U-13 |
+| PUT | `/admin/post-categories` | 관리자 | 분류 전체 `{items: [{key, label, adminOnly, hidden}]}`(배열 순서 = 표시 순서). 글 있는 분류 삭제는 `422` | U-13 |
 
 ### 관리자 (`/admin/*`, 전부 관리자)
 
@@ -208,7 +213,6 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 | POST | `/admin/apps/{appId}/public/resume` | 강제 중지 해제(공개본 다시 기동) `202` | A-09 |
 | GET | `/admin/settings` | 설정(API 키는 설정 여부만) | A-10 |
 | PUT | `/admin/settings` | 부분 수정 | A-10 |
-| PUT | `/admin/settings/api-keys/{provider}` | `{key}` | A-10 |
 | GET | `/admin/audit-events?from=&to=&actor=&action=&targetType=&targetId=&team=` | 활동 기록. A-03 사용자 상세 "활동"은 `actor=`(그 사람이 한 일)와 `targetType=user&targetId=`(그 사람에게 일어난 일)를 합쳐 보여준다 | A-11, A-03 |
 
 ## 3. 내부 API (OpenAPI에 넣지 않음)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deployRecipients, isNewError, linkKind, recipients } from './logic.js';
-import { canEditPost, canUseCategory, likePattern } from '../posts/logic.js';
+import { canEditPost, canUseCategory, categoryListProblem, likePattern } from '../posts/logic.js';
 
 describe('notification recipients', () => {
   it('sends deploy decisions to the requester, or to team admins for agent requests', () => {
@@ -29,10 +29,22 @@ describe('notification recipients', () => {
 describe('post rules', () => {
   const admin = { id: 'a', platformRole: 'admin' };
   const user = { id: 'u', platformRole: 'user' };
-  it('keeps 공지 for platform admins', () => {
-    expect(canUseCategory(user, 'notice')).toBe(false);
-    expect(canUseCategory(user, 'tip')).toBe(true);
-    expect(canUseCategory(admin, 'notice')).toBe(true);
+  it('keeps admin-only categories (공지) for platform admins and hidden ones closed', () => {
+    const notice = { adminOnly: true, hidden: false };
+    const free = { adminOnly: false, hidden: false };
+    expect(canUseCategory(user, notice)).toBe(false);
+    expect(canUseCategory(user, free)).toBe(true);
+    expect(canUseCategory(admin, notice)).toBe(true);
+    expect(canUseCategory(admin, { adminOnly: false, hidden: true })).toBe(false);
+    expect(canUseCategory(user, undefined)).toBe(false);
+  });
+  it('checks the admin category list', () => {
+    const c = (key: string, o: Partial<{ adminOnly: boolean; hidden: boolean }> = {}) => ({ key, label: key, adminOnly: false, hidden: false, ...o });
+    expect(categoryListProblem([c('notice', { adminOnly: true }), c('free')], new Set(['free']))).toBeNull();
+    expect(categoryListProblem([c('free')], new Set(['tip']))).toContain('지울 수 없어요');
+    expect(categoryListProblem([c('Free')], new Set())).toContain('분류 코드');
+    expect(categoryListProblem([c('free'), c('free')], new Set())).toContain('겹쳐요');
+    expect(categoryListProblem([c('notice', { adminOnly: true })], new Set())).toContain('누구나');
   });
   it('lets the author or a platform admin edit', () => {
     expect(canEditPost(user, 'u')).toBe(true);

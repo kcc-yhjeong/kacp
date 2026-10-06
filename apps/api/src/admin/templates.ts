@@ -45,12 +45,9 @@ async function loadTemplate(id: string) {
 }
 
 async function parseInput(body: unknown) {
-  const input = AgentTemplateInputSchema.parse(body);
-  if (input.spec.model) {
-    const allowed = await getSetting('models.allowed');
-    if (!allowed.some((m) => m.id === input.spec.model!.id)) throw new ApiError(422, 'MODEL_NOT_ALLOWED');
-  }
-  return input;
+  // No platform model list: a template without a model id uses the team agent's default model, which
+  // each team sets (with its own provider key) in the agent screen.
+  return AgentTemplateInputSchema.parse(body);
 }
 
 export async function templateRoutes(app: FastifyInstance) {

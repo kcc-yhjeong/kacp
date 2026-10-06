@@ -401,7 +401,6 @@ export const posts = pgTable('posts', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => [
   index('posts_time').on(t.createdAt),
-  check('posts_category_check', sql`${t.category} in ('notice', 'question', 'tip', 'mcp_share', 'app_share')`),
 ]);
 
 export const notifications = pgTable('notifications', {
@@ -415,5 +414,24 @@ export const notifications = pgTable('notifications', {
   createdAt: createdAt(),
 }, (t) => [
   index('notifications_user_time').on(t.userId, t.createdAt),
-  check('notifications_type_check', sql`${t.type} in ('deploy_approved', 'deploy_rejected', 'mcp_build_succeeded', 'mcp_build_failed', 'mcp_approved', 'mcp_rejected', 'team_container_error', 'agent_assignment_changed', 'admin_review_requested', 'app_force_stopped')`),
+  check('notifications_type_check', sql`${t.type} in ('deploy_approved', 'deploy_rejected', 'mcp_build_succeeded', 'mcp_build_failed', 'mcp_approved', 'mcp_rejected', 'team_container_error', 'agent_assignment_changed', 'admin_review_requested', 'app_force_stopped', 'post_commented')`),
 ]);
+
+/** Community categories, managed by platform admins (U-13). `admin_only` = 공지-style. */
+export const postCategories = pgTable('post_categories', {
+  key: text('key').primaryKey(),
+  label: text('label').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  adminOnly: boolean('admin_only').notNull().default(false),
+  hidden: boolean('hidden').notNull().default(false),
+  createdAt: createdAt(),
+});
+
+export const postComments = pgTable('post_comments', {
+  id: uuid('id').primaryKey(),
+  postId: uuid('post_id').notNull().references(() => posts.id),
+  authorId: uuid('author_id').notNull().references(() => users.id),
+  body: text('body').notNull(),
+  createdAt: createdAt(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [index('post_comments_post').on(t.postId, t.createdAt)]);

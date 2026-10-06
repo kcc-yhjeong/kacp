@@ -18,19 +18,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
-import { postApi, postKeys, usePost, usePublicApps } from '@/lib/community/api';
+import { postApi, postKeys, usePost, usePostCategories, usePublicApps } from '@/lib/community/api';
 import {
   BODY_MAX,
   createBody,
   hasErrors,
-  isPostCategory,
   patchBody,
-  POST_CATEGORY_LABEL,
   postSaveError,
   selectableCategories,
   TITLE_MAX,
   validatePostForm,
   type PostCategory,
+  type PostCategoryInfo,
   type PostForm,
   type PostFormErrors,
 } from '@/lib/community/logic';
@@ -43,21 +42,30 @@ import { CommunityLayout, type CommunityContext } from './community-layout';
 
 /** U-13 글쓰기 — `/community/new`. */
 export function PostNewPage({ category }: { category?: PostCategory }) {
+  return <CommunityLayout>{(ctx) => <NewLoader ctx={ctx} category={category} />}</CommunityLayout>;
+}
+
+function NewLoader({ ctx, category }: { ctx: CommunityContext; category?: PostCategory }) {
+  const categories = usePostCategories();
+  if (categories.isPending) return <PageLoader />;
+  if (categories.isError) return <CategoriesError retry={() => void categories.refetch()} error={categories.error} />;
+  const preset = categories.data.find((c) => c.key === category && c.canPost);
   return (
-    <CommunityLayout>
-      {(ctx) => (
-        <PostEditor
-          ctx={ctx}
-          initial={{
-            category: category && (category !== 'notice' || ctx.isAdmin) ? category : '',
-            title: '',
-            bodyMd: '',
-            attachedPackage: null,
-            attachedAppId: null,
-          }}
-        />
-      )}
-    </CommunityLayout>
+    <PostEditor
+      ctx={ctx}
+      categories={categories.data}
+      initial={{ category: preset?.key ?? '', title: '', bodyMd: '', attachedPackage: null, attachedAppId: null }}
+    />
+  );
+}
+
+function CategoriesError({ error, retry }: { error: unknown; retry: () => void }) {
+  return (
+    <PageContainer className="max-w-4xl">
+      <div className="rounded-xl border">
+        <ErrorState title="분류를 불러오지 못했어요" error={error} onRetry={retry} />
+      </div>
+    </PageContainer>
   );
 }
 
@@ -68,7 +76,9 @@ export function PostEditPage({ postId }: { postId: string }) {
 
 function EditLoader({ postId, ctx }: { postId: string; ctx: CommunityContext }) {
   const post = usePost(postId, ctx.team?.name);
-  if (post.isPending) return <PageLoader />;
+  const categories = usePostCategories();
+  if (post.isPending || categories.isPending) return <PageLoader />;
+  if (categories.isError) return <CategoriesError retry={() => void categories.refetch()} error={categories.error} />;
   if (post.isError || !post.data.canEdit) {
     const notFound = post.error instanceof ApiError && post.error.status === 404;
     return (
@@ -88,6 +98,7 @@ function EditLoader({ postId, ctx }: { postId: string; ctx: CommunityContext }) 
     <PostEditor
       ctx={ctx}
       post={p}
+      categories={categories.data}
       initial={{
         category: p.category,
         title: p.title,
@@ -99,7 +110,17 @@ function EditLoader({ postId, ctx }: { postId: string; ctx: CommunityContext }) 
   );
 }
 
-function PostEditor({ ctx, initial, post }: { ctx: CommunityContext; initial: PostForm; post?: PostDetail }) {
+function PostEditor({
+  ctx,
+  initial,
+  post,
+  categories: allCategories,
+}: {
+  ctx: CommunityContext;
+  initial: PostForm;
+  post?: PostDetail;
+  categories: PostCategoryInfo[];
+}) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [form, setForm] = useState<PostForm>(initial);
@@ -107,8 +128,14 @@ function PostEditor({ ctx, initial, post }: { ctx: CommunityContext; initial: Po
   const [app, setApp] = useState<AttachedApp | PublicAppRef | null>(post?.attachedApp ?? null);
   const [errors, setErrors] = useState<PostFormErrors>({});
   const [pending, setPending] = useState(false);
-  const role = ctx.me.platformRole;
-  const categories = selectableCategories(role);
+  // On edit the current category stays selectable (the api checks only a changed category).
+  const keep = post?.category;
+  const categories = selectableCategories(allCategories, keep);
+  const restrictedOnly = allCategories.some((c) => c.adminOnly && !c.hidden && !c.canPost);
+  const restricted = (key: string) => {
+    const c = allCategories.find((x) => x.key === key);
+    return !!c && (c.adminOnly || c.hidden);
+  };
 
   const set = <K extends keyof PostForm>(k: K, v: PostForm[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -121,7 +148,7 @@ function PostEditor({ ctx, initial, post }: { ctx: CommunityContext; initial: Po
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const v = validatePostForm(form, role);
+    const v = validatePostForm(form, allCategories, keep);
     setErrors(v);
     if (hasErrors(v)) return;
     setPending(true);
@@ -137,7 +164,7 @@ function PostEditor({ ctx, initial, post }: { ctx: CommunityContext; initial: Po
       toast.success(post ? '글을 고쳤어요' : '글을 올렸어요');
       void navigate({ to: '/community/$postId', params: { postId: saved.id }, replace: !!post });
     } catch (err) {
-      setErrors(postSaveError(err, form.category));
+      setErrors(postSaveError(err, restricted(form.category)));
     } finally {
       setPending(false);
     }
@@ -168,17 +195,17 @@ function PostEditor({ ctx, initial, post }: { ctx: CommunityContext; initial: Po
       <form onSubmit={(e) => void onSubmit(e)} noValidate className="flex flex-col gap-5 rounded-xl border p-6">
         {errors.form && <FormAlert message={errors.form} />}
         <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
-          <FieldBlock id="post-category" label="분류" error={errors.category} hint={ctx.isAdmin ? undefined : '공지 분류는 플랫폼 관리자만 쓸 수 있어요'}>
+          <FieldBlock id="post-category" label="분류" error={errors.category} hint={restrictedOnly ? '관리자 전용 분류(공지 등)는 플랫폼 관리자만 쓸 수 있어요' : undefined}>
             <NativeSelect
               id="post-category"
               value={form.category}
               aria-invalid={!!errors.category}
-              onChange={(e) => set('category', isPostCategory(e.target.value) ? e.target.value : '')}
+              onChange={(e) => set('category', e.target.value)}
             >
               <option value="">분류 선택</option>
               {categories.map((c) => (
-                <option key={c} value={c}>
-                  {POST_CATEGORY_LABEL[c]}
+                <option key={c.key} value={c.key}>
+                  {c.hidden ? `${c.label} (숨김)` : c.label}
                 </option>
               ))}
             </NativeSelect>

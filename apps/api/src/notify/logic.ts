@@ -2,7 +2,7 @@
 
 export const NOTIFICATION_TYPES = [
   'deploy_approved', 'deploy_rejected', 'mcp_build_succeeded', 'mcp_build_failed', 'mcp_approved', 'mcp_rejected',
-  'team_container_error', 'agent_assignment_changed', 'admin_review_requested', 'app_force_stopped',
+  'team_container_error', 'agent_assignment_changed', 'admin_review_requested', 'app_force_stopped', 'post_commented',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 

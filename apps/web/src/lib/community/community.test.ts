@@ -1,19 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api';
 import {
-  canUseCategory,
+  categoryKeyProblem,
   categoryLabel,
+  categoryListProblem,
+  COMMENT_MAX,
+  commentProblem,
   createBody,
   hasErrors,
-  isPostCategory,
+  isCategoryKey,
   patchBody,
-  POST_CATEGORIES,
   postSaveError,
   selectableCategories,
   TITLE_MAX,
   validatePostForm,
+  type PostCategoryInfo,
   type PostForm,
 } from './logic';
+
+const cat = (key: string, label: string, over: Partial<PostCategoryInfo> = {}): PostCategoryInfo => ({
+  key,
+  label,
+  adminOnly: false,
+  hidden: false,
+  canPost: true,
+  ...over,
+});
+
+/** What a normal user gets from `GET /post-categories`. */
+const USER_CATS = [
+  cat('notice', '공지', { adminOnly: true, canPost: false }),
+  cat('question', '질문'),
+  cat('tip', '팁'),
+  cat('mcp_share', 'MCP 공유'),
+  cat('free', '자유게시판'),
+];
+/** Admins also see hidden ones and may post everywhere. */
+const ADMIN_CATS = [...USER_CATS.map((c) => ({ ...c, canPost: true })), cat('old', '옛 분류', { hidden: true })];
 
 const form = (over: Partial<PostForm> = {}): PostForm => ({
   category: 'tip',
@@ -24,42 +47,69 @@ const form = (over: Partial<PostForm> = {}): PostForm => ({
   ...over,
 });
 
-describe('categories', () => {
-  it('has Korean labels', () => {
-    expect(POST_CATEGORIES.map(categoryLabel)).toEqual(['공지', '질문', '팁', 'MCP 공유', '앱 자랑']);
-    expect(categoryLabel('unknown')).toBe('unknown');
-    expect(isPostCategory('mcp_share')).toBe(true);
-    expect(isPostCategory('news')).toBe(false);
-    expect(isPostCategory(undefined)).toBe(false);
+describe('category keys', () => {
+  it('accepts lowercase-first keys of 2–30 characters', () => {
+    for (const k of ['qa', 'mcp_share', 'free', 'tip2', 'a'.repeat(30)]) {
+      expect(categoryKeyProblem(k), k).toBeNull();
+      expect(isCategoryKey(k)).toBe(true);
+    }
   });
 
-  it('allows 공지 to platform admins only', () => {
-    expect(canUseCategory('notice', 'admin')).toBe(true);
-    expect(canUseCategory('notice', 'user')).toBe(false);
-    expect(canUseCategory('notice', undefined)).toBe(false);
-    expect(canUseCategory('question', 'user')).toBe(true);
-    expect(selectableCategories('user')).not.toContain('notice');
-    expect(selectableCategories('admin')).toContain('notice');
+  it('rejects bad keys', () => {
+    for (const k of ['', 'a', 'a'.repeat(31), '1tip', '_tip', 'Tip', 'mcp-share', 'free board', '자유']) {
+      expect(categoryKeyProblem(k), k).not.toBeNull();
+      expect(isCategoryKey(k)).toBe(false);
+    }
+    expect(isCategoryKey(undefined)).toBe(false);
+  });
+
+  it('checks the whole list before saving', () => {
+    const rows = USER_CATS.map(({ key, label, adminOnly, hidden }) => ({ key, label, adminOnly, hidden }));
+    const row = (key: string, label: string) => ({ key, label, adminOnly: false, hidden: false });
+    expect(categoryListProblem(rows)).toBeNull();
+    expect(categoryListProblem([])).not.toBeNull();
+    expect(categoryListProblem([...rows, row('tip', '또 팁')])).toContain('겹쳐요');
+    expect(categoryListProblem([...rows, row('News', '소식')])).toContain('News');
+    expect(categoryListProblem([...rows, row('news', '  ')])).toContain('이름');
+    expect(categoryListProblem([{ key: 'notice', label: '공지', adminOnly: true, hidden: false }])).toContain('누구나');
+  });
+});
+
+describe('categories', () => {
+  it('labels come from the list; unknown keys show the key', () => {
+    expect(categoryLabel(USER_CATS, 'free')).toBe('자유게시판');
+    expect(categoryLabel(USER_CATS, 'app_share')).toBe('app_share');
+    expect(categoryLabel(undefined, 'tip')).toBe('tip');
+  });
+
+  it('offers only categories the writer may post in, plus the current one on edit', () => {
+    expect(selectableCategories(USER_CATS).map((c) => c.key)).toEqual(['question', 'tip', 'mcp_share', 'free']);
+    expect(selectableCategories(USER_CATS, 'notice').map((c) => c.key)).toContain('notice');
+    expect(selectableCategories(ADMIN_CATS).map((c) => c.key)).toContain('notice');
   });
 });
 
 describe('validatePostForm', () => {
   it('passes a complete form', () => {
-    expect(hasErrors(validatePostForm(form(), 'user'))).toBe(false);
-    expect(hasErrors(validatePostForm(form({ bodyMd: '' }), 'user'))).toBe(false);
+    expect(hasErrors(validatePostForm(form(), USER_CATS))).toBe(false);
+    expect(hasErrors(validatePostForm(form({ bodyMd: '' }), USER_CATS))).toBe(false);
   });
 
   it('needs a category and a title', () => {
-    const e = validatePostForm(form({ category: '', title: '   ' }), 'user');
+    const e = validatePostForm(form({ category: '', title: '   ' }), USER_CATS);
     expect(e.category).toBeDefined();
     expect(e.title).toBeDefined();
   });
 
-  it('blocks 공지 for non-admins and long titles', () => {
-    expect(validatePostForm(form({ category: 'notice' }), 'user').category).toContain('플랫폼 관리자');
-    expect(validatePostForm(form({ category: 'notice' }), 'admin').category).toBeUndefined();
-    expect(validatePostForm(form({ title: 'a'.repeat(TITLE_MAX + 1) }), 'user').title).toBeDefined();
-    expect(validatePostForm(form({ title: ` ${'a'.repeat(TITLE_MAX)} ` }), 'user').title).toBeUndefined();
+  it('blocks admin-only, hidden and unknown categories, and long titles', () => {
+    expect(validatePostForm(form({ category: 'notice' }), USER_CATS).category).toContain('플랫폼 관리자');
+    expect(validatePostForm(form({ category: 'notice' }), ADMIN_CATS).category).toBeUndefined();
+    expect(validatePostForm(form({ category: 'app_share' }), USER_CATS).category).toContain('없는 분류');
+    expect(validatePostForm(form({ category: 'old' }), [cat('old', '옛 분류', { hidden: true, canPost: false })]).category).toContain('지금은');
+    // Editing a post that already sits in 공지 keeps it.
+    expect(validatePostForm(form({ category: 'notice' }), USER_CATS, 'notice').category).toBeUndefined();
+    expect(validatePostForm(form({ title: 'a'.repeat(TITLE_MAX + 1) }), USER_CATS).title).toBeDefined();
+    expect(validatePostForm(form({ title: ` ${'a'.repeat(TITLE_MAX)} ` }), USER_CATS).title).toBeUndefined();
   });
 });
 
@@ -88,17 +138,27 @@ describe('request bodies', () => {
 
 describe('postSaveError', () => {
   it('puts attachment errors next to their pickers', () => {
-    expect(postSaveError(new ApiError(422, 'MCP_NOT_PUBLISHED', 'x'), 'tip').attachedPackage).toBeDefined();
-    expect(postSaveError(new ApiError(422, 'APP_NOT_PUBLIC', 'x'), 'tip').attachedAppId).toBeDefined();
+    expect(postSaveError(new ApiError(422, 'MCP_NOT_PUBLISHED', 'x'), false).attachedPackage).toBeDefined();
+    expect(postSaveError(new ApiError(422, 'APP_NOT_PUBLIC', 'x'), false).attachedAppId).toBeDefined();
   });
 
-  it('maps 403 to the category for 공지 and to the form otherwise', () => {
-    expect(postSaveError(new ApiError(403, 'FORBIDDEN', 'x'), 'notice').category).toBeDefined();
-    expect(postSaveError(new ApiError(403, 'FORBIDDEN', 'x'), 'tip').form).toBeDefined();
+  it('maps 403 to the category for restricted categories and to the form otherwise', () => {
+    expect(postSaveError(new ApiError(403, 'FORBIDDEN', '"공지" 분류는 플랫폼 관리자만 쓸 수 있어요.'), true).category).toContain('공지');
+    expect(postSaveError(new ApiError(403, 'FORBIDDEN', 'x'), false).form).toBeDefined();
   });
 
   it('falls back to the server message or a generic one', () => {
-    expect(postSaveError(new ApiError(400, 'VALIDATION_FAILED', '입력값을 확인하세요.'), 'tip')).toEqual({ form: '입력값을 확인하세요.' });
-    expect(postSaveError(new Error('boom'), 'tip').form).toBeDefined();
+    expect(postSaveError(new ApiError(400, 'VALIDATION_FAILED', '입력값을 확인하세요.'), false)).toEqual({ form: '입력값을 확인하세요.' });
+    expect(postSaveError(new Error('boom'), false).form).toBeDefined();
+  });
+});
+
+describe('commentProblem', () => {
+  it('needs 1–2000 characters after trimming', () => {
+    expect(commentProblem('좋은 글이에요')).toBeNull();
+    expect(commentProblem('   \n ')).not.toBeNull();
+    expect(commentProblem('a'.repeat(COMMENT_MAX))).toBeNull();
+    expect(commentProblem(` ${'a'.repeat(COMMENT_MAX)} `)).toBeNull();
+    expect(commentProblem('a'.repeat(COMMENT_MAX + 1))).not.toBeNull();
   });
 });

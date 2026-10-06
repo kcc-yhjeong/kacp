@@ -4,7 +4,7 @@ import { db } from '../db/client.js';
 import { agentTemplates, memberships, teamAgents, teamPresence, teams, users } from '../db/schema.js';
 import { decrypt } from '../lib/crypto.js';
 import { orchestrator, type DesiredAgent, type TeamRuntimeSpec } from '../orchestrator.js';
-import { getApiKeys, getSetting } from '../settings.js';
+import { getSetting } from '../settings.js';
 import { config, teamUrl } from '../config.js';
 import { mcpToken } from '../apps/logic.js';
 import type { AgentSpec } from '../agents/spec.js';
@@ -39,16 +39,13 @@ async function adminEmails(teamId: string) {
   return rows.map((r) => r.email).sort();
 }
 
-/** Provider keys from A-10 become `{PROVIDER}_API_KEY` env vars of the team container. */
-const envFromApiKeys = (keys: Record<string, string>) =>
-  Object.fromEntries(Object.entries(keys).map(([p, k]) => [`${p.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_API_KEY`, k]));
-
 export async function runtimeSpec(team: TeamRow): Promise<TeamRuntimeSpec> {
   return {
     gatewayPassword: decrypt(team.gatewayPasswordEnc),
     adminEmails: await adminEmails(team.id),
     resourceLimits: team.resourceLimits ?? (await getSetting('limits.team_default')),
-    env: envFromApiKeys(await getApiKeys()),
+    // Model providers are configured per team in the agent screen (no platform-wide keys).
+    env: {},
     linuxGid: team.linuxGid,
   };
 }
