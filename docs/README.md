@@ -113,7 +113,7 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 
 미검증으로 남긴 것(위험 낮음): 다른 Origin WebSocket의 Gateway 연결 단계 거부(03), 에이전트 세션 도구에 키를 직접 준 접근(02), 업로드 스킬의 `extraDirs` 로딩(04), 사이드카 ↔ orchestrator 인증 방식(2단계에서 정함).
 
-1단계 대상이 아닌 `⚠️`: 샌드박스 파일 쓰기 이벤트 수집(`design/03-data-model.md` `drive_events`, 4단계), MCP egress 제한(`design/05-urls-and-storage.md` §6, 6단계).
+1단계 대상이 아닌 `⚠️`: 샌드박스 파일 쓰기 이벤트 수집(`design/03-data-model.md` `drive_events`, 4단계), MCP egress 제한(`design/05-urls-and-storage.md` §6, 6단계 — **해소**: 설치마다 egress 프록시).
 
 ## 2단계 통과 조건 (뼈대) — 완료 2026-10-02
 
@@ -241,7 +241,7 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - 확인 중 고친 것: `package.json` 없는 Node 앱 판별, 앱 정지 10초 지연(`Init: true`), 공개본 스냅샷 소유자(root → uid 1000), 공개 중지 후 재공개 시 버전 중복(이력 최대값 + 1), 플랫폼 관리자의 작업본 열기(A-09 심사용, 06 §7), 채팅 파일 링크 "session file not found"(지시문: `team-drive/…` 경로로 안내), **HTML 미리보기 "연결 거부" → 팀별 샌드박스 출처 `{team}--sbx`**(05 §2, 예약어 `sbx`).
 - 메모: `mcp.apps.sandboxOrigin`은 Gateway 재시작이 필요한 키인데 OpenClaw가 in-process 재시작을 미뤄 둔다 → 기존 팀은 반영 후 관리자 화면에서 재시작. 템플릿 에이전트 모델 등은 apply-config가 템플릿 값으로 맞춘다(Control UI에서 바꾼 값은 덮어씀).
 
-## 6단계 통과 조건 (MCP 마켓)
+## 6단계 통과 조건 (MCP 마켓) — 완료 2026-10-06
 
 목표: 데모 장면 4 — **개발자가 스캐폴딩으로 만든 MCP를 올리면 관리자 심사 후 다른 팀이 마켓에서 설치해 쓴다.** 장소는 로컬, 마지막에 VM.
 
@@ -265,8 +265,21 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - [x] egress 프록시(orchestrator 이미지 `egress-proxy.js`, 허용 도메인 외 CONNECT 403, 내부 주소 거절)
 - [x] web: U-09 마켓·U-10 상세+설치 모달·U-11 설치됨·U-12 내 배포(업로드·스테퍼·로그), U-15 팀 설정(멤버·MCP·직접 추가·정보), A-07 심사, A-08 MCP 관리, A-06 템플릿 기본 MCP 선택 켜기, 헤더 "MCP 마켓"·"팀 설정" 연결
 - [x] 테스트: 매니페스트 규칙, 버전 상태 전이, egress 허용 판정, apply-config `mcp.servers` 계산(관리 키만 삭제), 설치 권한(팀 관리자·플랫폼 관리자)
-- [ ] 데모(브라우저, 사용자 확인): `create-platform-mcp`로 예제 생성 → `pack` → U-12 업로드 → 단계 진행 → A-07 승인 → 다른 팀 관리자가 U-10에서 설치(비밀값 입력) → 에이전트가 새 도구 사용 → 허용 안 된 도메인 호출은 막힘 → 비밀값 다시 입력·제거 → 게시 중단
-- [ ] VM: 같은 흐름 한 번
+- [x] 데모(브라우저, 사용자 확인): `create-platform-mcp`로 예제 생성 → `pack` → U-12 업로드 → 단계 진행 → A-07 승인 → 다른 팀 관리자가 U-10에서 설치(비밀값 입력) → 에이전트가 새 도구 사용 → 허용 안 된 도메인 호출은 막힘 → 비밀값 다시 입력·제거 → 게시 중단
+- [x] VM: 같은 흐름 한 번
+
+### 6단계 결과 (2026-10-06, 로컬 + VM)
+
+- 검사: typecheck 통과, 테스트 통과(shared 23, create-platform-mcp 19, platform-mcp 1, orchestrator 18, api 56, web 101).
+- 스크립트: 업로드 → 빌드(약 25초) → 스캔 → 테스트(`tools/list` 3개) → 심사 대기, 중복 버전 409·깨진 zip 422, Critical 의존성(lodash 4.17.4)은 스캔 단계 실패, 승인·반려 권한, 새 버전 승인 시 설치 자동 업그레이드(비밀값 유지·허용 도메인 반영), 팀원 설치 403·필수 비밀값 422, Secret Store root 0600·DB와 감사 기록엔 이름만, 팀 기동·정지와 MCP 연동, 허용 도메인(`wttr.in`) 통과·그 밖(`www.google.com`) 403, 비밀값 다시 입력(빈 값 유지), 직접 추가·제거, Control UI 추가분 동기화(`manual`), 게시 중단(설치 제거)·재개·기본 지정.
+- 브라우저(사용자 확인, 로컬·VM): 스캐폴딩 예제 생성 → pack → U-12 업로드 → A-07 승인 → U-10 설치 → 에이전트가 MCP 도구로 날씨 조회, 허용 안 된 도메인 차단, U-11·U-15 관리, A-08.
+- VM에서 찾아 고친 것(로컬에서는 드러나지 않음):
+  - **Codex 하네스가 MCP 도구를 숨김**: OpenAI 모델 팀은 Codex app-server로 돌고, 기본 `codexDynamicToolsLoading: "searchable"`이 MCP 도구를 Codex 도구 검색 뒤에 둔다. 작은 모델(gpt-5.4-mini)은 검색하지 않고 "도구가 노출되지 않았다"고 포기 → apply-config가 `plugins.entries.codex.config.codexDynamicToolsLoading = "direct"`로 맞춘다.
+  - **도구 이름의 하이픈**: OpenClaw 도구 이름은 `{서버키}__{도구}`. 모델이 `my-weather__get_weather`를 호출하지 못함(`platform__run_app`은 됨) → Gateway 키만 `-`를 `_`로(`mcpGatewayKey`).
+  - **기동 순서**: Gateway가 MCP 서버보다 먼저 떠서 첫 연결 실패 → MCP 컨테이너가 `/healthz`를 통과한 뒤 팀 컨테이너를 켜고, 설치도 healthy 뒤에 `installed`.
+  - **배포가 켜진 팀에 안 닿음** → api 기동 20초 뒤 실행 중인 팀 전부 apply-config.
+  - busybox `wget`이 `no_proxy`를 무시해 헬스체크가 프록시로 감 → `-Y off`. egress 프록시 SIGTERM 무시 → `Init: true`. 실패·대체된 버전 이미지 정리.
+- 메모: 설치 전에 열린 대화에는 새 도구가 보이지 않는다(OpenClaw가 대화마다 도구 목록을 만듦) → 설치 완료 창에 "새 대화(/new)" 안내. 같은 일을 하는 기본 스킬(예: `weather`)이 있으면 에이전트가 그쪽을 고를 수 있다. `npx create-platform-mcp`는 npm에 올리지 않아 지금은 저장소의 `packages/create-platform-mcp/dist/cli.js`를 쓴다.
 
 ## 다음 단계와의 연결
 

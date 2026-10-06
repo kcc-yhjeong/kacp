@@ -57,7 +57,7 @@ docs/
 spikes/           # 1단계 검증용 버리는 코드 (NN-이름/)
 ```
 
-`apps/{web,api,orchestrator,proxy}`, `packages/shared`, `deploy/{openclaw-image,infra}`는 2단계에서 만들었다. `packages/platform-mcp`·`create-platform-mcp`는 5·6단계에서 만든다.
+`apps/{web,api,orchestrator,proxy}`, `packages/shared`, `deploy/{openclaw-image,infra}`는 2단계에서 만들었다. `packages/platform-mcp`·`create-platform-mcp`는 5·6단계에서 만들었다.
 
 VM 배포: VM SSH에서 `curl -fsSL https://raw.githubusercontent.com/kcc-yhjeong/kacp/main/deploy/infra/vm-deploy.sh | bash`(여러 번 실행해도 됨, 팀 컨테이너 설정이 바뀌면 관리자 화면에서 재시작).
 
@@ -104,7 +104,7 @@ VM 배포: VM SSH에서 `curl -fsSL https://raw.githubusercontent.com/kcc-yhjeon
 
 ## 개발 단계
 
-0 설계(**완료 2026-10-02**) → 1 기술 검증(**완료 2026-10-01**, `docs/README.md` "1단계 결론") → 2 뼈대(**완료 2026-10-02**) → 3 관리자 기본(**완료 2026-10-02**) → 4 드라이브(**완료 2026-10-02**) → 5 앱 배포(**완료 2026-10-06**) → 6 MCP 마켓 → 7 마감.
+0 설계(**완료 2026-10-02**) → 1 기술 검증(**완료 2026-10-01**, `docs/README.md` "1단계 결론") → 2 뼈대(**완료 2026-10-02**) → 3 관리자 기본(**완료 2026-10-02**) → 4 드라이브(**완료 2026-10-02**) → 5 앱 배포(**완료 2026-10-06**) → 6 MCP 마켓(**완료 2026-10-06**) → 7 마감.
 각 단계의 통과 조건은 `docs/README.md` 참고. 1단계 검증 결과가 설계를 바꾸면 해당 문서를 먼저 고친다.
 
 - `spikes/`는 1단계 검증용 버리는 코드다. 질문 하나에 답하는 게 목적이고 품질 규칙을 적용하지 않는다.
@@ -115,4 +115,4 @@ VM 배포: VM SSH에서 `curl -fsSL https://raw.githubusercontent.com/kcc-yhjeon
 
 ## 아직 확인이 필요한 것
 
-1단계 검증은 끝났다(`⚠️ 1단계 확인` 전부 해소, 결과는 `docs/README.md` "1단계 결론"). 남은 `⚠️`는 4·6단계 항목뿐이다(샌드박스 파일 쓰기 이벤트 수집 — 4단계, MCP egress 제한 — 6단계). 목록은 `docs/README.md`에 있다(여기에 따로 적지 않는다).
+1단계 검증은 끝났다(`⚠️ 1단계 확인` 전부 해소, 결과는 `docs/README.md` "1단계 결론"). 남은 `⚠️`는 샌드박스 파일 쓰기 이벤트 수집(4단계) 하나다(MCP egress 제한은 6단계에서 해소). 목록은 `docs/README.md`에 있다(여기에 따로 적지 않는다).
