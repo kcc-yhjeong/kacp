@@ -114,6 +114,18 @@ describe('market mcp servers', () => {
   });
 });
 
+describe('codex harness', () => {
+  it('loads dynamic (MCP) tools directly only when the codex plugin is configured', async () => {
+    const { computePatch } = await import('./apply-config.js');
+    const empty = { agents: [], adminEmails: [] };
+    expect(computePatch({}, empty)).toBeNull();
+    const plan = computePatch({ plugins: { entries: { codex: { enabled: true } } } }, empty);
+    expect(plan?.patch).toEqual({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'direct' } } } } });
+    expect(plan?.replacePaths).toEqual(['plugins.entries.codex.config.codexDynamicToolsLoading']);
+    expect(computePatch({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'direct' } } } } }, empty)).toBeNull();
+  });
+});
+
 describe('sandbox origin', () => {
   it('sets mcp.apps.sandboxOrigin next to the platform server and is idempotent', async () => {
     const { computePatch } = await import('./apply-config.js');
