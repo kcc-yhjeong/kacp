@@ -6,10 +6,11 @@ import { requireInternal, requirePlatformAdmin } from '../auth/guards.js';
 import { audit } from '../audit.js';
 import { db } from '../db/client.js';
 import {
-  agentTemplates, auditEvents, departments, names, teamPresence, teams, usageSamples, users,
+  agentTemplates, auditEvents, departments, names, posts, teamPresence, teams, usageSamples, users,
 } from '../db/schema.js';
 import { ApiError } from '../lib/errors.js';
-import { configuredApiKeys, getAllSettings, setApiKey, setSetting, type Limits } from '../settings.js';
+import { configuredApiKeys, getAllSettings, getSetting, setApiKey, setSetting, type Limits } from '../settings.js';
+import { teamUsage } from '../drive/service.js';
 import { seedReservedNames } from './service.js';
 
 // A-01 dashboard + metrics, A-10 settings, A-11 audit log, and the orchestrator usage feed.
@@ -63,6 +64,8 @@ async function targetLabels(rows: (typeof auditEvents.$inferSelect)[]) {
   if (deptIds.length) for (const d of await db.select({ id: departments.id, name: departments.name }).from(departments).where(inArray(departments.id, deptIds))) label.set(`department:${d.id}`, d.name);
   const tplIds = ids('template').filter(isUuid);
   if (tplIds.length) for (const t of await db.select({ id: agentTemplates.id, name: agentTemplates.name }).from(agentTemplates).where(inArray(agentTemplates.id, tplIds))) label.set(`template:${t.id}`, t.name);
+  const postIds = ids('post').filter(isUuid);
+  if (postIds.length) for (const p of await db.select({ id: posts.id, title: posts.title }).from(posts).where(inArray(posts.id, postIds))) label.set(`post:${p.id}`, p.title);
   return label;
 }
 
@@ -248,6 +251,14 @@ export async function opsRoutes(app: FastifyInstance) {
         diskLimitBytes: z.number().nullable().optional(),
       })).max(500),
     }).parse(req.body);
+    // Team disk is not visible to Docker stats: use the drive usage the quota is enforced on (drive + trash).
+    for (const s of samples) {
+      if (s.targetType !== 'team' || s.diskBytes != null) continue;
+      const [t] = await db.select().from(teams).where(and(eq(teams.name, s.targetId), isNull(teams.deletedAt)));
+      if (!t) continue;
+      s.diskBytes = await teamUsage(t.name).catch(() => null);
+      s.diskLimitBytes = ((t.resourceLimits ?? (await getSetting('limits.team_default'))).diskGb) * 1024 ** 3;
+    }
     if (samples.length) {
       await db.insert(usageSamples).values(samples.map((s) => ({
         targetType: s.targetType, targetId: s.targetId, cpuPct: s.cpuPct, memBytes: Math.round(s.memBytes),

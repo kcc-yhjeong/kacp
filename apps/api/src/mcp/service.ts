@@ -3,7 +3,7 @@ import path from 'node:path';
 import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { mcpGatewayKey, type McpManifest } from '@kacp/shared';
 import { db } from '../db/client.js';
-import { departments, mcpInstalls, mcpPackages, mcpVersions, teams, users, type McpFinding, type McpToolInfo } from '../db/schema.js';
+import { departments, mcpInstalls, mcpPackages, mcpVersions, teams, usageSamples, users, type McpFinding, type McpToolInfo } from '../db/schema.js';
 import { config } from '../config.js';
 import { newId } from '../lib/crypto.js';
 import { ApiError } from '../lib/errors.js';
@@ -11,6 +11,7 @@ import { orchestrator } from '../orchestrator.js';
 import { scheduleApply } from '../teams/runtime.js';
 import type { PackageFile } from './package.js';
 import { missingSecrets } from './logic.js';
+import { notify, platformAdminIds } from '../notify/service.js';
 
 // MCP market state (docs/README.md 6단계): packages, versions through the build pipeline, team installs.
 // The orchestrator builds and runs; this module decides and records. Secret values pass through only.
@@ -25,7 +26,8 @@ const BUILDING = ['validating', 'building', 'scanning', 'testing'] as const;
 const STAGE_TIMEOUT = sql`now() - interval '25 minutes'`;
 
 export const versionDir = (pkg: string, version: string) => `${config.dataRoot}/mcp/${pkg}/${version}`;
-export const mcpServerUrl = (key: string, team: string) => `http://kacp-mcp-${key}--${team}:8080/mcp`;
+/** One server per package, shared by every team that installed it (docs/README.md 6단계). */
+export const mcpServerUrl = (pkg: string) => `http://kacp-mcp-${pkg}:8080/mcp`;
 
 // ── output shapes (openapi McpPackageSummary / McpVersion / McpInstall) ──
 
@@ -95,6 +97,7 @@ export async function installsOut(rows: InstallRow[]) {
   const pkgs = pkgIds.length ? new Map((await db.select().from(mcpPackages).where(inArray(mcpPackages.id, pkgIds))).map((p) => [p.id, p])) : new Map<string, PackageRow>();
   const vers = verIds.length ? new Map((await db.select({ id: mcpVersions.id, version: mcpVersions.version }).from(mcpVersions).where(inArray(mcpVersions.id, verIds))).map((v) => [v.id, v.version])) : new Map<string, string>();
   const by = await userRefs(rows.map((r) => r.installedBy));
+  const usage = await mcpUsage(rows);
   return rows.map((r) => {
     const p = r.packageId ? pkgs.get(r.packageId) : undefined;
     return {
@@ -113,8 +116,30 @@ export async function installsOut(rows: InstallRow[]) {
       installedBy: r.installedBy ? by.get(r.installedBy) ?? null : null,
       installedAt: r.createdAt.toISOString(),
       lastCheckedAt: r.lastCheckedAt?.toISOString() ?? null,
+      usage: usage.get(`${r.teamId}:${r.serverKey}`) ?? null,
     };
   });
+}
+
+/**
+ * Latest sample (last 5 min) of the package server each install uses: `{cpuPct, memBytes, memLimitBytes}`.
+ * The server is shared, so the numbers are for all teams together.
+ */
+async function mcpUsage(rows: InstallRow[]) {
+  const out = new Map<string, { cpuPct: number; memBytes: number; memLimitBytes: number | null }>();
+  const market = rows.filter((r) => r.source !== 'manual');
+  if (!market.length) return out;
+  const keys = [...new Set(market.map((r) => r.serverKey))];
+  const samples = await db.execute<{ target_id: string; cpu_pct: number; mem_bytes: number; mem_limit_bytes: number | null }>(sql`
+    select distinct on (target_id) target_id, cpu_pct, mem_bytes, mem_limit_bytes from ${usageSamples}
+    where target_type = 'mcp' and target_id in ${keys} and ts > now() - interval '5 minutes'
+    order by target_id, ts desc`);
+  const byKey = new Map(samples.map((s) => [s.target_id, s]));
+  for (const r of market) {
+    const s = byKey.get(r.serverKey);
+    if (s) out.set(`${r.teamId}:${r.serverKey}`, { cpuPct: Math.round(Number(s.cpu_pct) * 10) / 10, memBytes: Number(s.mem_bytes), memLimitBytes: s.mem_limit_bytes ? Number(s.mem_limit_bytes) : null });
+  }
+  return out;
 }
 
 /** platform-mcp is not a row per team: every team shows it as a default install (cannot be removed). */
@@ -211,7 +236,7 @@ export interface BuildEvent {
 }
 
 export async function onBuildEvent(ev: BuildEvent) {
-  await db.update(mcpVersions).set({
+  const updated = await db.update(mcpVersions).set({
     status: ev.status,
     stageAt: sql`now()`,
     ...(ev.status === 'failed' ? { failedStage: ev.failedStage ?? 'build', statusDetail: ev.detail ?? null } : {}),
@@ -219,8 +244,20 @@ export async function onBuildEvent(ev: BuildEvent) {
     ...(ev.scanSummary ? { scanSummary: ev.scanSummary } : {}),
     ...(ev.findings ? { scanFindings: ev.findings } : {}),
     ...(ev.tools ? { tools: ev.tools } : {}),
-  }).where(and(eq(mcpVersions.id, ev.id), inArray(mcpVersions.status, [...BUILDING])));
-  if (ev.status === 'in_review' || ev.status === 'failed') void dispatchBuilds();
+  }).where(and(eq(mcpVersions.id, ev.id), inArray(mcpVersions.status, [...BUILDING]))).returning();
+  if (ev.status !== 'in_review' && ev.status !== 'failed') return;
+  void dispatchBuilds();
+  const [v] = updated;
+  if (!v) return;
+  const [p] = await db.select({ name: mcpPackages.name }).from(mcpPackages).where(eq(mcpPackages.id, v.packageId));
+  const label = `${p?.name ?? ''} ${v.version}`;
+  const link = `/market/mine/${p?.name}/${v.version}`;
+  if (ev.status === 'in_review') {
+    await notify([v.uploadedBy], { type: 'mcp_build_succeeded', title: `${label} 검사를 통과했어요. 관리자 심사를 기다려요`, link });
+    await notify(await platformAdminIds(), { type: 'admin_review_requested', title: `MCP ${label} 심사 요청이 들어왔어요`, link: `/admin/mcp/reviews/${v.id}` }, v.uploadedBy);
+  } else {
+    await notify([v.uploadedBy], { type: 'mcp_build_failed', title: `${label} 업로드가 실패했어요: ${ev.detail ?? ''}`.slice(0, 280), link });
+  }
 }
 
 // ── installs ──
@@ -272,7 +309,7 @@ export async function updateSecrets(team: { name: string }, row: InstallRow, sec
   const [v] = await db.select().from(mcpVersions).where(eq(mcpVersions.id, row.versionId!));
   if (!p || !v) throw new ApiError(404, 'MCP_NOT_FOUND');
   const names = [...new Set([...row.secretNames, ...Object.keys(secrets).filter((k) => secrets[k] !== '')])].sort();
-  await orchestrator.mcpSecrets(team.name, row.serverKey, { ...installSpec(p, v), secrets });
+  await orchestrator.mcpSecrets(team.name, row.serverKey, secrets);
   await db.update(mcpInstalls).set({ status: 'installing', statusDetail: null, secretNames: names, updatedAt: sql`now()` }).where(eq(mcpInstalls.id, row.id));
 }
 
@@ -294,7 +331,11 @@ export async function onInstallEvent(teamName: string, key: string, status: 'ins
   if (!row) return;
   if (status === 'removed') {
     await db.delete(mcpInstalls).where(eq(mcpInstalls.id, row.id));
-    if (row.packageId) await recountInstalls(row.packageId);
+    if (row.packageId) {
+      await recountInstalls(row.packageId);
+      const [left] = await db.select({ n: sql<number>`count(*)::int` }).from(mcpInstalls).where(eq(mcpInstalls.packageId, row.packageId));
+      if (!left?.n) void orchestrator.mcpRemovePackage(row.serverKey).catch(() => undefined);
+    }
   } else if (status === 'error') {
     await db.update(mcpInstalls).set({ status: 'error', statusDetail: detail ?? '설치하지 못했어요.', updatedAt: sql`now()` }).where(eq(mcpInstalls.id, row.id));
   } else {
@@ -342,8 +383,27 @@ export async function ensureInstalled(team: { id: string; name: string }, names:
 }
 
 /** apply-config input: installed market/default servers of a team. */
-export async function desiredMcpServers(teamId: string, teamName: string) {
+export async function desiredMcpServers(teamId: string) {
   const rows = await db.select({ key: mcpInstalls.serverKey }).from(mcpInstalls)
     .where(and(eq(mcpInstalls.teamId, teamId), inArray(mcpInstalls.source, ['market', 'default']), eq(mcpInstalls.status, 'installed')));
-  return rows.map((r) => ({ key: mcpGatewayKey(r.key), url: mcpServerUrl(r.key, teamName) }));
+  // `pkg` tells the orchestrator which Secret Store entry becomes this team's headers.
+  return rows.map((r) => ({ key: mcpGatewayKey(r.key), url: mcpServerUrl(r.key), pkg: r.key }));
+}
+
+/**
+ * On api start: every installed package has its shared server (after the move from per-team servers,
+ * a VM reboot or a lost container). Idempotent; secrets stay as they are.
+ */
+export async function reconcilePackageServers() {
+  const rows = await db.select({ p: mcpPackages, v: mcpVersions, team: teams.name }).from(mcpInstalls)
+    .innerJoin(mcpPackages, eq(mcpPackages.id, mcpInstalls.packageId))
+    .innerJoin(mcpVersions, eq(mcpVersions.id, mcpInstalls.versionId))
+    .innerJoin(teams, eq(teams.id, mcpInstalls.teamId))
+    .where(and(inArray(mcpInstalls.source, ['market', 'default']), inArray(mcpInstalls.status, ['installed', 'installing', 'error'])));
+  const seen = new Set<string>();
+  for (const { p, v, team } of rows) {
+    if (seen.has(p.name)) continue;
+    seen.add(p.name);
+    await orchestrator.mcpInstall(team, p.name, { ...installSpec(p, v), secrets: null }).catch(() => undefined);
+  }
 }

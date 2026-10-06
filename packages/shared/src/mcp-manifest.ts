@@ -57,6 +57,22 @@ export function hostAllowed(host: string, allow: readonly string[]): boolean {
  */
 export const mcpGatewayKey = (key: string) => key.replace(/-/g, '_');
 
+/**
+ * One MCP container per package serves every team; a team's secrets travel with each call as
+ * `X-KACP-Secret-<NAME>` headers set in that team's Gateway config (`_` → `-`). The template's
+ * getSecret() reads them per request (create-platform-mcp `src/platform/secrets.ts`).
+ */
+export const mcpSecretHeader = (name: string) => `X-KACP-Secret-${name.replace(/_/g, '-')}`;
+
+/**
+ * Packages that declare secrets must read them per request (shared server). A `src/platform/secrets.ts`
+ * from the first template read environment variables only; on the platform it never sees a team's key.
+ */
+export function platformSecretsProblem(manifest: McpManifest, secretsTs: string | null): string | null {
+  if (!manifest.secrets.length || secretsTs === null || secretsTs.includes('x-kacp-secret-')) return null;
+  return 'src/platform/secrets.ts: 플랫폼 고정 영역이 예전 버전이에요. 비밀값을 요청마다 받도록 최신 create-platform-mcp의 template/src/platform 폴더를 그대로 복사한 뒤 다시 올려 주세요.';
+}
+
 /** Files a package zip must contain (create-platform-mcp layout). */
 export const MCP_PACKAGE_REQUIRED_FILES = ['platform-plugin.yaml', 'package.json', 'README.md'] as const;
 export const MCP_PACKAGE_MAX_BYTES = 50 * 1024 * 1024;

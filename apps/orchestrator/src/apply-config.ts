@@ -27,10 +27,10 @@ export interface DesiredConfig {
   /** Team-scoped platform-mcp (`mcp.servers.platform`). Optional only for older callers/tests. */
   platformMcp?: { url: string; token: string };
   /** Installed market/default MCP servers (docs/README.md 6단계). Omitted = leave market keys alone. */
-  mcpServers?: { key: string; url: string }[];
+  mcpServers?: { key: string; url: string; pkg?: string; headers?: Record<string, string> }[];
 }
 
-/** Market MCP servers KACP runs (kacp-mcp-{key}--{team}). Only keys with such a URL are ever deleted. */
+/** Market MCP servers KACP runs (kacp-mcp-{pkg}, earlier kacp-mcp-{pkg}--{team}). Only keys with such a URL are ever deleted. */
 export const MANAGED_MCP_URL = /^http:\/\/kacp-mcp-[a-z0-9-]+:8080\/mcp$/;
 
 export const MANAGED_PREFIX = 'kacp-';
@@ -128,18 +128,21 @@ export function computePatch(
   // Servers added in the Control UI or with "직접 추가" have other URLs and are never touched here.
   const servers: Record<string, unknown> = {};
   if (desired.mcpServers) {
-    const currentServers = (current as { mcp?: { servers?: Record<string, { url?: string; transport?: string }> } }).mcp?.servers ?? {};
-    const want = new Map(desired.mcpServers.map((m) => [m.key, m.url]));
+    const currentServers = (current as { mcp?: { servers?: Record<string, { url?: string; transport?: string; headers?: Record<string, unknown> }> } }).mcp?.servers ?? {};
+    const want = new Map(desired.mcpServers.map((m) => [m.key, m]));
     for (const [key, s] of Object.entries(currentServers)) {
       if (key !== PLATFORM_MCP_NAME && !want.has(key) && MANAGED_MCP_URL.test(s?.url ?? '')) {
         servers[key] = null;
         replacePaths.push(`mcp.servers.${key}`);
       }
     }
-    for (const [key, url] of want) {
+    for (const [key, m] of want) {
       const cur = currentServers[key];
-      if (cur?.url !== url || cur?.transport !== 'streamable-http') {
-        servers[key] = { url, transport: 'streamable-http' };
+      // Team secrets ride as headers; their values may be hidden by config.get, so the revision
+      // marker (X-KACP-Secrets-Rev, not secret) decides whether the entry is current.
+      const rev = m.headers?.['X-KACP-Secrets-Rev'];
+      if (cur?.url !== m.url || cur?.transport !== 'streamable-http' || (rev !== undefined && cur?.headers?.['X-KACP-Secrets-Rev'] !== rev)) {
+        servers[key] = { url: m.url, transport: 'streamable-http', ...(m.headers ? { headers: m.headers } : {}) };
         replacePaths.push(`mcp.servers.${key}`);
       }
     }

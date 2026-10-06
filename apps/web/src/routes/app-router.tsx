@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter, lazyRouteComponent, Navigat
 import { lazy, Suspense } from 'react';
 import { ForbiddenPage, NotFoundPage } from '@/components/message-page';
 import { PageLoader } from '@/components/page-loader';
+import { isPostCategory, type PostCategory } from '@/lib/community/logic';
 import { currentHost } from '@/lib/host';
 import { HomePage } from '@/pages/home';
 import { LoginPage } from '@/pages/login';
@@ -197,6 +198,71 @@ const marketPackageRoute = createRoute({
   },
 });
 
+// ── /community (U-13). Own lazy chunks. Company scope: no team in the path; works for users without a team.
+
+const CommunityPage = lazy(() => import('@/pages/community/community-page').then((m) => ({ default: m.CommunityPage })));
+const PostPage = lazy(() => import('@/pages/community/post-page').then((m) => ({ default: m.PostPage })));
+const PostNewPage = lazy(() => import('@/pages/community/editor-page').then((m) => ({ default: m.PostNewPage })));
+const PostEditPage = lazy(() => import('@/pages/community/editor-page').then((m) => ({ default: m.PostEditPage })));
+
+const communityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community',
+  validateSearch: (search: Record<string, unknown>): { category?: PostCategory; q?: string } => ({
+    ...(isPostCategory(search.category) ? { category: search.category } : {}),
+    ...(typeof search.q === 'string' && search.q.trim() ? { q: search.q.trim() } : {}),
+  }),
+  component: function CommunityRoute() {
+    const { category, q } = communityRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <CommunityPage category={category} q={q} />
+      </Suspense>
+    );
+  },
+});
+
+const communityNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community/new',
+  validateSearch: (search: Record<string, unknown>): { category?: PostCategory } =>
+    isPostCategory(search.category) ? { category: search.category } : {},
+  component: function CommunityNewRoute() {
+    const { category } = communityNewRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PostNewPage category={category} />
+      </Suspense>
+    );
+  },
+});
+
+const communityPostRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community/$postId',
+  component: function CommunityPostRoute() {
+    const { postId } = communityPostRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PostPage key={postId} postId={postId} />
+      </Suspense>
+    );
+  },
+});
+
+const communityEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community/$postId/edit',
+  component: function CommunityEditRoute() {
+    const { postId } = communityEditRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PostEditPage key={postId} postId={postId} />
+      </Suspense>
+    );
+  },
+});
+
 // ── /t/{team}/settings/{members|mcp|info} (U-15). Own lazy chunk.
 
 const TeamSettingsPage = lazy(() => import('@/pages/team-settings/team-settings-page').then((m) => ({ default: m.TeamSettingsPage })));
@@ -305,6 +371,10 @@ const routeTree = rootRoute.addChildren([
   marketMineRoute,
   marketVersionRoute,
   marketPackageRoute,
+  communityRoute,
+  communityNewRoute,
+  communityPostRoute,
+  communityEditRoute,
   teamSettingsRootRoute,
   teamSettingsRoute,
   homeRoute,

@@ -1,17 +1,21 @@
 import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { mcpSecretHeader } from '@kacp/shared';
 import {
-  config, EGRESS_NETWORK, EGRESS_PORT, MCP_PORT, mcpContainer, mcpNetwork, mcpProxyContainer, mcpSecretsDir, teamContainer,
+  config, EGRESS_NETWORK, EGRESS_PORT, MCP_NETWORK, MCP_PORT, mcpContainer, mcpProxyContainer, mcpSecretsDir, teamContainer,
 } from './config.js';
 import { docker, DockerError } from './docker.js';
 import { notifyMcpInstall } from './events.js';
 
-// Market MCP servers per team (docs/README.md 6단계, 05 §6):
-//   kacp-mcp-{key}--{team}       the package image, only on the team's internal network kacp-mcpnet-{team}
-//   kacp-mcpproxy-{key}--{team}  egress proxy (this image, egress-proxy.js) on kacp-mcpnet-{team} + kacp-egress
-// Containers live as long as the install; they start and stop with the team container.
+// Market MCP servers (docs/README.md 6단계, 05 §6): ONE container per package for every team.
+//   kacp-mcp-{pkg}       the package image, only on the internal network kacp-mcp
+//   kacp-mcpproxy-{pkg}  egress proxy (this image, egress-proxy.js) on kacp-mcp + kacp-egress
+// Team containers join kacp-mcp. A team's secrets stay in its Secret Store
+// (/data/teams/{team}/mcp/{pkg}/secrets.json); apply-config puts them into that team's Gateway entry
+// as X-KACP-Secret-* headers, so they reach the server per call (the template reads them per request).
+// The server runs while at least one team has it installed (the api removes it after the last one).
 
-export interface McpInstallSpec {
+export interface McpPackageSpec {
   pkg: string;
   version: string;
   image: string;
@@ -19,9 +23,10 @@ export interface McpInstallSpec {
   resources: { cpu: number; memoryMb: number };
 }
 
-/** Container spec shared by the build test and team installs, so a package is tested as it runs. */
+/** Container spec shared by the build test and the package server, so a package is tested as it runs. */
 export function mcpContainerSpec(o: {
   image: string; network: string; env: string[]; resources: { cpu: number; memoryMb: number }; labels: Record<string, string>;
+  restart?: 'no' | 'unless-stopped';
 }) {
   return {
     Image: o.image,
@@ -42,38 +47,48 @@ export function mcpContainerSpec(o: {
       SecurityOpt: ['no-new-privileges'],
       ReadonlyRootfs: true,
       Tmpfs: { '/tmp': 'rw,noexec,nosuid,size=64m' },
-      RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 3 },
+      RestartPolicy: o.restart === 'unless-stopped' ? { Name: 'unless-stopped' } : { Name: 'no' },
       NetworkMode: o.network,
     },
   };
 }
 
-const proxyEnv = (key: string, team: string) => {
-  const url = `http://${mcpProxyContainer(key, team)}:${EGRESS_PORT}`;
+const proxyEnv = (pkg: string) => {
+  const url = `http://${mcpProxyContainer(pkg)}:${EGRESS_PORT}`;
   return [`HTTPS_PROXY=${url}`, `HTTP_PROXY=${url}`, `https_proxy=${url}`, `http_proxy=${url}`, 'NO_PROXY=localhost,127.0.0.1', 'no_proxy=localhost,127.0.0.1'];
 };
 
 // ── Secret Store: values never reach the api DB, logs or audit (CLAUDE.md) ──
 
-const secretsFile = (team: string, key: string) => `${mcpSecretsDir(team, key)}/secrets.json`;
+const secretsFile = (team: string, pkg: string) => `${mcpSecretsDir(team, pkg)}/secrets.json`;
 
-async function writeSecrets(team: string, key: string, secrets: Record<string, string>) {
-  const dir = mcpSecretsDir(team, key);
+async function writeSecrets(team: string, pkg: string, secrets: Record<string, string>) {
+  const dir = mcpSecretsDir(team, pkg);
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await chmod(dir, 0o700);
-  await writeFile(secretsFile(team, key), JSON.stringify(secrets), { mode: 0o600 });
-  await chmod(secretsFile(team, key), 0o600);
+  await writeFile(secretsFile(team, pkg), JSON.stringify(secrets), { mode: 0o600 });
+  await chmod(secretsFile(team, pkg), 0o600);
 }
 
-async function readSecrets(team: string, key: string): Promise<Record<string, string>> {
+export async function readSecrets(team: string, pkg: string): Promise<Record<string, string>> {
   try {
-    return JSON.parse(await readFile(secretsFile(team, key), 'utf8')) as Record<string, string>;
+    return JSON.parse(await readFile(secretsFile(team, pkg), 'utf8')) as Record<string, string>;
   } catch {
     return {};
   }
 }
 
-// ── containers ──
+/**
+ * Gateway headers for one team's entry: one header per secret plus a revision marker, so apply-config
+ * can tell whether the entry is current even if config.get hides header values.
+ */
+export function secretHeaders(secrets: Record<string, string>): Record<string, string> {
+  const entries = Object.entries(secrets).filter(([, v]) => v !== '').sort(([a], [b]) => a.localeCompare(b));
+  const rev = createHash('sha256').update(JSON.stringify(entries)).digest('hex').slice(0, 12);
+  return { ...Object.fromEntries(entries.map(([k, v]) => [mcpSecretHeader(k), v])), 'X-KACP-Secrets-Rev': rev };
+}
+
+// ── package servers ──
 
 const queues = new Map<string, Promise<unknown>>();
 function serial<T>(k: string, op: () => Promise<T>): Promise<T> {
@@ -84,58 +99,9 @@ function serial<T>(k: string, op: () => Promise<T>): Promise<T> {
 
 const describe = (err: unknown) =>
   err instanceof DockerError ? `Docker 오류 (${err.status})` : err instanceof Error ? err.message : String(err);
-
-async function teamRunning(team: string) {
-  return (await docker.inspect(teamContainer(team)))?.State.Status === 'running';
-}
-
-/** The team container joins its MCP network (on create and on every start: cheap and idempotent). */
-export async function attachTeamNetwork(team: string) {
-  await docker.networkEnsure(mcpNetwork(team), true, 'mcp-network');
-  await docker.networkConnect(mcpNetwork(team), teamContainer(team));
-}
-
-async function createContainers(team: string, key: string, s: McpInstallSpec) {
-  const secrets = await readSecrets(team, key);
-  const hash = createHash('sha256').update(JSON.stringify([s, Object.entries(secrets).sort()])).digest('hex').slice(0, 16);
-  const labels = { 'kacp.team': team, 'kacp.mcp.key': key, 'kacp.mcp.pkg': s.pkg, 'kacp.mcp.version': s.version, 'kacp.config-hash': hash };
-
-  const existing = await docker.inspect(mcpContainer(key, team));
-  if (existing?.Config.Labels['kacp.config-hash'] === hash) return;
-  await docker.remove(mcpContainer(key, team));
-  await docker.remove(mcpProxyContainer(key, team));
-
-  await docker.networkEnsure(mcpNetwork(team), true, 'mcp-network');
-  await docker.networkEnsure(EGRESS_NETWORK, false, 'egress-network');
-  await docker.create(mcpProxyContainer(key, team), {
-    Image: config.gwagentImage,
-    Cmd: ['node', 'dist/egress-proxy.js'],
-    User: 'node',
-    Env: [`EGRESS_ALLOW=${s.network.join(',')}`, `EGRESS_PORT=${EGRESS_PORT}`, `EGRESS_LABEL=${key}--${team}`],
-    Labels: { ...labels, 'kacp.kind': 'mcp-proxy' },
-    HostConfig: {
-      Memory: 64 * 1024 * 1024, MemorySwap: 64 * 1024 * 1024, NanoCpus: 0.25e9, PidsLimit: 64, Init: true,
-      CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'], ReadonlyRootfs: true,
-      RestartPolicy: { Name: 'on-failure', MaximumRetryCount: 5 },
-      NetworkMode: EGRESS_NETWORK,
-    },
-  });
-  await docker.networkConnect(mcpNetwork(team), mcpProxyContainer(key, team));
-  await docker.create(mcpContainer(key, team), mcpContainerSpec({
-    image: s.image,
-    network: mcpNetwork(team),
-    env: [...proxyEnv(key, team), ...Object.entries(secrets).map(([k, v]) => `${k}=${v}`)],
-    resources: s.resources,
-    labels: { ...labels, 'kacp.kind': 'mcp' },
-  }));
-}
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Waits for the server's health check. The Gateway connects to an MCP server once, when it learns about
- * it (apply-config or startup); a server that is not listening yet stays out of the agent's tool list.
- */
+/** The Gateway learns about a server once (apply-config or startup): wait until it answers /healthz. */
 async function waitHealthy(name: string, timeoutMs = 60_000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -150,86 +116,108 @@ async function waitHealthy(name: string, timeoutMs = 60_000) {
   }
 }
 
-async function startPair(team: string, key: string) {
-  await docker.start(mcpProxyContainer(key, team));
-  await docker.start(mcpContainer(key, team));
-  await waitHealthy(mcpContainer(key, team));
+/** Team containers join kacp-mcp (on every start and before every apply-config; idempotent). */
+export async function attachTeamNetwork(team: string) {
+  await docker.networkEnsure(MCP_NETWORK, true, 'mcp-network');
+  await docker.networkConnect(MCP_NETWORK, teamContainer(team));
 }
 
-/** Install or update (new version / new secrets): recreate, then start if the team is running. */
-export function installMcp(team: string, key: string, s: McpInstallSpec, secrets: Record<string, string> | null) {
-  return serial(`${team}:${key}`, async () => {
-    try {
-      if (secrets) await writeSecrets(team, key, secrets);
-      await createContainers(team, key, s);
-      if (await teamRunning(team)) {
-        await attachTeamNetwork(team);
-        await startPair(team, key);
-      }
-      await notifyMcpInstall(team, key, 'installed');
-    } catch (err) {
-      await notifyMcpInstall(team, key, 'error', describe(err));
-    }
-  });
-}
-
-/** New secret values: merge (blank keeps the old value) and recreate the server container. */
-export function updateMcpSecrets(team: string, key: string, s: McpInstallSpec, secrets: Record<string, string>) {
-  return serial(`${team}:${key}`, async () => {
-    try {
-      const merged = { ...(await readSecrets(team, key)) };
-      for (const [k, v] of Object.entries(secrets)) if (v !== '') merged[k] = v;
-      await writeSecrets(team, key, merged);
-      await createContainers(team, key, s);
-      if (await teamRunning(team)) await startPair(team, key);
-      await notifyMcpInstall(team, key, 'installed');
-    } catch (err) {
-      await notifyMcpInstall(team, key, 'error', describe(err));
-    }
-  });
-}
-
-export function removeMcp(team: string, key: string) {
-  return serial(`${team}:${key}`, async () => {
-    try {
-      await docker.remove(mcpContainer(key, team));
-      await docker.remove(mcpProxyContainer(key, team));
-      await rm(mcpSecretsDir(team, key), { recursive: true, force: true });
-      await notifyMcpInstall(team, key, 'removed');
-    } catch (err) {
-      await notifyMcpInstall(team, key, 'error', describe(err));
-    }
-  });
-}
-
-const namesOf = async (team: string) =>
-  (await docker.listByLabel([`kacp.team=${team}`, 'kacp.mcp.key'])).map((c) => ({
-    name: c.Names[0]!.replace(/^\//, ''), kind: c.Labels['kacp.kind'], state: c.State,
-  }));
-
-/**
- * Before the team Gateway starts: proxies first, then servers, then wait until they are healthy so the
- * Gateway finds them listening. Failures are logged per server, never fatal for the team.
- */
-export async function startTeamMcp(team: string, log: (m: string) => void) {
-  const list = await namesOf(team);
-  if (!list.length) return;
-  await attachTeamNetwork(team);
-  for (const kind of ['mcp-proxy', 'mcp']) {
-    for (const c of list.filter((x) => x.kind === kind && x.state !== 'running')) {
-      await docker.start(c.name).catch((err) => log(`mcp start ${c.name}: ${describe(err)}`));
-    }
+/** Removes per-team containers from the first 6단계 layout (kacp-mcp-{pkg}--{team}). */
+async function removeLegacy(pkg: string) {
+  for (const c of await docker.listByLabel([`kacp.mcp.pkg=${pkg}`, 'kacp.team'])) {
+    await docker.remove(c.Names[0]!.replace(/^\//, ''));
   }
-  await Promise.all(list.filter((x) => x.kind === 'mcp').map((c) =>
-    waitHealthy(c.name, 45_000).catch((err) => log(`mcp ${c.name}: ${describe(err)}`))));
 }
 
-export async function stopTeamMcp(team: string) {
-  for (const c of await namesOf(team)) if (c.state === 'running') await docker.stop(c.name, 5);
+/** Creates (or replaces, when the version, allowlist or limits changed) and starts the package server. */
+export function ensurePackage(s: McpPackageSpec) {
+  return serial(`pkg:${s.pkg}`, async () => {
+    await removeLegacy(s.pkg);
+    const hash = createHash('sha256').update(JSON.stringify(s)).digest('hex').slice(0, 16);
+    const labels = { 'kacp.mcp.pkg': s.pkg, 'kacp.mcp.version': s.version, 'kacp.config-hash': hash };
+    const existing = await docker.inspect(mcpContainer(s.pkg));
+    if (existing?.Config.Labels['kacp.config-hash'] !== hash) {
+      await docker.remove(mcpContainer(s.pkg));
+      await docker.remove(mcpProxyContainer(s.pkg));
+      await docker.networkEnsure(MCP_NETWORK, true, 'mcp-network');
+      await docker.networkEnsure(EGRESS_NETWORK, false, 'egress-network');
+      await docker.create(mcpProxyContainer(s.pkg), {
+        Image: config.gwagentImage,
+        Cmd: ['node', 'dist/egress-proxy.js'],
+        User: 'node',
+        Env: [`EGRESS_ALLOW=${s.network.join(',')}`, `EGRESS_PORT=${EGRESS_PORT}`, `EGRESS_LABEL=${s.pkg}`],
+        Labels: { ...labels, 'kacp.kind': 'mcp-proxy' },
+        HostConfig: {
+          Memory: 64 * 1024 * 1024, MemorySwap: 64 * 1024 * 1024, NanoCpus: 0.25e9, PidsLimit: 64, Init: true,
+          CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'], ReadonlyRootfs: true,
+          RestartPolicy: { Name: 'unless-stopped' },
+          NetworkMode: EGRESS_NETWORK,
+        },
+      });
+      await docker.networkConnect(MCP_NETWORK, mcpProxyContainer(s.pkg));
+      await docker.create(mcpContainer(s.pkg), mcpContainerSpec({
+        image: s.image, network: MCP_NETWORK, env: proxyEnv(s.pkg), resources: s.resources,
+        labels: { ...labels, 'kacp.kind': 'mcp' }, restart: 'unless-stopped',
+      }));
+    }
+    await docker.start(mcpProxyContainer(s.pkg));
+    await docker.start(mcpContainer(s.pkg));
+    await waitHealthy(mcpContainer(s.pkg));
+  });
 }
 
-/** Team delete: containers and network go; secrets stay with the team data (moved to backups on the VM). */
-export async function removeTeamMcp(team: string) {
-  for (const c of await namesOf(team)) await docker.remove(c.name);
-  await docker.networkRemove(mcpNetwork(team));
+/** After the last team removed it (the api decides). */
+export function removePackage(pkg: string) {
+  return serial(`pkg:${pkg}`, async () => {
+    await removeLegacy(pkg);
+    await docker.remove(mcpContainer(pkg));
+    await docker.remove(mcpProxyContainer(pkg));
+  });
+}
+
+// ── team installs: Secret Store + the package server; the Gateway entry follows via apply-config ──
+
+/** Install or upgrade for one team. `secrets: null` keeps the Secret Store (version upgrade). */
+export function installMcp(team: string, pkg: string, s: McpPackageSpec, secrets: Record<string, string> | null) {
+  return serial(`${team}:${pkg}`, async () => {
+    try {
+      if (secrets) await writeSecrets(team, pkg, secrets);
+      await ensurePackage(s);
+      await notifyMcpInstall(team, pkg, 'installed');
+    } catch (err) {
+      await notifyMcpInstall(team, pkg, 'error', describe(err));
+    }
+  });
+}
+
+/** New values: merge (blank keeps the old value). The api re-applies the team config afterwards. */
+export function updateMcpSecrets(team: string, pkg: string, secrets: Record<string, string>) {
+  return serial(`${team}:${pkg}`, async () => {
+    try {
+      const merged = { ...(await readSecrets(team, pkg)) };
+      for (const [k, v] of Object.entries(secrets)) if (v !== '') merged[k] = v;
+      await writeSecrets(team, pkg, merged);
+      await notifyMcpInstall(team, pkg, 'installed');
+    } catch (err) {
+      await notifyMcpInstall(team, pkg, 'error', describe(err));
+    }
+  });
+}
+
+export function removeMcp(team: string, pkg: string) {
+  return serial(`${team}:${pkg}`, async () => {
+    try {
+      await rm(mcpSecretsDir(team, pkg), { recursive: true, force: true });
+      await notifyMcpInstall(team, pkg, 'removed');
+    } catch (err) {
+      await notifyMcpInstall(team, pkg, 'error', describe(err));
+    }
+  });
+}
+
+/** Running package servers for the usage collector: `{name, pkg}`. */
+export async function runningPackageServers() {
+  return (await docker.listByLabel('kacp.kind=mcp'))
+    .filter((c) => c.State === 'running' && !c.Labels['kacp.team'])
+    .map((c) => ({ name: c.Names[0]!.replace(/^\//, ''), pkg: c.Labels['kacp.mcp.pkg']! }));
 }

@@ -24,6 +24,8 @@ import { adminAppRoutes } from './apps/admin.js';
 import { internalMcpRoutes } from './internal/mcp.js';
 import { mcpRoutes } from './mcp/routes.js';
 import { adminMcpRoutes } from './mcp/admin.js';
+import { notificationRoutes } from './notify/routes.js';
+import { postRoutes } from './posts/routes.js';
 
 // CORS (06-auth.md §3): credentials only for the app origin and existing team hosts.
 // App hosts (`slug--team`, public names) never get CORS, so user-built apps cannot call the API as the user.
@@ -113,5 +115,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(internalMcpRoutes);
   await app.register(mcpRoutes);
   await app.register(adminMcpRoutes);
+  await app.register(notificationRoutes);
+  await app.register(postRoutes);
   return app;
 }

@@ -69,6 +69,12 @@ else
   echo "users already exist — skipped"
 fi
 
+log "daily Postgres backup (03:30, /data/backups/postgres, 14 kept — RESTORE.md)"
+sudo chmod 755 "$INFRA/backup.sh"
+echo "30 3 * * * root $INFRA/backup.sh >> /var/log/kacp-backup.log 2>&1" | sudo tee /etc/cron.d/kacp-backup >/dev/null
+sudo chmod 644 /etc/cron.d/kacp-backup
+cat /etc/cron.d/kacp-backup
+
 log "checks"
 curl -s -o /dev/null -w 'https://app.kacp.cloud/ → %{http_code}\n' https://app.kacp.cloud/ || true
 curl -s -o /dev/null -w 'https://team1.kacp.cloud/ (no login) → %{http_code} %{redirect_url}\n' -H 'accept: text/html' https://team1.kacp.cloud/ || true

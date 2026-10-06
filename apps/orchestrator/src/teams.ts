@@ -9,7 +9,7 @@ import { notifyProvision, notifyTeamStatus } from './events.js';
 import { seedConfig } from './openclaw-config.js';
 import { agentsMd, computePatch, withPlatformBlock, workspaceFor, type DesiredConfig } from './apply-config.js';
 import { tar, tarFile } from './tar.js';
-import { removeTeamMcp, startTeamMcp, stopTeamMcp } from './mcp-runtime.js';
+import { attachTeamNetwork, readSecrets, secretHeaders } from './mcp-runtime.js';
 
 // Team container lifecycle (04-api.md §3: provision / ensure-running / stop / restart / apply-config /
 // resources / delete, spike 06) plus the Gateway sidecar kacp-gwagent-{team} (spike 04).
@@ -320,9 +320,8 @@ const describe = (err: unknown) =>
 async function bringUp(team: string, spec: TeamRuntimeSpec) {
   await ensureCreated(team, spec);
   await startSandboxProxy(team);
-  // Market MCP servers first, so the Gateway finds them listening at startup; a broken one is logged,
-  // never a team error.
-  await startTeamMcp(team, (m) => console.error(m)).catch((err) => console.error(`mcp start ${team}: ${describe(err)}`));
+  // Shared market MCP servers live on kacp-mcp (they run independently of teams).
+  await attachTeamNetwork(team).catch((err) => console.error(`mcp network ${team}: ${describe(err)}`));
   await startAndWait(team);
   await startSidecar(team, spec);
   watched.add(team);
@@ -359,7 +358,6 @@ async function stopContainers(team: string) {
   await docker.stop(gwagentContainer(team), 5);
   await docker.stop(teamContainer(team));
   await stopSandboxes(team);
-  await stopTeamMcp(team).catch(() => undefined);
 }
 
 export function stop(team: string) {
@@ -416,10 +414,21 @@ export function applyConfig(team: string, desired: DesiredConfig) {
       await docker.putArchive(teamContainer(team), STATE_DIR, tar(entries));
     }
 
+    // Market MCP entries carry this team's secrets (Secret Store → X-KACP-Secret-* headers).
+    if (desired.mcpServers?.length) await attachTeamNetwork(team);
+    const withSecrets: DesiredConfig = desired.mcpServers
+      ? {
+        ...desired,
+        mcpServers: await Promise.all(desired.mcpServers.map(async (m) => ({
+          key: m.key, url: m.url, ...(m.pkg ? { headers: secretHeaders(await readSecrets(team, m.pkg)) } : {}),
+        }))),
+      }
+      : desired;
+
     for (let attempt = 0; attempt < 2; attempt++) {
       const got = await gatewayRpc(team, 'config.get') as { payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown>; hash?: string } };
       const current = got.payload?.config ?? got.payload?.parsed ?? {};
-      const plan = computePatch(current, desired, { sandbox: sandboxEnabled(), sandboxOrigin: sandboxOrigin(team) });
+      const plan = computePatch(current, withSecrets, { sandbox: sandboxEnabled(), sandboxOrigin: sandboxOrigin(team) });
       if (!plan) return { changed: false };
       try {
         await gatewayRpc(team, 'config.patch', {
@@ -483,7 +492,6 @@ export function removeTeam(team: string) {
     await stopContainers(team);
     await docker.remove(gwagentContainer(team));
     await docker.remove(teamContainer(team));
-    await removeTeamMcp(team).catch(() => undefined);
     if (sandboxEnabled()) {
       await docker.remove(sbxProxyContainer(team));
       await docker.networkRemove(sbxNetwork(team));

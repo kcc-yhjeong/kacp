@@ -114,6 +114,33 @@ describe('market mcp servers', () => {
   });
 });
 
+describe('shared market mcp with team secret headers', () => {
+  it('rewrites an entry only when the url or the secrets revision changes', async () => {
+    const { computePatch } = await import('./apply-config.js');
+    const headers = { 'X-KACP-Secret-API-KEY': 'v1', 'X-KACP-Secrets-Rev': 'aaa' };
+    const desired = { agents: [], adminEmails: [], mcpServers: [{ key: 'my_weather', url: 'http://kacp-mcp-my-weather:8080/mcp', headers }] };
+    const plan = computePatch({}, desired);
+    expect(plan?.patch).toEqual({ mcp: { servers: { my_weather: { url: 'http://kacp-mcp-my-weather:8080/mcp', transport: 'streamable-http', headers } } } });
+    // values hidden by config.get, same revision → nothing to do
+    const current = { mcp: { servers: { my_weather: { url: 'http://kacp-mcp-my-weather:8080/mcp', transport: 'streamable-http', headers: { 'X-KACP-Secret-API-KEY': '***', 'X-KACP-Secrets-Rev': 'aaa' } } } } };
+    expect(computePatch(current, desired)).toBeNull();
+    // new secrets → new revision → rewrite
+    const next = { ...desired, mcpServers: [{ ...desired.mcpServers[0]!, headers: { ...headers, 'X-KACP-Secrets-Rev': 'bbb' } }] };
+    expect(computePatch(current, next)?.replacePaths).toEqual(['mcp.servers.my_weather']);
+    // the old per-team URL is managed too: replaced by the shared server
+    const legacy = { mcp: { servers: { my_weather: { url: 'http://kacp-mcp-my-weather--team1:8080/mcp', transport: 'streamable-http' } } } };
+    expect(computePatch(legacy, desired)?.replacePaths).toEqual(['mcp.servers.my_weather']);
+  });
+
+  it('secret headers: one per secret, blank values dropped, stable revision', async () => {
+    const { secretHeaders } = await import('./mcp-runtime.js');
+    const a = secretHeaders({ EXAMPLE_API_KEY: 'k', EXAMPLE_LANG: '' });
+    expect(Object.keys(a)).toEqual(['X-KACP-Secret-EXAMPLE-API-KEY', 'X-KACP-Secrets-Rev']);
+    expect(secretHeaders({ EXAMPLE_API_KEY: 'k' })['X-KACP-Secrets-Rev']).toBe(a['X-KACP-Secrets-Rev']);
+    expect(secretHeaders({ EXAMPLE_API_KEY: 'k2' })['X-KACP-Secrets-Rev']).not.toBe(a['X-KACP-Secrets-Rev']);
+  });
+});
+
 describe('codex harness', () => {
   it('loads dynamic (MCP) tools directly only when the codex plugin is configured', async () => {
     const { computePatch } = await import('./apply-config.js');

@@ -1,6 +1,6 @@
 import yauzl from 'yauzl';
 import { parse as parseYaml } from 'yaml';
-import { MCP_PACKAGE_REQUIRED_FILES, manifestProblems, type McpManifest } from '@kacp/shared';
+import { MCP_PACKAGE_REQUIRED_FILES, manifestProblems, platformSecretsProblem, type McpManifest } from '@kacp/shared';
 
 // Upload check for MCP package zips (docs/README.md 6단계). Same rules and wording as
 // `create-platform-mcp validate`, plus zip safety (paths, symlinks, size).
@@ -104,6 +104,8 @@ export function checkPackage(files: PackageFile[]): ReadResult {
       problems.push(...r.problems.map((p) => `${MANIFEST_FILE} ${p}`));
     }
   }
+  const oldPlatform = manifest && platformSecretsProblem(manifest, byPath.get('src/platform/secrets.ts')?.toString('utf8') ?? null);
+  if (oldPlatform) problems.push(oldPlatform);
   if (manifest && ['platform', 'platform-mcp'].includes(manifest.name)) problems.push(`${MANIFEST_FILE} name: ${manifest.name}은 플랫폼이 쓰는 이름이에요.`);
 
   const pkgText = byPath.get('package.json')?.toString('utf8');

@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { MCP_PACKAGE_REQUIRED_FILES, manifestProblems, type McpManifest } from '@kacp/shared';
+import { MCP_PACKAGE_REQUIRED_FILES, manifestProblems, platformSecretsProblem, type McpManifest } from '@kacp/shared';
 import { parse as parseYaml } from 'yaml';
 
 export const MANIFEST_FILE = 'platform-plugin.yaml';
@@ -35,6 +35,11 @@ export async function validateDir(dir: string): Promise<ValidateResult> {
       manifest = r.manifest;
       problems.push(...r.problems.map((p) => `${MANIFEST_FILE} ${p}`));
     }
+  }
+
+  if (manifest) {
+    const old = platformSecretsProblem(manifest, await readFile(path.join(dir, 'src', 'platform', 'secrets.ts'), 'utf8').catch(() => null));
+    if (old) problems.push(old);
   }
 
   const pkgText = await readFile(path.join(dir, 'package.json'), 'utf8').catch(() => null);

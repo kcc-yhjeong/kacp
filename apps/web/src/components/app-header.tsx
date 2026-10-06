@@ -1,8 +1,9 @@
 import { TEAM_STATUS_LABEL_USER, type MyTeam, type TeamContainerStatus } from '@kacp/shared';
-import { Bell, Check, ChevronsUpDown, LogOut, Settings, ShieldCheck, Undo2, User } from 'lucide-react';
+import { Check, ChevronsUpDown, LogOut, Settings, ShieldCheck, Undo2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { ComingSoon } from '@/components/coming-soon';
 import { Logo } from '@/components/logo';
+import { NotificationBell } from '@/components/notification-bell';
 import { TeamStatusDot } from '@/components/status';
 import {
   DropdownMenu,
@@ -13,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { errorMessage } from '@/lib/api';
 import { initialOf } from '@/lib/format';
 import { appOrigin, driveUrl, hostOf, teamRoot } from '@/lib/host';
@@ -26,7 +26,7 @@ interface AppHeaderProps {
   currentTeam?: string;
   /** Live status of the current team (the shell knows it better than /me/teams). */
   currentStatus?: TeamContainerStatus;
-  active?: 'agent' | 'drive' | 'apps' | 'market';
+  active?: 'agent' | 'drive' | 'apps' | 'community' | 'market';
   /** Where the team switcher goes for another team (drive pages keep the same drive page). Default: team root. */
   teamHref?: (team: MyTeam) => string;
 }
@@ -37,8 +37,11 @@ const navClass = (on: boolean) =>
     : 'rounded-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground';
 
 /** C-00 header. Values from 02-design-system.md "헤더·셸 확정값". */
-export function AppHeader({ variant = 'full', currentTeam, currentStatus, active, teamHref }: AppHeaderProps) {
-  const teams = useMyTeams().data ?? [];
+export function AppHeader({ variant: requested = 'full', currentTeam, currentStatus, active, teamHref }: AppHeaderProps) {
+  const myTeams = useMyTeams();
+  const teams = myTeams.data ?? [];
+  // No team at all → company scope only, like C-03 (market and community stay usable).
+  const variant = myTeams.data && teams.length === 0 ? 'company' : requested;
   const current = teams.find((t) => t.name === currentTeam);
   const homeHref = current ? teamRoot(current.url) : `${appOrigin}/`;
   // Team-scoped menus fall back to the first team on pages without a team (e.g. /me).
@@ -84,7 +87,13 @@ export function AppHeader({ variant = 'full', currentTeam, currentStatus, active
       </div>
       <div className="flex items-center gap-1">
         <nav className="flex items-center justify-end gap-0.5">
-          <ComingSoon>커뮤니티</ComingSoon>
+          <a
+            href={`${appOrigin}/community`}
+            className={navClass(active === 'community')}
+            aria-current={active === 'community' ? 'page' : undefined}
+          >
+            커뮤니티
+          </a>
           <a
             href={scopeTeam ? `${appOrigin}/market?team=${encodeURIComponent(scopeTeam.name)}` : `${appOrigin}/market`}
             className={navClass(active === 'market')}
@@ -94,19 +103,7 @@ export function AppHeader({ variant = 'full', currentTeam, currentStatus, active
           </a>
         </nav>
         <Separator orientation="vertical" className="mx-2" />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              aria-disabled="true"
-              aria-label="알림"
-              tabIndex={0}
-              className="grid size-8 cursor-not-allowed place-items-center rounded-md text-muted-foreground/60"
-            >
-              <Bell className="size-4" strokeWidth={1.75} />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>준비 중</TooltipContent>
-        </Tooltip>
+        <NotificationBell />
         <ProfileMenu />
       </div>
     </header>

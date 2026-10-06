@@ -122,8 +122,18 @@ export async function mcpRoutes(app: FastifyInstance) {
       throw new ApiError(403, 'FORBIDDEN', undefined, '다른 사람이 올린 MCP 이름이에요. name을 바꿔 주세요.');
     }
     if (p) {
-      const [dup] = await db.select({ id: mcpVersions.id }).from(mcpVersions).where(and(eq(mcpVersions.packageId, p.id), eq(mcpVersions.version, m.version)));
-      if (dup) throw new ApiError(409, 'MCP_VERSION_EXISTS');
+      const [dup] = await db.select({ id: mcpVersions.id, status: mcpVersions.status }).from(mcpVersions)
+        .where(and(eq(mcpVersions.packageId, p.id), eq(mcpVersions.version, m.version)));
+      // A failed or rejected version never reached the market: the same number may be uploaded again
+      // (it replaces the old attempt). Published, superseded or in-progress versions keep their number.
+      if (dup && !['failed', 'rejected'].includes(dup.status)) throw new ApiError(409, 'MCP_VERSION_EXISTS');
+      if (dup) {
+        await db.delete(mcpVersions).where(eq(mcpVersions.id, dup.id));
+        await audit({
+          actorId: me(req).id, action: 'mcp.version_replace', targetType: 'mcp_version', targetId: dup.id,
+          detail: { package: p.name, version: m.version, previousStatus: dup.status }, ip: req.ip,
+        });
+      }
     }
     await storeUpload(m.name, m.version, zip, r.files);
     if (!p) {

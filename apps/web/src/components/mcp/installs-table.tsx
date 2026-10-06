@@ -4,7 +4,7 @@ import { Info, KeyRound, Loader2, MoreHorizontal, Plug, Store, Trash2 } from 'lu
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/admin/page';
-import { Requester } from '@/components/apps/common';
+import { MemBar, Requester } from '@/components/apps/common';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FormAlert } from '@/components/form-alert';
 import { Button } from '@/components/ui/button';
@@ -111,6 +111,7 @@ export function InstallsTable({
             <TableHead>출처</TableHead>
             <TableHead>버전</TableHead>
             <TableHead>상태</TableHead>
+            <TableHead>CPU · 메모리</TableHead>
             <TableHead>설치한 사람</TableHead>
             <TableHead>마지막 확인</TableHead>
             {canManage && <TableHead className="w-12" />}
@@ -146,6 +147,18 @@ export function InstallsTable({
                     </span>
                   )}
                 </span>
+              </TableCell>
+              <TableCell>
+                {i.source === 'manual' || !i.usage ? (
+                  <span className="text-xs text-muted-foreground">—</span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <span className="w-12 text-xs whitespace-nowrap text-muted-foreground tabular-nums" title="CPU 1코어 = 100%">
+                      {(i.usage.cpuPct ?? 0).toFixed(1)}%
+                    </span>
+                    <MemBar usage={i.usage} />
+                  </span>
+                )}
               </TableCell>
               <TableCell className="text-[13px]">
                 {i.installedBy ? <Requester user={i.installedBy} /> : <span className="text-muted-foreground">시스템</span>}

@@ -48,8 +48,8 @@
 | GET | `/me/teams` | 로그인 | 소속 팀 + 팀 역할 + 컨테이너 상태 | C-00 |
 | GET | `/me/sessions` | 로그인 | 내 로그인 세션 목록 | U-14 |
 | DELETE | `/me/sessions` | 로그인 | 현재 세션 외 모두 폐기 | U-14 |
-| GET | `/me/notifications` | 로그인 | 알림 목록 | C-06 |
-| GET | `/me/notifications/unread-count` | 로그인 | 안 읽은 수 | C-00 |
+| GET | `/me/notifications?limit=` | 로그인 | 최근 알림(기본 30) `{items: [{id, type, title, link, createdAt, readAt}], unread}`. `link`는 앱 경로(`/…`) 또는 팀 주소(`https://…`) | C-06 |
+| GET | `/me/notifications/unread-count` | 로그인 | 안 읽은 수 `{count}`(웹은 30초마다) | C-00 |
 | POST | `/me/notifications/read` | 로그인 | `{ids}` 또는 `{all: true}` | C-06 |
 | GET | `/departments` | 로그인 | 부서 트리(활성만, 선택 화면용). `?includeArchived=true`는 관리자만 | A-02, A-03, A-05, A-12 |
 | GET | `/users/search?q=&departmentId=&includeDescendants=` | 로그인 | 사람 찾기(이름·이메일·부서 표시, 최대 20명) — 멤버 추가용 | U-15, A-05 |
@@ -152,10 +152,10 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 
 | 메서드 | 경로 | 권한 | 설명 | 화면 |
 |---|---|---|---|---|
-| GET | `/posts?category=&q=` | 로그인 | 목록 | U-13 |
-| GET | `/posts/{id}` | 로그인 | 본문 + 첨부 카드 정보 | U-13 |
-| POST | `/posts` | 로그인 | 작성(`notice`는 관리자만) | U-13 |
-| PATCH | `/posts/{id}` | 본인·관리자 | 수정 | U-13 |
+| GET | `/posts?category=&q=&cursor=` | 로그인 | 최신순 50개 `{items, nextCursor}`(`cursor` = 마지막 글 `createdAt`) | U-13 |
+| GET | `/posts/{id}?team=` | 로그인 | 본문 + 첨부 카드(`attachedPackage` = McpPackageSummary, `team` 기준 `installedInTeam` · `attachedApp` = `{id, name, slug, team, url, version, available}`) + `canEdit` | U-13 |
+| POST | `/posts` | 로그인 | 작성 `{category, title, bodyMd, attachedPackage?: 패키지 이름, attachedAppId?}`(`notice`는 관리자만 `403`, 게시 안 된 MCP `422 MCP_NOT_PUBLISHED`, 공개 안 된 앱 `422 APP_NOT_PUBLIC`) → `201` | U-13 |
+| PATCH | `/posts/{id}` | 본인·관리자 | 수정(일부 필드, 첨부 `null`이면 떼기) | U-13 |
 | DELETE | `/posts/{id}` | 본인·관리자 | 삭제 | U-13 |
 
 ### 관리자 (`/admin/*`, 전부 관리자)
@@ -247,8 +247,8 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | `GET /internal/apps/{appId}/{work\|public}/logs?tail=` | `{lines}` (Docker 로그 프레임 해석) |
 | `POST /internal/mcp/builds` | `{versionId, pkg, version, resources}` → 202. 대기열은 api가 정한다(한 번에 하나, `uploaded` 중 가장 오래된 것). 단계마다 `mcp.build` 이벤트 `{status: building\|scanning\|testing\|in_review\|failed, failedStage?, detail?, imageRef?, scanSummary?, findings?, tools?}`. 로그 `/data/mcp/{pkg}/{ver}/{build,scan,test}.log` |
 | `DELETE /internal/mcp/images/{pkg}/{version}` | 반려·대체된 버전 이미지 제거(실패한 버전은 orchestrator가 바로 지움) |
-| `PUT /internal/teams/{team}/mcp/{key}` | 설치·업그레이드 `{pkg, version, network, resources, secrets\|null}` → 202. Secret Store에 쓰고(`null`이면 유지) MCP 컨테이너·egress 프록시를 다시 만든 뒤 팀이 실행 중이면 켠다. 결과 `mcp.install` 이벤트 `{id: team, key, status: installed\|error\|removed}` → api가 apply-config |
-| `PUT /internal/teams/{team}/mcp/{key}/secrets` · `DELETE /internal/teams/{team}/mcp/{key}` | 비밀값 병합 후 재생성 · 컨테이너와 Secret Store 제거 |
+| `PUT /internal/teams/{team}/mcp/{key}` | 설치·업그레이드 `{pkg, version, network, resources, secrets\|null}` → 202. 팀 Secret Store에 쓰고(`null`이면 유지) 패키지 공용 서버를 보장(없거나 버전·허용 도메인·한도가 바뀌면 교체, healthy까지 대기). 결과 `mcp.install` 이벤트 `{id: team, key, status: installed\|error\|removed}` → api가 apply-config(그 팀 헤더 반영) |
+| `PUT /internal/teams/{team}/mcp/{key}/secrets` `{secrets}` · `DELETE /internal/teams/{team}/mcp/{key}` · `DELETE /internal/mcp/packages/{pkg}` | 비밀값 병합(빈 값은 유지, 서버는 그대로 — 다음 apply-config가 헤더 갱신) · 그 팀 Secret Store 삭제 · 마지막 팀이 제거한 뒤 공용 서버 삭제(api가 남은 설치 수로 판단) |
 | `PUT /internal/gateway/{team}/mcp-manual/{key}` | 직접 추가 `{server: {url, headers?}\|null}` → 실행 중 Gateway에 `config.patch` 한 항목(동기) |
 | (apply-config `mcpServers`) | 설치된 마켓·기본 MCP `[{key, url}]` → `mcp.servers.{key}`. **Gateway 키는 패키지 이름의 `-`를 `_`로 바꾼 것**(`my-weather` → `my_weather`, shared `mcpGatewayKey`). OpenClaw 도구 이름이 `{key}__{tool}`이 되는데, 일부 모델(VM gpt-5.6-luna)은 하이픈이 든 함수 이름을 호출하지 못한다(6단계 VM 확인). 컨테이너·Secret Store·DB(`server_key`)는 패키지 이름 그대로. Codex 하네스를 켠 팀(`plugins.entries.codex` 있음)은 `codexDynamicToolsLoading: "direct"`로 맞춘다 — 기본 `searchable`은 MCP 도구를 Codex 도구 검색 뒤에 숨겨 작은 모델이 찾지 못한다(6단계 VM 확인). URL이 `http://kacp-mcp-*:8080/mcp`인 관리 항목만 지운다(직접 추가·Control UI 항목은 건드리지 않음) |
 | `GET /internal/gateway/{team}/rpc` | api 대신 admin-http-rpc 호출(프록시) — `config.get` 등. 팀 Gateway 비밀번호를 쓰는 유일한 곳. 실제 호출은 팀 사이드카 `kacp-gwagent-{team}` → loopback(`06-auth.md` §6, spike 04). HTTP 허용 메서드만 된다(`config.*`, `agents.*`, `models.authStatus`, `health`, `status` 등. `users.*`·`session.*` 없음) |

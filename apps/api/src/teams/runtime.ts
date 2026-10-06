@@ -5,10 +5,12 @@ import { agentTemplates, memberships, teamAgents, teamPresence, teams, users } f
 import { decrypt } from '../lib/crypto.js';
 import { orchestrator, type DesiredAgent, type TeamRuntimeSpec } from '../orchestrator.js';
 import { getApiKeys, getSetting } from '../settings.js';
-import { config } from '../config.js';
+import { config, teamUrl } from '../config.js';
 import { mcpToken } from '../apps/logic.js';
 import type { AgentSpec } from '../agents/spec.js';
 import { desiredMcpServers } from '../mcp/service.js';
+import { isNewError } from '../notify/logic.js';
+import { notify, platformAdminIds, teamAdminIds } from '../notify/service.js';
 
 // Team container lifecycle as seen from the api (03-data-model.md 상태 전이 — 팀 컨테이너).
 
@@ -101,11 +103,17 @@ export async function requestRestart(team: TeamRow): Promise<boolean> {
 }
 
 export async function setStatus(team: string, status: TeamContainerStatus, detail: string | null) {
+  const [before] = await db.select({ id: teams.id, status: teams.containerStatus }).from(teams).where(eq(teams.name, team));
   await db
     .update(teams)
     .set({ containerStatus: status, containerStatusAt: sql`now()`, containerError: status === 'error' ? detail : null })
     .where(eq(teams.name, team));
   if (status === 'running') scheduleApply(team);
+  if (before && isNewError(before.status, status)) {
+    const title = `${team} 팀 에이전트에 문제가 생겼어요${detail ? `: ${detail}` : ''}`.slice(0, 280);
+    void notify(await teamAdminIds(before.id), { type: 'team_container_error', title, link: teamUrl(team) });
+    void notify(await platformAdminIds(), { type: 'team_container_error', title, link: `/admin/teams/${team}` });
+  }
 }
 
 export async function touchPresence(team: TeamRow, sessionId: string, userId: string) {
@@ -164,7 +172,7 @@ async function applyTeamConfig(teamName: string) {
       agents,
       adminEmails: await adminEmails(team.id),
       platformMcp: { url: config.platformMcpUrl, token: mcpToken(config.internalToken, team.name) },
-      mcpServers: await desiredMcpServers(team.id, team.name),
+      mcpServers: await desiredMcpServers(team.id),
     });
     for (const [templateId, version] of versions) {
       await db.update(teamAgents)

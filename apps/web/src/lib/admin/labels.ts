@@ -43,6 +43,9 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'mcp.install': '설치',
   'mcp.remove': '제거',
   'mcp.manual_add': '직접 추가',
+  'mcp.secrets_update': '비밀값 다시 입력',
+  'post.delete': '게시글 삭제(관리자)',
+  'mcp.version_replace': '실패·반려 버전 다시 올림',
   'settings.update': '설정 변경',
   'settings.api_key': 'API 키 변경',
 };
@@ -58,6 +61,7 @@ export const AUDIT_TARGET_LABEL: Record<string, string> = {
   app: '앱',
   mcp_package: 'MCP',
   mcp_version: 'MCP 버전',
+  post: '게시글',
   template: '에이전트',
   settings: '설정',
   import: '가져오기',

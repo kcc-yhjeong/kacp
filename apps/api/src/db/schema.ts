@@ -385,3 +385,35 @@ export const mcpInstalls = pgTable('mcp_installs', {
   check('mcp_installs_source_check', sql`${t.source} in ('default', 'market', 'manual')`),
   check('mcp_installs_status_check', sql`${t.status} in ('installing', 'installed', 'error', 'removing')`),
 ]);
+
+// ── community and notifications (03-data-model.md, docs/README.md 7단계) ──
+
+export const posts = pgTable('posts', {
+  id: uuid('id').primaryKey(),
+  authorId: uuid('author_id').notNull().references(() => users.id),
+  category: text('category').notNull(),
+  title: text('title').notNull(),
+  bodyMd: text('body_md').notNull(),
+  attachedPackageId: uuid('attached_package_id').references(() => mcpPackages.id),
+  attachedAppId: uuid('attached_app_id').references(() => apps.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (t) => [
+  index('posts_time').on(t.createdAt),
+  check('posts_category_check', sql`${t.category} in ('notice', 'question', 'tip', 'mcp_share', 'app_share')`),
+]);
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  link: text('link'),
+  payload: jsonb('payload'),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [
+  index('notifications_user_time').on(t.userId, t.createdAt),
+  check('notifications_type_check', sql`${t.type} in ('deploy_approved', 'deploy_rejected', 'mcp_build_succeeded', 'mcp_build_failed', 'mcp_approved', 'mcp_rejected', 'team_container_error', 'agent_assignment_changed', 'admin_review_requested', 'app_force_stopped')`),
+]);

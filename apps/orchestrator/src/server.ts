@@ -7,7 +7,7 @@ import {
   adoptRunning, applyConfig, ensureRunning, gatewayRpc, patchManualMcp, provision, removeTeam, restart, startHealthWatch, stop, updateResources,
 } from './teams.js';
 import { enqueueBuild, removeVersionImage } from './mcp-build.js';
-import { installMcp, removeMcp, updateMcpSecrets } from './mcp-runtime.js';
+import { installMcp, removeMcp, removePackage, updateMcpSecrets } from './mcp-runtime.js';
 import { startUsageCollector } from './usage.js';
 import { appLogs, removeApp, runApp, stopApp } from './apps.js';
 
@@ -39,7 +39,7 @@ const Desired = z.object({
   agents: z.array(Agent),
   adminEmails: z.array(z.string()),
   platformMcp: z.object({ url: z.url(), token: z.string().min(20) }).optional(),
-  mcpServers: z.array(z.object({ key: z.string().regex(GATEWAY_KEY), url: z.url() })).optional(),
+  mcpServers: z.array(z.object({ key: z.string().regex(GATEWAY_KEY), url: z.url(), pkg: z.string().regex(NAME_PATTERN).optional() })).optional(),
 });
 const TeamParams = z.object({ team: z.string().regex(NAME_PATTERN) });
 
@@ -188,9 +188,16 @@ app.put('/internal/teams/:team/mcp/:key', async (req, reply) => {
 
 app.put('/internal/teams/:team/mcp/:key/secrets', async (req, reply) => {
   const { team, key } = McpParams.parse(req.params);
-  const body = InstallSpec.extend({ secrets: SecretValues }).parse(req.body);
-  void updateMcpSecrets(team, key, installSpec(body), body.secrets);
+  const body = z.object({ secrets: SecretValues }).parse(req.body);
+  void updateMcpSecrets(team, key, body.secrets);
   return reply.code(202).send({ accepted: true });
+});
+
+// After the last team removed a package (the api counts installs).
+app.delete('/internal/mcp/packages/:pkg', async (req, reply) => {
+  const { pkg } = z.object({ pkg: z.string().regex(NAME_PATTERN) }).parse(req.params);
+  await removePackage(pkg);
+  return reply.code(204).send();
 });
 
 app.delete('/internal/teams/:team/mcp/:key', async (req, reply) => {

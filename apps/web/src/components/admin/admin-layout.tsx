@@ -3,6 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { ProfileMenu } from '@/components/app-header';
+import { NotificationBell } from '@/components/notification-bell';
 import { LogoMark } from '@/components/logo';
 import { MessagePage } from '@/components/message-page';
 import { PageLoader } from '@/components/page-loader';
@@ -65,6 +66,7 @@ export function AdminLayout() {
             사원 화면으로
           </a>
           <Separator orientation="vertical" className="mx-2" />
+          <NotificationBell />
           <ProfileMenu admin />
         </div>
       </header>

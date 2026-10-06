@@ -49,11 +49,12 @@ export const MCP_TEST_NETWORK = 'kacp-mcp-test';
 /** Bridge network with outside access; only egress proxies sit on it. */
 export const EGRESS_NETWORK = 'kacp-egress';
 export const TRIVY_CACHE_VOLUME = 'kacp-trivy-cache';
-/** Per-team internal network: team container + its MCP containers + their egress proxies. */
-export const mcpNetwork = (team: string) => `kacp-mcpnet-${team}`;
-export const mcpContainer = (key: string, team: string) => `kacp-mcp-${key}--${team}`;
-export const mcpProxyContainer = (key: string, team: string) => `kacp-mcpproxy-${key}--${team}`;
-export const mcpServerUrl = (key: string, team: string) => `http://${mcpContainer(key, team)}:${MCP_PORT}/mcp`;
+/** Internal network shared by MCP servers, their egress proxies and every team container. */
+export const MCP_NETWORK = 'kacp-mcp';
+/** One server per package for all teams; secrets come per call as headers (docs/README.md 6단계). */
+export const mcpContainer = (pkg: string) => `kacp-mcp-${pkg}`;
+export const mcpProxyContainer = (pkg: string) => `kacp-mcpproxy-${pkg}`;
+export const mcpServerUrl = (pkg: string) => `http://${mcpContainer(pkg)}:${MCP_PORT}/mcp`;
 export const mcpImage = (pkg: string, version: string) => `kacp-mcp/${pkg}:${version}`;
 /** Upload, logs and scan report of one version, relative to the data root. */
 export const mcpVersionRel = (pkg: string, version: string) => `mcp/${pkg}/${version}`;

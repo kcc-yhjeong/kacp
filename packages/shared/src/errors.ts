@@ -48,7 +48,7 @@ export const ERROR_MESSAGES = {
   MCP_NOT_FOUND: 'MCP를 찾을 수 없어요.',
   MCP_MANIFEST_INVALID: 'MCP 패키지를 확인해 주세요. 아래 문제를 고친 뒤 다시 올리세요.',
   MCP_TOO_LARGE: '업로드하지 못했어요. 패키지가 50MB를 넘어요.',
-  MCP_VERSION_EXISTS: '이미 올린 버전이에요. platform-plugin.yaml과 package.json의 version을 올려 주세요.',
+  MCP_VERSION_EXISTS: '이미 올린 버전이에요(게시됐거나 검사·심사 중). platform-plugin.yaml과 package.json의 version을 올려 주세요.',
   MCP_ALREADY_INSTALLED: '이미 이 팀에 설치돼 있어요.',
   MCP_SUSPENDED: '게시가 중단된 MCP예요.',
   MCP_NOT_PUBLISHED: '아직 게시되지 않은 MCP예요.',

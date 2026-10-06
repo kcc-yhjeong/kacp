@@ -33,7 +33,7 @@ export interface DesiredConfig {
   /** platform-mcp for this team (`mcp.servers.platform`), docs/README.md 5단계. */
   platformMcp: { url: string; token: string };
   /** Installed market/default MCP servers (`mcp.servers.{key}`), docs/README.md 6단계. */
-  mcpServers: { key: string; url: string }[];
+  mcpServers: { key: string; url: string; pkg: string }[];
 }
 
 export interface TeamStats {
@@ -114,8 +114,11 @@ export const orchestrator = {
   /** 202; `secrets: null` keeps the Secret Store (version upgrade). The outcome is an mcp.install event. */
   mcpInstall: (team: string, key: string, spec: McpInstallSpec & { secrets: Record<string, string> | null }) =>
     call(`/internal/teams/${team}/mcp/${key}`, spec, 'PUT'),
-  mcpSecrets: (team: string, key: string, spec: McpInstallSpec & { secrets: Record<string, string> }) =>
-    call(`/internal/teams/${team}/mcp/${key}/secrets`, spec, 'PUT'),
+  /** Merges into the team's Secret Store (blank keeps); the next apply-config carries them as headers. */
+  mcpSecrets: (team: string, key: string, secrets: Record<string, string>) =>
+    call(`/internal/teams/${team}/mcp/${key}/secrets`, { secrets }, 'PUT'),
+  /** The shared package server, after the last team removed it. */
+  mcpRemovePackage: (pkg: string) => call(`/internal/mcp/packages/${pkg}`, {}, 'DELETE', 60_000),
   mcpRemove: (team: string, key: string) => call(`/internal/teams/${team}/mcp/${key}`, {}, 'DELETE'),
   /** Synchronous Gateway patch for a "직접 추가" server (null = delete). */
   mcpManual: (team: string, key: string, server: { url: string; headers?: Record<string, string> } | null) =>

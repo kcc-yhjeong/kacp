@@ -385,7 +385,7 @@ erDiagram
 |---|---|---|
 | id | uuid PK | |
 | package_id | uuid FK | |
-| version | text | semver. unique(package_id, version) |
+| version | text | semver. unique(package_id, version). `failed`·`rejected` 버전은 같은 번호로 다시 올리면 새 업로드가 그 행을 대신한다(감사 기록 `mcp.version_replace`) |
 | uploaded_by | uuid | |
 | status | text | `uploaded` → `validating` → `building` → `scanning` → `testing` → `in_review` → `published`, 또는 `failed` / `rejected` / `superseded` |
 | failed_stage | text | 실패한 단계: `validate` \| `build` \| `scan` \| `test`. 02 MCP 버전 스테퍼의 검증·빌드·보안 스캔·테스트 단계에 1:1 대응. v1 검증 실패는 업로드 `422`로 끝나 행이 생기지 않는다 |
@@ -434,8 +434,8 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 | title | text | |
 | body_md | text | |
 | attached_package_id | uuid | null 허용 |
-| attached_app_id | uuid | Public 앱만 |
-| updated_at, deleted_at | timestamptz | |
+| attached_app_id | uuid | Public 앱만(첨부 때 검사. 나중에 공개가 중지되면 글에는 "공개가 중지된 앱"으로 보임) |
+| created_at, updated_at, deleted_at | timestamptz | 삭제는 `deleted_at`만. 플랫폼 관리자가 남의 글을 지우면 감사 기록 `post.delete` |
 
 #### `notifications`
 
@@ -448,6 +448,9 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 | link | text | 클릭 시 이동 경로 |
 | payload | jsonb | |
 | read_at | timestamptz | |
+| created_at | timestamptz | 90일 지나면 일일 워커가 지운다 |
+
+받는 사람 규칙은 `docs/README.md` 7단계 결정. 만드는 곳은 api `notify()` 한 곳이고 실패해도 원래 동작을 막지 않는다. 행위자 자신에게는 보내지 않는다.
 
 #### `audit_events`
 
@@ -455,8 +458,8 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 |---|---|---|
 | id | bigserial PK | |
 | actor_id | uuid | null = 시스템 |
-| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `mcp.secrets_update` `settings.update` `template.create` `template.delete` `user.update` `department.unarchive` |
-| target_type | text | `user` `department` `team` `app` `mcp_package` `mcp_version` `template` `settings` `import` |
+| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `mcp.secrets_update` `settings.update` `template.create` `template.delete` `user.update` `department.unarchive` `post.delete` |
+| target_type | text | `user` `department` `team` `app` `mcp_package` `mcp_version` `template` `settings` `import` `post` |
 | target_id | text | |
 | team_id | uuid | 관련 팀(필터용) |
 | detail | jsonb | 변경 전후 요약(비밀값 제외) |

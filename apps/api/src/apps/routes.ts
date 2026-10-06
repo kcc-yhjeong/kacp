@@ -11,6 +11,7 @@ import { ApiError } from '../lib/errors.js';
 import { orchestrator } from '../orchestrator.js';
 import { getSetting } from '../settings.js';
 import { invalidateTeamCaches } from '../teams/lookup.js';
+import { notify, platformAdminIds } from '../notify/service.js';
 import { publicFilter, workFilter, type CopyStatus, type StopReason } from './logic.js';
 import {
   appForHost, appsOut, archivePublicData, dataUsage, loadApp, originOf, publicHost, removeAppFiles, requestsOut, sourceDiff,
@@ -61,6 +62,12 @@ export async function createDeployRequest(app: AppRow, team: string, body: { nam
     fromVersion: isPublic ? app.publicVersion : null,
     diffSummary: isPublic ? await sourceDiff(app, team) : null,
   }).returning();
+  void notify(await platformAdminIds(), {
+    type: 'admin_review_requested',
+    title: `${team} 팀의 "${requestedName ?? app.publicName ?? app.slug}" ${isPublic ? '업데이트' : '공개'} 요청이 들어왔어요`,
+    link: '/admin/deploy',
+    payload: { appId: app.id, requestId: row!.id },
+  }, requestedBy);
   return row!;
 }
 

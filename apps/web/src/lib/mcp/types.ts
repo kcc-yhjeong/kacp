@@ -110,6 +110,8 @@ export interface McpInstall {
   lastCheckedAt: string | null;
   /** Not in openapi; shown as `—` when missing (A-08 직접 추가 시각). */
   installedAt?: string | null;
+  /** Latest container sample (last 5 min); null when stopped, manual or not measured yet. */
+  usage?: { cpuPct?: number; memBytes: number; memLimitBytes?: number | null } | null;
 }
 
 export interface TeamInstallsResponse {

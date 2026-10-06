@@ -5,8 +5,9 @@ import { docker, type ContainerStats } from './docker.js';
 import { sendUsage } from './events.js';
 import { watchedTeams } from './teams.js';
 import { runningAppContainers } from './apps.js';
+import { runningPackageServers } from './mcp-runtime.js';
 
-// Usage collection (04-api.md §4, every minute): team containers via Docker stats, the VM via
+// Usage collection (04-api.md §4, every minute): team, app and MCP containers via Docker stats, the VM via
 // /proc-backed os counters (shared with the host in a container) and statfs on the data disk.
 
 function containerCpuPct(s: ContainerStats): number {
@@ -64,6 +65,18 @@ async function collect() {
       cpuPct: containerCpuPct(s),
       memBytes: (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
       memLimitBytes: s.memory_stats.limit ?? null,
+    });
+  }
+  // Market MCP servers: one per package, shared by every team that installed it.
+  for (const c of await runningPackageServers().catch(() => [])) {
+    const st = await docker.stats(c.name).catch(() => null);
+    if (!st) continue;
+    samples.push({
+      targetType: 'mcp',
+      targetId: c.pkg,
+      cpuPct: containerCpuPct(st),
+      memBytes: (st.memory_stats.usage ?? 0) - (st.memory_stats.stats?.inactive_file ?? 0),
+      memLimitBytes: st.memory_stats.limit ?? null,
     });
   }
   await sendUsage(samples);

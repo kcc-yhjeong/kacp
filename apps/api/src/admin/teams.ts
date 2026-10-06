@@ -18,6 +18,7 @@ import {
 } from '../teams/runtime.js';
 import { createTeam } from './service.js';
 import { ensureInstalled } from '../mcp/service.js';
+import { notify, teamMemberIds } from '../notify/service.js';
 
 // A-04 / A-05 team administration (04-api.md 관리자).
 
@@ -201,6 +202,7 @@ export async function adminTeamRoutes(app: FastifyInstance) {
     const defaultMcp = [...new Set(specs.flatMap((s) => (s.spec as { defaultMcp?: string[] }).defaultMcp ?? []))];
     if (defaultMcp.length) await ensureInstalled(t, defaultMcp).catch((err) => req.log.warn({ err }, 'template default mcp'));
     void scheduleApply(t.name);
+    void notify(await teamMemberIds(t.id), { type: 'agent_assignment_changed', title: `${t.name} 팀에 에이전트가 추가됐어요`, link: teamUrl(t.name) }, actor(req));
     return reply.code(202).send({ items: await teamAgentList(t.id) });
   });
 
@@ -212,6 +214,7 @@ export async function adminTeamRoutes(app: FastifyInstance) {
       if (removed.length === 0) throw new ApiError(404, 'TEMPLATE_NOT_FOUND');
       await audit({ actorId: actor(req), action: 'agent.unassign', targetType: 'template', targetId: req.params.templateId, teamId: t.id });
       void scheduleApply(t.name);
+      void notify(await teamMemberIds(t.id), { type: 'agent_assignment_changed', title: `${t.name} 팀 에이전트 하나가 빠졌어요`, link: teamUrl(t.name) }, actor(req));
       return reply.code(202).send();
     });
 }

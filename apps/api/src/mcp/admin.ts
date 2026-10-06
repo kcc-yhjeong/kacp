@@ -12,6 +12,7 @@ import { ApiError } from '../lib/errors.js';
 import { orchestrator } from '../orchestrator.js';
 import { readLog } from './routes.js';
 import { manifestChanges } from './logic.js';
+import { notify } from '../notify/service.js';
 import { installsOut, packagesOut, removeInstall, upgradeInstalls, versionDir, versionsOut, type VersionRow } from './service.js';
 
 // MCP 심사·관리 (A-07, A-08). Platform admins only.
@@ -85,6 +86,7 @@ export async function adminMcpRoutes(app: FastifyInstance) {
         latestVersionId: v.id, displayName: m.displayName, summary: m.summary, category: m.category, icon: m.icon ?? null, updatedAt: sql`now()`,
       }).where(eq(mcpPackages.id, p.id)).returning();
       await audit({ actorId: actor(req), action: 'mcp.approve', targetType: 'mcp_version', targetId: v.id, detail: { package: p.name, version: v.version }, ip: req.ip });
+      void notify([v.uploadedBy], { type: 'mcp_approved', title: `${p.name} ${v.version}이 마켓에 게시됐어요`, link: `/market/${p.name}` }, actor(req));
       if (p.latestVersionId) {
         await upgradeInstalls(pkg!, won[0] as VersionRow);
         // Installs now run the new version; the old image is untagged (running containers keep their layers).
@@ -104,6 +106,7 @@ export async function adminMcpRoutes(app: FastifyInstance) {
       if (!won.length) throw new ApiError(409, 'MCP_STATE_CONFLICT');
       void orchestrator.mcpRemoveImage(p.name, v.version).catch(() => undefined);
       await audit({ actorId: actor(req), action: 'mcp.reject', targetType: 'mcp_version', targetId: v.id, detail: { package: p.name, version: v.version, note }, ip: req.ip });
+      void notify([v.uploadedBy], { type: 'mcp_rejected', title: `${p.name} ${v.version} 심사가 반려됐어요: ${note}`, link: `/market/mine/${p.name}/${v.version}` }, actor(req));
       return (await versionsOut(won))[0];
     });
 

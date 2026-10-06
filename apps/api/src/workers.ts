@@ -8,6 +8,7 @@ import { getSetting } from './settings.js';
 import { requestStop, setStatus } from './teams/runtime.js';
 import { dispatchBuilds } from './mcp/service.js';
 import { syncGateways } from './mcp/sync.js';
+import { purgeOldNotifications } from './notify/service.js';
 
 // Background workers (04-api.md §4). Stage 2: idle stop and stuck-start recovery.
 
@@ -65,6 +66,7 @@ async function daily(log: FastifyBaseLogger) {
   const purged = await purgeExpiredTrash();
   if (purged) log.info({ purged }, 'trash purged');
   await db.delete(loginAttempts).where(lt(loginAttempts.createdAt, sql`now() - interval '30 days'`));
+  await purgeOldNotifications();
 }
 
 export function startWorkers(log: FastifyBaseLogger) {

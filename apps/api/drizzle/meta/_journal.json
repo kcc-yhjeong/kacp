@@ -36,6 +36,13 @@
       "when": 1791250265839,
       "tag": "0004_stage6_mcp",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791259496061,
+      "tag": "0005_stage7_community",
+      "breakpoints": true
     }
   ]
 }

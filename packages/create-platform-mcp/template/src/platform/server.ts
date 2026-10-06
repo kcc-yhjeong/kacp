@@ -1,7 +1,8 @@
 // 플랫폼 고정 영역 — 수정하지 마세요.
 //
 // Stateless streamable HTTP MCP server: POST /mcp (fresh server + transport per request) and
-// GET /healthz. The platform starts it with PORT=8080 and calls http://<container>:8080/mcp.
+// GET /healthz. The platform runs ONE container per package for all teams (PORT=8080); each
+// team's Gateway calls http://kacp-mcp-<name>:8080/mcp with its secrets as request headers.
 import './fetch.js';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -9,6 +10,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { tools } from '../tools/index.js';
 import type { ToolDef } from './tool.js';
+import { secretsFromHeaders, withRequestSecrets } from './secrets.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 // Same path from src/platform (tsx) and dist/platform (node).
@@ -58,7 +60,8 @@ const http = createServer(async (req, res) => {
   });
   try {
     await server.connect(transport);
-    await transport.handleRequest(req, res, body);
+    // Tools called during this request see only this request's (this team's) secrets.
+    await withRequestSecrets(secretsFromHeaders(req.headers), () => transport.handleRequest(req, res, body));
   } catch (err) {
     if (!res.headersSent) res.writeHead(500).end(String(err));
   }

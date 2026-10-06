@@ -10,6 +10,8 @@ import { db } from '../db/client.js';
 import { apps, appVersions, deployRequests, names, teams } from '../db/schema.js';
 import { ApiError } from '../lib/errors.js';
 import { invalidateTeamCaches } from '../teams/lookup.js';
+import { deployRecipients } from '../notify/logic.js';
+import { notify, teamAdminIds } from '../notify/service.js';
 import {
   appsOut, loadApp, originOf, publicHost, requestsOut, sourceRel, startCopy, stopCopy, takeSnapshot, teamOf, workHost,
 } from './service.js';
@@ -96,6 +98,12 @@ export async function adminAppRoutes(app: FastifyInstance) {
       invalidateTeamCaches();
       // publish: start the public copy. update: a new versioned container replaces the old one (zero downtime).
       await startCopy(await loadApp(a.id), 'public');
+      void notify(deployRecipients(r.requestedBy, await teamAdminIds(a.teamId)), {
+        type: 'deploy_approved',
+        title: `"${r.requestedName ?? a.publicName ?? a.slug}" ${r.kind === 'publish' ? '공개가' : '업데이트가'} 승인됐어요 (v${version})`,
+        link: `/t/${team.name}/apps/${a.id}`,
+        payload: { appId: a.id, version },
+      }, actor(req));
       return reply.code(202).send({ version });
     });
 
@@ -107,6 +115,15 @@ export async function adminAppRoutes(app: FastifyInstance) {
       if (updated.length === 0) throw new ApiError(404, 'NOT_FOUND');
       const [a] = await db.select().from(apps).where(eq(apps.id, updated[0]!.appId));
       await audit({ actorId: actor(req), action: 'deploy.reject', targetType: 'app', targetId: updated[0]!.appId, teamId: a?.teamId, detail: { note } });
+      if (a) {
+        const team = await teamOf(a);
+        void notify(deployRecipients(updated[0]!.requestedBy, await teamAdminIds(a.teamId)), {
+          type: 'deploy_rejected',
+          title: `"${updated[0]!.requestedName ?? a.publicName ?? a.slug}" 공개 요청이 반려됐어요: ${note}`,
+          link: `/t/${team.name}/apps/${a.id}`,
+          payload: { appId: a.id, note },
+        }, actor(req));
+      }
       const [out] = await requestsOut(updated);
       return out;
     });
@@ -133,11 +150,19 @@ export async function adminAppRoutes(app: FastifyInstance) {
         // Only the public copy stops; the work copy is untouched (A-09).
         await stopCopy(a, 'public', 'admin', reason);
         await audit({ actorId: actor(req), action: 'app.force_stop', targetType: 'app', targetId: a.id, teamId: a.teamId, detail: { reason } });
+        void notify(await teamAdminIds(a.teamId), {
+          type: 'app_force_stopped', title: `"${a.publicName}" 공개본을 관리자가 중지했어요: ${reason}`,
+          link: `/t/${(await teamOf(a)).name}/apps/${a.id}`, payload: { appId: a.id, reason },
+        }, actor(req));
       } else {
         if (!(a.publicStatus === 'stopped' && a.publicStopReason === 'admin')) throw new ApiError(409, 'APP_STATE_CONFLICT');
         await db.update(apps).set({ publicStopReason: 'manual', publicStatusDetail: null }).where(eq(apps.id, a.id));
         await startCopy(await loadApp(a.id), 'public');
         await audit({ actorId: actor(req), action: 'app.force_resume', targetType: 'app', targetId: a.id, teamId: a.teamId });
+        void notify(await teamAdminIds(a.teamId), {
+          type: 'app_force_stopped', title: `"${a.publicName}" 공개본 강제 중지가 해제됐어요`,
+          link: `/t/${(await teamOf(a)).name}/apps/${a.id}`, payload: { appId: a.id, resumed: true },
+        }, actor(req));
       }
       return reply.code(202).send();
     });

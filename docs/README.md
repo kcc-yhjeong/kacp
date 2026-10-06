@@ -251,10 +251,10 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - **매니페스트** `platform-plugin.yaml`: `name`(이름 규칙과 같음) `version`(semver) `displayName` `summary` `category` `icon?` `secrets[{name, description, required}]`(**팀 범위만** — `scope: user`는 검증에서 거부, spike 05) `network[]`(허용 도메인, `*.example.com` 허용) `resources{cpu, memoryMb}` `examples[]`. 스키마(zod)는 `packages/shared` 하나를 서버와 CLI가 같이 쓴다.
 - **스캐폴딩** `packages/create-platform-mcp`: `create`(TypeScript 템플릿 — 고정 영역 `src/platform/`: streamable HTTP `/mcp`·`/healthz`·`getSecret`·프록시를 따르는 `fetch`, 개발자 영역 `src/tools/` 도구 하나 = 파일 하나) · `validate`(서버와 같은 규칙) · `pack`(zip). 개발자 Dockerfile은 **쓰지 않는다** — 플랫폼 표준 Dockerfile로 빌드(`npm ci` → `npm run build` → `node dist/server.js`, uid 1000, 포트 8080).
 - **빌드 파이프라인(orchestrator, 한 번에 하나)**: 검증(api가 업로드 때) → 빌드(Docker `POST /build`, orchestrator 전용 **빌드 socket-proxy** `BUILD IMAGES POST`만, `kacp-core`) → 보안 스캔(`aquasec/trivy` 컨테이너로 **소스 의존성** `trivy fs`, Critical이면 실패) → 테스트(내부 네트워크 `kacp-mcp-test`에서 컨테이너를 띄워 `tools/list` 추출) → 심사 대기. 단계 로그는 `/data/mcp/{pkg}/{ver}/`.
-- **실행(팀별 MCP 컨테이너)** `kacp-mcp-{pkg}--{team}`: 팀 내부 네트워크 `kacp-mcpnet-{team}`(`internal`, 팀 컨테이너도 붙음)에만 붙고, Gateway는 `http://kacp-mcp-{pkg}--{team}:8080/mcp`로 부른다. 팀 컨테이너와 함께 켜지고 꺼진다.
-- **⚠️ 해소 — 네트워크 대상 제한**: MCP 컨테이너는 인터넷에 직접 못 나간다(내부 네트워크). 설치마다 **egress 프록시** `kacp-mcpproxy-{pkg}--{team}`(orchestrator 이미지의 `egress-proxy.js`, 바깥 브리지 `kacp-egress`, HTTP CONNECT·HTTP를 매니페스트 `network` 도메인에만 허용)를 붙이고 `HTTPS_PROXY`·`HTTP_PROXY`로 알려 준다. 템플릿의 `fetch`는 이 환경변수를 따른다.
-- **비밀값**: DB·로그·감사 기록에 값 없음(이름만). api는 요청 본문 값을 그대로 orchestrator로 넘기고, orchestrator가 **팀 Secret Store** = `/data/teams/{team}/mcp/{server_key}/secrets.json`(root 0600, 팀 컨테이너에 안 붙임)에 쓴 뒤 MCP 컨테이너 환경변수로 넣는다.
-- **팀 Gateway 반영**: apply-config가 설치된 MCP를 `mcp.servers.{server_key}`로 넣고, 제거된 KACP 관리 키만 지운다(Control UI에서 직접 넣은 서버는 건드리지 않음). Gateway 동기화 워커(5분)가 실행 중인 팀의 `config.get`으로 `mcp_installs`를 맞추고, Gateway에만 있는 서버는 `manual`로 기록한다.
+- **실행(패키지당 컨테이너 하나, 모든 팀 공용 — 2026-10-06 변경)** `kacp-mcp-{pkg}`: 공용 내부 네트워크 `kacp-mcp`(`internal`)에 붙고, 팀 컨테이너도 모두 여기에 붙는다. 각 팀 Gateway는 `http://kacp-mcp-{pkg}:8080/mcp`를 부르고 그 팀의 비밀값을 **요청 헤더** `X-KACP-Secret-{NAME}`(`_`→`-`)로 보낸다(직접 추가 MCP와 같은 방식). 템플릿 `getSecret()`은 요청마다 그 헤더만 읽는다(AsyncLocalStorage). 첫 설치 때 켜고(`unless-stopped`) 마지막 팀이 제거하면 지운다. 새 버전 승인 시 한 번 교체. 처음 구현(팀마다 컨테이너)은 팀 수만큼 자원이 늘어 바꿨다 — 대신 장애 범위는 그 MCP를 쓰는 모든 팀, 사용량은 패키지 단위.
+- **⚠️ 해소 — 네트워크 대상 제한**: MCP 컨테이너는 인터넷에 직접 못 나간다(내부 네트워크). 패키지마다 **egress 프록시** `kacp-mcpproxy-{pkg}`(orchestrator 이미지의 `egress-proxy.js`, 바깥 브리지 `kacp-egress`, HTTP CONNECT·HTTP를 매니페스트 `network` 도메인에만 허용, 내부 주소로 풀리는 이름 거절)를 붙이고 `HTTPS_PROXY`·`HTTP_PROXY`로 알려 준다. 템플릿의 `fetch`는 이 환경변수를 따른다.
+- **비밀값**: DB·로그·감사 기록에 값 없음(이름만). api는 요청 본문 값을 그대로 orchestrator로 넘기고, orchestrator가 **팀 Secret Store** = `/data/teams/{team}/mcp/{pkg}/secrets.json`(root 0600, 팀 컨테이너에 안 붙임)에 쓴다. apply-config가 그 팀 Gateway 항목의 `headers`로 넣는다(값과 함께 비밀이 아닌 `X-KACP-Secrets-Rev`를 넣어, `config.get`이 값을 가려도 최신인지 판단). 컨테이너 환경변수에는 비밀값이 없다.
+- **팀 Gateway 반영**: apply-config가 설치된 MCP를 `mcp.servers.{패키지 이름의 -를 _로}`(url + 그 팀 비밀값 헤더)로 넣고, URL이 `http://kacp-mcp-*:8080/mcp`인 KACP 관리 항목 중 제거된 것만 지운다(Control UI에서 직접 넣은 서버는 건드리지 않음). Gateway 동기화 워커(5분)가 실행 중인 팀의 `config.get`으로 `mcp_installs`를 맞추고, Gateway에만 있는 서버는 `manual`로 기록한다. api는 기동 20초 뒤 실행 중인 모든 팀에 apply-config, 설치된 패키지마다 서버가 떠 있는지 확인한다.
 - **기본 제공**: platform-mcp는 `mcp_packages`에 `is_platform`으로 시드(빌드 없음)되고 모든 팀에 `source=default` 설치로 보인다(제거 불가). 전사 기본 MCP(`is_default`)는 새 팀 프로비저닝 `default_mcp` 단계에서 자동 설치.
 
 - [x] 문서: 위 결정을 `03`(mcp_* 세부), `04`(§3 내부 API·빌드), `05`(§6 네트워크·컨테이너·빌드 프록시, ⚠️ egress 해소), `openapi.yaml`(`scope` = team만)에 반영
@@ -281,6 +281,34 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
   - busybox `wget`이 `no_proxy`를 무시해 헬스체크가 프록시로 감 → `-Y off`. egress 프록시 SIGTERM 무시 → `Init: true`. 실패·대체된 버전 이미지 정리.
 - 메모: 설치 전에 열린 대화에는 새 도구가 보이지 않는다(OpenClaw가 대화마다 도구 목록을 만듦) → 설치 완료 창에 "새 대화(/new)" 안내. 같은 일을 하는 기본 스킬(예: `weather`)이 있으면 에이전트가 그쪽을 고를 수 있다. `npx create-platform-mcp`는 npm에 올리지 않아 지금은 저장소의 `packages/create-platform-mcp/dist/cli.js`를 쓴다.
 
+## 7단계 통과 조건 (마감)
+
+목표: v1 데모 네 장면을 VM에서 처음부터 끝까지 막힘 없이 보여 준다. 남은 화면(알림·커뮤니티)과 운영 최소선(백업)을 채운다. 장소는 로컬, 마지막에 VM.
+
+범위 밖: 댓글·좋아요(v1.1), 이메일·메신저 알림(v2), 알림 설정 화면, 데이터 디스크 스냅샷 자동화(GCP 콘솔 일정으로 대신 — 아래 백업 참고).
+
+결정(문서 반영):
+- **알림** `notifications`: 받는 사람마다 한 행. 만드는 곳은 api 한 곳(`notify()`), 실패해도 원래 동작은 막지 않는다. 90일 지나면 지운다(일일 워커). 종류와 받는 사람:
+  - `deploy_approved`·`deploy_rejected` → 요청한 사람(에이전트가 요청했으면 그 팀 관리자들)
+  - `app_force_stopped`(강제 중지·해제) → 그 팀 관리자들
+  - `mcp_build_succeeded`(심사 대기 도달)·`mcp_build_failed` → 올린 사람
+  - `mcp_approved`·`mcp_rejected` → 올린 사람
+  - `team_container_error` → 그 팀 관리자들 + 플랫폼 관리자(오류로 **바뀔 때만**, 반복 안 함)
+  - `agent_assignment_changed` → 그 팀 멤버 전원
+  - `admin_review_requested` → 플랫폼 관리자 전원(새 공개 요청, 새 MCP 심사 대기)
+  - `link`는 앱 경로(`/t/{team}/apps/{id}`, `/market/mine/{pkg}/{ver}`, `/admin/deploy`, `/admin/mcp/reviews/{id}`, `/admin/teams/{team}`) 또는 팀 주소(`https://{team}.{base}/`). 웹은 `http`로 시작하면 그 주소로, 아니면 앱 안에서 이동.
+- **C-06**: 앱 헤더와 에이전트 셸 헤더의 종 아이콘. 안 읽은 수는 30초마다 `GET /me/notifications/unread-count`, 열면 최근 30개, 항목 클릭 시 읽음 + 이동, "모두 읽음".
+- **커뮤니티** `posts`(U-13): 분류 `notice`(플랫폼 관리자만) `question` `tip` `mcp_share` `app_share`. 본문 마크다운(웹은 6단계 README 렌더러를 같이 쓴다 — HTML 그대로 넣지 않음). 첨부: 게시된(active) MCP 패키지 하나, 공개 중인 앱 하나. 수정·삭제는 작성자·플랫폼 관리자, 삭제는 `deleted_at`(관리자가 남의 글을 지우면 감사 기록 `post.delete`). 목록은 최신순 50개씩(`cursor`), 공지는 맨 위 고정 없이 분류 탭으로.
+- **MCP 공유 글에서 바로 설치**: 첨부 MCP 카드는 마켓 카드와 같고, 설치는 U-10 설치 모달을 그대로 띄운다(설치 권한·비밀값 규칙 동일).
+- **백업**: VM `/opt/kacp/deploy/infra/backup.sh` — `pg_dump -Fc`를 `/data/backups/postgres/kacp-YYYYMMDD-HHMM.dump`로, 14개 보관. `vm-deploy.sh`가 매일 03:30 cron(`/etc/cron.d/kacp-backup`)을 설치한다. 복구 절차는 `deploy/infra/RESTORE.md`. 데이터 디스크(`/data`) 전체는 GCP 스냅샷 일정으로(콘솔 설정, 문서에 절차만).
+
+- [ ] 문서: `03`(notifications·posts 세부), `04`(알림·게시글 API 확정), `openapi.yaml`, `01` C-06·U-13 차이
+- [ ] api: `notifications`·`posts` 스키마, `notify()`와 위 7곳 연결, 알림 목록·안 읽은 수·읽음, 게시글 목록·보기·쓰기·수정·삭제(권한·첨부 검사), 90일 정리
+- [ ] web: C-06(두 헤더), U-13 목록·보기·쓰기·수정(미리보기), MCP 첨부 카드에서 설치 모달, 공개 앱 카드
+- [ ] 백업: `backup.sh`·cron·`RESTORE.md`, VM에서 덤프 1회·복구 리허설(임시 DB에 `pg_restore`)
+- [ ] 테스트: 알림 받는 사람 계산, 게시글 권한(공지·수정·삭제)·첨부 검사
+- [ ] 데모(사용자 확인): 네 장면을 새 사용자·새 팀으로 처음부터 — 장면마다 알림이 맞는 사람에게 오는지
+- [ ] VM: 같은 데모 + 백업·복구 리허설
 ## 다음 단계와의 연결
 
 | 단계 | 이 문서 세트에서 쓰는 부분 |

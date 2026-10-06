@@ -170,15 +170,15 @@
 | 이름 | 무엇 | 네트워크 |
 |---|---|---|
 | `kacp-mcp/{pkg}:{ver}` | 업로드된 패키지 이미지. 플랫폼 Dockerfile(`packages/create-platform-mcp/platform/Dockerfile`, orchestrator 이미지 `/app/platform/Dockerfile`)로 빌드. 실패·반려·대체된 버전은 지운다 | — |
-| `kacp-mcp-{key}--{team}` | 팀별 MCP 서버(`key` = 패키지 이름). uid 1000, 읽기 전용 루트, `/tmp` tmpfs, CapDrop ALL, 헬스 `GET /healthz`. 팀 컨테이너와 함께 켜지고 꺼진다 | `kacp-mcpnet-{team}`만 |
-| `kacp-mcpproxy-{key}--{team}` | egress 프록시(orchestrator 이미지 `node dist/egress-proxy.js`, 포트 3128). 매니페스트 `network` 도메인만 80·443으로 허용, IP 직접 접속·내부 주소로 풀리는 이름은 거절(403). MCP 컨테이너는 `HTTPS_PROXY`·`HTTP_PROXY`로 안다 | `kacp-mcpnet-{team}` + `kacp-egress` |
-| `kacp-mcpnet-{team}` | 팀 MCP 내부 네트워크(`internal`). 팀 컨테이너도 붙는다. Gateway는 `mcp.servers.{key의 -를 _로}` = `http://kacp-mcp-{key}--{team}:8080/mcp` | — |
+| `kacp-mcp-{pkg}` | 패키지 MCP 서버, **모든 팀 공용**. uid 1000, 읽기 전용 루트, `/tmp` tmpfs, CapDrop ALL, 헬스 `GET /healthz`, `unless-stopped`. 팀 비밀값은 컨테이너에 없고 호출마다 헤더로 온다. 첫 설치 때 켜고 마지막 제거 때 지움 | `kacp-mcp`만 |
+| `kacp-mcpproxy-{pkg}` | egress 프록시(orchestrator 이미지 `node dist/egress-proxy.js`, 포트 3128). 매니페스트 `network` 도메인만 80·443으로 허용, IP 직접 접속·내부 주소로 풀리는 이름은 거절(403). MCP 컨테이너는 `HTTPS_PROXY`·`HTTP_PROXY`로 안다 | `kacp-mcp` + `kacp-egress` |
+| `kacp-mcp` | MCP 공용 내부 네트워크(`internal`). 모든 팀 컨테이너도 붙는다. Gateway는 `mcp.servers.{pkg의 -를 _로}` = `http://kacp-mcp-{pkg}:8080/mcp` + 그 팀의 `X-KACP-Secret-*` 헤더 | — |
 | `kacp-egress` | 바깥으로 나가는 브리지. egress 프록시만 붙는다 | — |
 | `kacp-mcp-test` | 빌드 테스트용 내부 네트워크(compose). orchestrator가 붙어 `tools/list`를 부른다 | — |
 | `docker-build-proxy` | orchestrator 전용 빌드 socket-proxy(`BUILD IMAGES POST`), `kacp-core` | — |
 | `kacp-trivy-cache` | Trivy 취약점 DB 캐시 볼륨. 스캔 컨테이너는 DB를 받으려고 기본 `bridge`에 붙는다 | — |
 
-팀 Secret Store: `/data/teams/{team}/mcp/{key}/secrets.json`(root 0600, 팀 컨테이너에 안 붙임). orchestrator만 읽고 쓰며 MCP 컨테이너 환경변수로만 넣는다. orchestrator socket-proxy는 이제 로컬에서도 `NETWORKS=1`이다.
+팀 Secret Store: `/data/teams/{team}/mcp/{pkg}/secrets.json`(root 0600, 팀 컨테이너에 안 붙임). orchestrator만 읽고 쓰며 apply-config 때 그 팀 Gateway 항목의 헤더로만 넣는다(MCP 컨테이너 환경변수에는 없음). orchestrator socket-proxy는 이제 로컬에서도 `NETWORKS=1`이다.
 
 ## 7. 내부 서비스 주소 (compose 서비스 이름)
 
