@@ -320,10 +320,11 @@ const describe = (err: unknown) =>
 async function bringUp(team: string, spec: TeamRuntimeSpec) {
   await ensureCreated(team, spec);
   await startSandboxProxy(team);
+  // Market MCP servers first, so the Gateway finds them listening at startup; a broken one is logged,
+  // never a team error.
+  await startTeamMcp(team, (m) => console.error(m)).catch((err) => console.error(`mcp start ${team}: ${describe(err)}`));
   await startAndWait(team);
   await startSidecar(team, spec);
-  // Market MCP servers start with the team; a broken one shows as an install error, not a team error.
-  await startTeamMcp(team, (m) => console.error(m)).catch((err) => console.error(`mcp start ${team}: ${describe(err)}`));
   watched.add(team);
   await notifyTeamStatus(team, 'running');
 }

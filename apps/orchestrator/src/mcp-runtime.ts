@@ -130,9 +130,30 @@ async function createContainers(team: string, key: string, s: McpInstallSpec) {
   }));
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Waits for the server's health check. The Gateway connects to an MCP server once, when it learns about
+ * it (apply-config or startup); a server that is not listening yet stays out of the agent's tool list.
+ */
+async function waitHealthy(name: string, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const c = await docker.inspect(name);
+    if (!c || c.State.Status === 'exited' || c.State.Status === 'dead') {
+      const tail = (await docker.logsTail(name, 10)).trim().split('\n').slice(-3).join(' / ');
+      throw new Error(`MCP 서버가 시작 중 멈췄어요${c ? ` (exit ${c.State.ExitCode})` : ''}. ${tail}`.slice(0, 480));
+    }
+    if (c.State.Health?.Status === 'healthy') return;
+    if (Date.now() > deadline) throw new Error(`${timeoutMs / 1000}초 안에 MCP 서버가 준비되지 않았어요(/healthz).`);
+    await sleep(1000);
+  }
+}
+
 async function startPair(team: string, key: string) {
   await docker.start(mcpProxyContainer(key, team));
   await docker.start(mcpContainer(key, team));
+  await waitHealthy(mcpContainer(key, team));
 }
 
 /** Install or update (new version / new secrets): recreate, then start if the team is running. */
@@ -186,7 +207,10 @@ const namesOf = async (team: string) =>
     name: c.Names[0]!.replace(/^\//, ''), kind: c.Labels['kacp.kind'], state: c.State,
   }));
 
-/** With the team container: proxies first, then servers. Failures are reported per install, not fatal. */
+/**
+ * Before the team Gateway starts: proxies first, then servers, then wait until they are healthy so the
+ * Gateway finds them listening. Failures are logged per server, never fatal for the team.
+ */
 export async function startTeamMcp(team: string, log: (m: string) => void) {
   const list = await namesOf(team);
   if (!list.length) return;
@@ -196,6 +220,8 @@ export async function startTeamMcp(team: string, log: (m: string) => void) {
       await docker.start(c.name).catch((err) => log(`mcp start ${c.name}: ${describe(err)}`));
     }
   }
+  await Promise.all(list.filter((x) => x.kind === 'mcp').map((c) =>
+    waitHealthy(c.name, 45_000).catch((err) => log(`mcp ${c.name}: ${describe(err)}`))));
 }
 
 export async function stopTeamMcp(team: string) {
