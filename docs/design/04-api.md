@@ -219,8 +219,8 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 |---|---|---|
 | `GET /internal/forward-auth` | Traefik | `06-auth.md` §5 |
 | `POST /internal/mcp/apps/run` | platform-mcp | `{folder, port, command?, runtime?, name?}` → 같은 폴더의 앱이 있으면 작업본 재시작, 없으면 앱 생성 + 작업본 실행 → `{appId, url, status, isNew}`. 팀 동시 실행 한도를 넘으면 가장 오래 안 쓴 작업본을 `limit`으로 재움 |
-| `POST /internal/mcp/apps/{appId}/stop` | platform-mcp | |
-| `POST /internal/mcp/apps/{appId}/public-request` | platform-mcp | `deploy_app` |
+| `POST /internal/mcp/apps/stop` · `POST /internal/mcp/apps/deploy` · `GET /internal/mcp/apps` | platform-mcp | `stop_app`(`{app}` 이름 또는 id) · `deploy_app`(`{app, reason, name?}`, `requested_by = null`) · `list_apps` (5단계 확정 경로) |
+| (인증) | platform-mcp | 팀 MCP 토큰 `{team}.{HMAC(INTERNAL_TOKEN, "mcp:"+team)}` — api가 다시 계산해 확인, 저장 없음. platform-mcp는 받은 토큰을 그대로 넘긴다 |
 | `GET /internal/mcp/drive/list` · `read` · `POST write` | platform-mcp | 드라이브 도구. `actor_kind=agent`로 기록 |
 | `POST /internal/usage` | orchestrator | 1분마다 `{samples: [{targetType: vm\|team, targetId, cpuPct, memBytes, memLimitBytes, diskBytes?}]}` → `usage_samples` (3단계) |
 | `POST /internal/events` | orchestrator | 상태 변경 통지 `{type: team.status\|team.provision\|app.status\|mcp.build\|mcp.install, id, status, detail}`(`team.provision`의 `detail.stage` = `name`→`storage`→`container`→`default_mcp`→`done`, A-04 진행 표시) → DB 반영 + 알림. `app.status`는 `copy: work\|public`, `stopReason`(stopped일 때 `idle`\|`limit`\|`manual`\|`admin`, 아니면 null)을 더 보낸다 |
@@ -237,12 +237,12 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | `POST /internal/teams/{team}/apply-config` | 할당 에이전트·MCP·**팀 관리자 목록(`identityScopes`)** 반영. 실행 중이면 `config.patch`(roles·`identityScopes`는 hot reload, spike 02), 꺼져 있으면 다음 기동 직후 `config.patch`. **openclaw.json을 통째로 다시 쓰지 않는다** — 첫 기동 이후 파일을 바꾸면 OpenClaw가 `Config auto-restored from backup`으로 되돌리고, 그 백업이 최신이 아니어서 최근 hot reload 변경까지 잃을 수 있다(spike 02·03). 시드는 파일이 없을 때만. `controlUi.basePath`처럼 재시작이 필요한 키는 프로비저닝 때만 정한다. api는 팀 관리자 지정·해제 때도 호출한다. admin-http-rpc `config.patch` 경로로도 확인(spike 04: 지정 200, 해제는 `replacePaths` 필요) |
 | `PUT /internal/teams/{team}/resources` | `docker update` |
 | `DELETE /internal/teams/{team}` | 정상 정지 → 컨테이너(팀·사이드카·MCP)·네트워크 제거, 데이터 `backups/deleted-teams`로 이동 |
-| `POST /internal/apps/{appId}/work/{run\|stop}` | 작업본 컨테이너(원본 폴더 ro + work-data rw) |
-| `POST /internal/apps/{appId}/public/deploy` | `{version}` 스냅샷 복사 → 공개본 컨테이너 생성 또는 교체(새 컨테이너 헬스 통과 후 라우트 전환) |
-| `POST /internal/apps/{appId}/public/{start\|stop\|remove}` | 공개본 컨테이너 |
-| `DELETE /internal/apps/{appId}` | 두 사본 제거 |
-| `POST /internal/apps/{appId}/diff` | 원본 폴더 vs 현재 공개본 스냅샷 파일 변경 목록 |
-| `GET /internal/apps/{appId}/{work\|public}/logs` · `stats` | |
+| `POST /internal/apps/{appId}/{work\|public}/run` | 사본 실행 `{team, slug, copy, publicName?, version?, sourceRel, dataRel, runtime, command, port, env, limits}` → 202, 결과는 `app.status` 이벤트. 작업본은 컨테이너 교체, 공개본은 새 버전 컨테이너(`kacp-pub-{name}-v{n}`)가 응답하면 이전 버전 제거(무중단) |
+| `POST /internal/apps/{appId}/{work\|public}/stop` · `DELETE /internal/apps/{appId}/{work\|public}` | 정지(컨테이너는 로그용으로 남김) · 제거 |
+| (스냅샷·차이) | **api가 한다**(5단계 결정): 승인 때 원본 → `apps/{id}/snapshots/{v}` 복사(최근 3개), update 요청 때 파일 차이 계산 |
+| (헬스) | orchestrator가 `kacp-edge`로 `http://{컨테이너}:{port}/` 응답을 기다림(90초) |
+| (사용량) | 앱 컨테이너 Docker stats → `usage_samples` `target_type=app`, `target_id={appId}:{work\|public}` |
+| `GET /internal/apps/{appId}/{work\|public}/logs?tail=` | `{lines}` (Docker 로그 프레임 해석) |
 | `POST /internal/mcp/versions/{id}/build` | 빌드 대기열에 넣기 |
 | `POST /internal/teams/{team}/mcp/install` · `remove` · `secrets` | MCP 컨테이너 + 팀 Secret Store + `config.patch` |
 | `GET /internal/gateway/{team}/rpc` | api 대신 admin-http-rpc 호출(프록시) — `config.get` 등. 팀 Gateway 비밀번호를 쓰는 유일한 곳. 실제 호출은 팀 사이드카 `kacp-gwagent-{team}` → loopback(`06-auth.md` §6, spike 04). HTTP 허용 메서드만 된다(`config.*`, `agents.*`, `models.authStatus`, `health`, `status` 등. `users.*`·`session.*` 없음) |

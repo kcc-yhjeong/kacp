@@ -26,7 +26,7 @@ interface AppHeaderProps {
   currentTeam?: string;
   /** Live status of the current team (the shell knows it better than /me/teams). */
   currentStatus?: TeamContainerStatus;
-  active?: 'agent' | 'drive';
+  active?: 'agent' | 'drive' | 'apps';
   /** Where the team switcher goes for another team (drive pages keep the same drive page). Default: team root. */
   teamHref?: (team: MyTeam) => string;
 }
@@ -67,7 +67,17 @@ export function AppHeader({ variant = 'full', currentTeam, currentStatus, active
               ) : (
                 <ComingSoon>드라이브</ComingSoon>
               )}
-              <ComingSoon>배포관리</ComingSoon>
+              {scopeTeam ? (
+                <a
+                  href={`${appOrigin}/t/${encodeURIComponent(scopeTeam.name)}/apps`}
+                  className={navClass(active === 'apps')}
+                  aria-current={active === 'apps' ? 'page' : undefined}
+                >
+                  배포관리
+                </a>
+              ) : (
+                <ComingSoon>배포관리</ComingSoon>
+              )}
             </nav>
           </>
         )}

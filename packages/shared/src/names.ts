@@ -7,6 +7,8 @@ export const RESERVED_NAMES: readonly string[] = [
   'app', 'admin', 'api', 'www', 'auth', 'login', 'static', 'assets', 'cdn', 'mail', 'smtp', 'ftp',
   'ns1', 'ns2', 'traefik', 'proxy', 'grafana', 'prometheus', 'status', 'help', 'docs', 'kacp', 'claw',
   'openclaw', 'market', 'community', 'drive', 'internal', 'system', 'root', 'test', 'dev', 'staging',
+  // `{team}--sbx` is the team's OpenClaw sandbox origin; no team may be called "sbx" (05 §2).
+  'sbx',
 ];
 
 export type NameProblem = 'NAME_INVALID' | 'NAME_RESERVED';

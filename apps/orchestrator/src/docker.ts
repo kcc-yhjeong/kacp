@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { demuxLogs } from './logs.js';
 
 // Minimal Docker Engine API client over plain fetch (CLAUDE.md: no dockerode). Every call goes
 // through docker-socket-proxy, which only allows container endpoints (spike 06).
@@ -132,9 +133,9 @@ export const docker = {
 
   /** Last log lines (stdout+stderr, multiplexed frames stripped). */
   async logsTail(name: string, lines = 50): Promise<string> {
-    const r = await request('GET', `/containers/${name}/logs?stdout=1&stderr=1&tail=${lines}`);
-    if (r.status !== 200) return '';
-    return r.text.replace(/[\x00-\x08\x0e-\x1f]/g, '');
+    const res = await fetch(`${config.dockerUrl}${API}/containers/${name}/logs?stdout=1&stderr=1&timestamps=0&tail=${lines}`);
+    if (res.status !== 200) return '';
+    return demuxLogs(Buffer.from(await res.arrayBuffer()));
   },
 
   async listByLabel(label: string): Promise<{ Names: string[]; State: string; Labels: Record<string, string> }[]> {
@@ -144,3 +145,4 @@ export const docker = {
     return r.body as { Names: string[]; State: string; Labels: Record<string, string> }[];
   },
 };
+

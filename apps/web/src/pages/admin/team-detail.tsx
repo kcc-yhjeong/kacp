@@ -2,7 +2,6 @@ import { TEAM_ROLE_LABEL, type TeamRole } from '@kacp/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import {
-  AppWindow,
   Check,
   ChevronRight,
   Cpu,
@@ -27,6 +26,7 @@ import { AdminTeamStatusBadge, ApplyStatusBadge, TeamRoleBadge } from '@/compone
 import { DepartmentBulkPicker } from '@/components/admin/department-bulk';
 import { EmptyState, ErrorState, Field, PageContainer, SectionCard } from '@/components/admin/page';
 import { UserPicker } from '@/components/admin/user-picker';
+import { TeamAppsTab } from '@/pages/admin/team-apps';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageLoader } from '@/components/page-loader';
 import { Button } from '@/components/ui/button';
@@ -120,13 +120,7 @@ function TeamDetail({ team }: { team: AdminTeamDetail }) {
           </div>
         </TabsContent>
         <TabsContent value="apps">
-          <div className="rounded-xl border">
-            {(team.apps?.length ?? 0) === 0 ? (
-              <EmptyState icon={AppWindow} title="아직 앱이 없어요" description="팀 에이전트가 웹 앱을 띄우면 여기에 보여요" />
-            ) : (
-              <div className="px-5 py-4 text-sm">앱 {team.apps?.length}개</div>
-            )}
-          </div>
+          <TeamAppsTab team={team.name} />
         </TabsContent>
         <TabsContent value="danger">
           <DangerTab team={team} />

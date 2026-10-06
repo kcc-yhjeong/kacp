@@ -241,3 +241,73 @@ export const trashItems = pgTable('trash_items', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }).notNull().defaultNow(),
   purgeAfter: timestamp('purge_after', { withTimezone: true }).notNull(),
 }, (t) => [index('trash_items_team').on(t.teamId), check('trash_items_space_check', sql`${t.space} in ('me', 'shared')`)]);
+
+// ── apps (03-data-model.md 앱): one app = work copy + optional public copy ──
+
+export const apps = pgTable('apps', {
+  id: uuid('id').primaryKey(),
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  creatorId: uuid('creator_id'),
+  slug: text('slug').notNull(),
+  sourceSpace: text('source_space').notNull().default('shared'),
+  sourcePath: text('source_path').notNull(),
+  runSpec: jsonb('run_spec').notNull().$type<{ command: string; port: number; runtime: 'node' | 'python' | 'static'; env?: Record<string, string> }>(),
+  resourceLimits: jsonb('resource_limits').$type<{ cpu: number; memoryMb: number }>(),
+  workStatus: text('work_status').notNull().default('stopped'),
+  workStopReason: text('work_stop_reason'),
+  workStatusDetail: text('work_status_detail'),
+  workContainerId: text('work_container_id'),
+  workLastAccessedAt: timestamp('work_last_accessed_at', { withTimezone: true }),
+  workStartedAt: timestamp('work_started_at', { withTimezone: true }),
+  publicName: text('public_name'),
+  publicVersion: integer('public_version'),
+  publicStatus: text('public_status'),
+  publicStopReason: text('public_stop_reason'),
+  publicStatusDetail: text('public_status_detail'),
+  publicContainerId: text('public_container_id'),
+  publicSnapshotPath: text('public_snapshot_path'),
+  publicPublishedAt: timestamp('public_published_at', { withTimezone: true }),
+  publicApprovedBy: uuid('public_approved_by'),
+  publicLastAccessedAt: timestamp('public_last_accessed_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex('apps_team_slug').on(t.teamId, t.slug).where(sql`${t.deletedAt} is null`),
+  uniqueIndex('apps_team_source').on(t.teamId, t.sourceSpace, t.sourcePath).where(sql`${t.deletedAt} is null`),
+  check('apps_work_status_check', sql`${t.workStatus} in ('starting', 'running', 'stopped', 'error')`),
+  check('apps_public_status_check', sql`${t.publicStatus} is null or ${t.publicStatus} in ('starting', 'running', 'stopped', 'error')`),
+  check('apps_work_stop_reason_check', sql`${t.workStopReason} is null or ${t.workStopReason} in ('idle', 'limit', 'manual')`),
+  check('apps_public_stop_reason_check', sql`${t.publicStopReason} is null or ${t.publicStopReason} in ('idle', 'manual', 'admin')`),
+]);
+
+export const deployRequests = pgTable('deploy_requests', {
+  id: uuid('id').primaryKey(),
+  appId: uuid('app_id').notNull().references(() => apps.id),
+  kind: text('kind').notNull(),
+  requestedBy: uuid('requested_by'),
+  requestedName: text('requested_name'),
+  reason: text('reason').notNull(),
+  fromVersion: integer('from_version'),
+  diffSummary: jsonb('diff_summary').$type<{ added: string[]; modified: string[]; removed: string[] }>(),
+  status: text('status').notNull().default('pending'),
+  decidedBy: uuid('decided_by'),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+  decisionNote: text('decision_note'),
+  approvedVersion: integer('approved_version'),
+  createdAt: createdAt(),
+}, (t) => [
+  // One pending request per app (03-data-model.md).
+  uniqueIndex('deploy_requests_one_pending').on(t.appId).where(sql`${t.status} = 'pending'`),
+  check('deploy_requests_kind_check', sql`${t.kind} in ('publish', 'update')`),
+  check('deploy_requests_status_check', sql`${t.status} in ('pending', 'approved', 'rejected', 'cancelled')`),
+]);
+
+export const appVersions = pgTable('app_versions', {
+  appId: uuid('app_id').notNull().references(() => apps.id),
+  version: integer('version').notNull(),
+  snapshotPath: text('snapshot_path').notNull(),
+  requestId: uuid('request_id'),
+  approvedBy: uuid('approved_by'),
+  approvedAt: timestamp('approved_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.appId, t.version] })]);

@@ -66,6 +66,11 @@ export async function decide(req: ForwardAuthRequest, deps: ForwardAuthDeps): Pr
   if (target.kind === 'login_only') return { status: 200, headers: identity };
 
   const role = await deps.membership(target.teamId, s.user.id);
+  // Platform admins review work copies from A-09 ("작업본 열기"), so they may open `slug--team`
+  // hosts. Team hosts (shell, agent) stay members-only (06-auth.md §7).
+  if (!role && hc.kind === 'work' && s.user.platformRole === 'admin') {
+    return { status: 200, headers: { ...identity, 'X-KACP-Team': target.team, 'X-KACP-Team-Role': 'platform_admin' } };
+  }
   if (!role) {
     if (!isBrowserNav) return { status: 403 };
     return { status: 302, location: `${appOrigin}/forbidden?team=${encodeURIComponent(target.team)}` };

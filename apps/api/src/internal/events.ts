@@ -6,6 +6,7 @@ import { requireInternal } from '../auth/guards.js';
 import { db } from '../db/client.js';
 import { teams } from '../db/schema.js';
 import { setStatus } from '../teams/runtime.js';
+import { onAppStatus } from '../apps/service.js';
 
 // Status notifications from the orchestrator (04-api.md §3 POST /internal/events).
 const Event = z.discriminatedUnion('type', [
@@ -13,6 +14,14 @@ const Event = z.discriminatedUnion('type', [
     type: z.literal('team.status'),
     id: z.string(),
     status: z.enum(TEAM_CONTAINER_STATUSES),
+    detail: z.string().nullable().optional(),
+  }),
+  z.object({
+    type: z.literal('app.status'),
+    id: z.string(),
+    copy: z.enum(['work', 'public']),
+    status: z.enum(['starting', 'running', 'stopped', 'error']),
+    stopReason: z.enum(['idle', 'limit', 'manual', 'admin']).nullable().optional(),
     detail: z.string().nullable().optional(),
   }),
   z.object({
@@ -29,6 +38,8 @@ export async function internalEventRoutes(app: FastifyInstance) {
     if (ev.type === 'team.status') {
       await setStatus(ev.id, ev.status, ev.detail ?? null);
       req.log.info({ team: ev.id, status: ev.status }, 'team status');
+    } else if (ev.type === 'app.status') {
+      await onAppStatus(ev.id, ev.copy, ev.status, ev.stopReason ?? null, ev.detail ?? null);
     } else {
       await db.update(teams)
         .set({ provisionStage: ev.stage, ...(ev.stage === 'failed' ? { containerError: ev.detail ?? '프로비저닝에 실패했어요.' } : {}) })

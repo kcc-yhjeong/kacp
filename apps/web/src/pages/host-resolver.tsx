@@ -1,14 +1,25 @@
 import { RouterProvider } from '@tanstack/react-router';
-import { Square, TriangleAlert } from 'lucide-react';
-import { useMemo } from 'react';
+import { TriangleAlert } from 'lucide-react';
+import { lazy, Suspense, useMemo } from 'react';
 import { MessagePage, NotFoundPage } from '@/components/message-page';
 import { PageLoader } from '@/components/page-loader';
 import { useHostKind } from '@/lib/queries';
 import { createTeamRouter } from '@/routes/team-router';
 
+const AppHostPage = lazy(() => import('@/pages/apps/app-host-page').then((m) => ({ default: m.AppHostPage })));
+
+/** C-04 for app copies (`{slug}--{team}` work copies and public names) — its own lazy chunk. */
+export function AppHost() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <AppHostPage />
+    </Suspense>
+  );
+}
+
 /**
  * Single-label hosts reach the SPA through `fallback-web`. `GET /names/{label}` decides:
- * team → agent shell, nothing → 404, app copy without a running container → stopped notice.
+ * team → agent shell, nothing → 404, public app without a serving container → C-04 app flow.
  */
 export function HostResolver({ label, team }: { label: string; team: string | null }) {
   const kind = useHostKind(label);
@@ -27,17 +38,7 @@ export function HostResolver({ label, team }: { label: string; team: string | nu
   }
   const hostKind = kind.data?.hostKind ?? 'none';
   if (hostKind === 'team' && team) return <TeamApp team={team} />;
-  if (hostKind === 'public_app' || hostKind === 'private_app') {
-    // Wake / stop-reason handling (GET /app-hosts/{host}) arrives with app deploy (stage 5).
-    return (
-      <MessagePage
-        icon={Square}
-        code="멈춤"
-        title="이 앱은 지금 멈춰 있어요"
-        description="나중에 다시 열어 주세요."
-      />
-    );
-  }
+  if (hostKind === 'public_app' || hostKind === 'private_app') return <AppHost />;
   return <NotFoundPage />;
 }
 

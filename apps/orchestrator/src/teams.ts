@@ -1,7 +1,7 @@
 import { chmod, chown, mkdir, rename, stat, writeFile } from 'node:fs/promises';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import {
-  config, GATEWAY_PORT, GWAGENT_PORT, gwagentContainer, MAIN_WORKSPACE_DRIVE, OPENCLAW_UID, sandboxEnabled, sbxNetwork,
+  config, GATEWAY_PORT, GWAGENT_PORT, SANDBOX_LISTENER_PORT, sandboxHost, sandboxOrigin, gwagentContainer, MAIN_WORKSPACE_DRIVE, OPENCLAW_UID, sandboxEnabled, sbxNetwork,
   sbxProxyContainer, STATE_DIR, TEAM_DRIVE_PATH, teamContainer, teamSharedDir, teamSharedRel, teamStateHostDir, teamStateVolume,
 } from './config.js';
 import { docker, DockerError } from './docker.js';
@@ -53,7 +53,7 @@ function teamEnv(spec: TeamRuntimeSpec): string[] {
 }
 
 /** Bumped when the mount layout changes, so stopped containers are recreated with it. */
-const LAYOUT_VERSION = 'drive-v1';
+const LAYOUT_VERSION = 'sbx-v2';
 
 function sandboxEnv(team: string): string[] {
   // TMPDIR inside the bind-mounted state dir: OpenClaw creates temp workspaces (e.g. Model Setup's
@@ -79,6 +79,7 @@ const memory = (limits: TeamRuntimeSpec['resourceLimits']) => limits.memoryMb * 
 
 function containerSpec(team: string, spec: TeamRuntimeSpec) {
   const router = `team-claw-${team}`;
+  const sbxRouter = `team-sbx-${team}`;
   const stateMount = config.stateMode === 'bind'
     ? { Type: 'bind', Source: teamStateHostDir(team), Target: STATE_DIR }
     : { Type: 'volume', Source: teamStateVolume(team), Target: STATE_DIR };
@@ -99,6 +100,14 @@ function containerSpec(team: string, spec: TeamRuntimeSpec) {
       [`traefik.http.routers.${router}.middlewares`]: 'secure-headers@file,strip-identity@file,kacp-auth@file,claw-frame@file',
       [`traefik.http.routers.${router}.service`]: router,
       [`traefik.http.services.${router}.loadbalancer.server.port`]: String(GATEWAY_PORT),
+      // Sandbox origin (HTML previews): no forward-auth by design — it serves only the isolated renderer;
+      // the platform session cookie and identity headers are stripped (OpenClaw cli/mcp/apps.md).
+      [`traefik.http.routers.${sbxRouter}.rule`]: `Host(\`${sandboxHost(team)}\`)`,
+      [`traefik.http.routers.${sbxRouter}.priority`]: '65',
+      [`traefik.http.routers.${sbxRouter}.entrypoints`]: 'websecure',
+      [`traefik.http.routers.${sbxRouter}.middlewares`]: 'secure-headers@file,strip-identity@file,strip-session-cookie@file',
+      [`traefik.http.routers.${sbxRouter}.service`]: sbxRouter,
+      [`traefik.http.services.${sbxRouter}.loadbalancer.server.port`]: String(SANDBOX_LISTENER_PORT),
     },
     // The image default interval is 180 s, too slow for the 120 s start timeout (spike 01).
     Healthcheck: {
@@ -405,7 +414,7 @@ export function applyConfig(team: string, desired: DesiredConfig) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const got = await gatewayRpc(team, 'config.get') as { payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown>; hash?: string } };
       const current = got.payload?.config ?? got.payload?.parsed ?? {};
-      const plan = computePatch(current, desired, { sandbox: sandboxEnabled() });
+      const plan = computePatch(current, desired, { sandbox: sandboxEnabled(), sandboxOrigin: sandboxOrigin(team) });
       if (!plan) return { changed: false };
       try {
         await gatewayRpc(team, 'config.patch', {

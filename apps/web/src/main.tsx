@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { currentHost } from '@/lib/host';
 import { createQueryClient } from '@/lib/queries';
-import { HostResolver } from '@/pages/host-resolver';
+import { AppHost, HostResolver } from '@/pages/host-resolver';
 import { appRouter } from '@/routes/app-router';
 import './index.css';
 
@@ -22,7 +22,8 @@ function hostApp(): ReactNode {
     case 'name':
       return <HostResolver label={hc.name} team={hc.name} />;
     case 'work':
-      return <HostResolver label={`${hc.slug}--${hc.team}`} team={null} />;
+      // `{slug}--{team}` is always a work copy: no `/names` lookup (C-04 app flow).
+      return <AppHost />;
     default:
       return <NotFoundPage />;
   }

@@ -15,9 +15,18 @@ import {
 } from 'lucide-react';
 import { Fragment } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePendingDeployRequests } from '@/lib/apps/api';
 import { cn } from '@/lib/utils';
 
-type AdminPath = '/admin' | '/admin/org' | '/admin/users' | '/admin/teams' | '/admin/agents' | '/admin/settings' | '/admin/audit';
+type AdminPath =
+  | '/admin'
+  | '/admin/org'
+  | '/admin/users'
+  | '/admin/teams'
+  | '/admin/agents'
+  | '/admin/settings'
+  | '/admin/audit'
+  | '/admin/deploy';
 
 interface Item {
   label: string;
@@ -26,6 +35,8 @@ interface Item {
   to?: AdminPath;
   /** Extra path prefixes that count as this item (A-13 belongs to 조직). */
   also?: string[];
+  /** Pending count badge (SidebarMenuBadge). */
+  badge?: 'deploy';
 }
 
 // Groups per 01-screens.md §5. Dashboard alone on top.
@@ -49,7 +60,7 @@ const GROUPS: { label: string | null; items: Item[] }[] = [
     label: '심사·승인',
     items: [
       { label: 'MCP 심사', icon: ShieldCheck },
-      { label: '배포 승인', icon: BadgeCheck },
+      { label: '배포 승인', icon: BadgeCheck, to: '/admin/deploy', badge: 'deploy' },
     ],
   },
   {
@@ -72,6 +83,7 @@ function isActive(pathname: string, item: Item): boolean {
 /** AdminSidebar (02 §5): 16rem, collapses to 3rem icons. */
 export function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const deployPending = usePendingDeployRequests().data?.length ?? 0;
 
   return (
     <aside
@@ -90,7 +102,13 @@ export function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onTo
                 <span className="px-2 pt-3 pb-1.5 text-[11.5px] text-muted-foreground">{g.label}</span>
               ))}
             {g.items.map((item) => (
-              <SidebarItem key={item.label} item={item} active={isActive(pathname, item)} collapsed={collapsed} />
+              <SidebarItem
+                key={item.label}
+                item={item}
+                active={isActive(pathname, item)}
+                collapsed={collapsed}
+                count={item.badge === 'deploy' ? deployPending : 0}
+              />
             ))}
           </Fragment>
         ))}
@@ -113,7 +131,7 @@ export function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onTo
   );
 }
 
-function SidebarItem({ item, active, collapsed }: { item: Item; active: boolean; collapsed: boolean }) {
+function SidebarItem({ item, active, collapsed, count = 0 }: { item: Item; active: boolean; collapsed: boolean; count?: number }) {
   const Icon = item.icon;
   const cls = cn(
     'flex h-8 items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
@@ -150,13 +168,18 @@ function SidebarItem({ item, active, collapsed }: { item: Item; active: boolean;
     <Link to={item.to} className={cls} aria-current={active ? 'page' : undefined}>
       {iconEl}
       {!collapsed && <span className="flex-1">{item.label}</span>}
+      {!collapsed && count > 0 && (
+        <span className="grid h-5 min-w-5 place-items-center rounded-md bg-primary px-1 text-[11px] font-medium text-primary-foreground tabular-nums">
+          {count}
+        </span>
+      )}
     </Link>
   );
   if (!collapsed) return link;
   return (
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{item.label}</TooltipContent>
+      <TooltipContent side="right">{count > 0 ? `${item.label} · ${count}` : item.label}</TooltipContent>
     </Tooltip>
   );
 }

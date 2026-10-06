@@ -1,7 +1,8 @@
 import type { FastifyBaseLogger } from 'fastify';
 import { and, eq, lt, notExists, or, isNull, sql } from 'drizzle-orm';
 import { db } from './db/client.js';
-import { loginAttempts, teamPresence, teams, usageSamples } from './db/schema.js';
+import { apps, loginAttempts, teamPresence, teams, usageSamples } from './db/schema.js';
+import { stopCopy } from './apps/service.js';
 import { purgeExpiredTrash } from './drive/routes.js';
 import { getSetting } from './settings.js';
 import { requestStop, setStatus } from './teams/runtime.js';
@@ -41,6 +42,23 @@ async function idleStop(log: FastifyBaseLogger) {
   await db.delete(usageSamples).where(lt(usageSamples.ts, sql`now() - interval '7 days'`));
 }
 
+// Apps sleep after their idle window (work 30 min, public 120 min — A-10) without visits.
+async function appIdleStop(log: FastifyBaseLogger) {
+  const idle = await getSetting('ops.app_idle_stop_minutes');
+  const work = await db.select().from(apps).where(and(isNull(apps.deletedAt), eq(apps.workStatus, 'running'),
+    or(isNull(apps.workLastAccessedAt), lt(apps.workLastAccessedAt, sql`now() - make_interval(mins => ${idle.work})`))));
+  for (const a of work) {
+    log.info({ app: a.slug }, 'app work idle stop');
+    await stopCopy(a, 'work', 'idle');
+  }
+  const pub = await db.select().from(apps).where(and(isNull(apps.deletedAt), eq(apps.publicStatus, 'running'),
+    or(isNull(apps.publicLastAccessedAt), lt(apps.publicLastAccessedAt, sql`now() - make_interval(mins => ${idle.public})`))));
+  for (const a of pub) {
+    log.info({ app: a.slug }, 'app public idle stop');
+    await stopCopy(a, 'public', 'idle');
+  }
+}
+
 async function daily(log: FastifyBaseLogger) {
   const purged = await purgeExpiredTrash();
   if (purged) log.info({ purged }, 'trash purged');
@@ -51,7 +69,10 @@ export function startWorkers(log: FastifyBaseLogger) {
   const runDaily = () => daily(log).catch((err) => log.error({ err }, 'daily worker failed'));
   setTimeout(runDaily, 30_000).unref();
   setInterval(runDaily, 24 * 60 * 60 * 1000).unref();
-  const tick = () => idleStop(log).catch((err) => log.error({ err }, 'idle stop worker failed'));
+  const tick = () => {
+    idleStop(log).catch((err) => log.error({ err }, 'idle stop worker failed'));
+    appIdleStop(log).catch((err) => log.error({ err }, 'app idle stop worker failed'));
+  };
   const timer = setInterval(tick, 60_000);
   timer.unref();
 }

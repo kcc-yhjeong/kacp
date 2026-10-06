@@ -1,4 +1,5 @@
 import { Lock, Search, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { appOrigin } from '@/lib/host';
@@ -10,10 +11,12 @@ interface MessagePageProps {
   title: string;
   description: string;
   action?: { label: string; href: string };
+  /** Extra block under the description (C-04 admin stop reason). */
+  detail?: ReactNode;
 }
 
 /** C-04 layout: same frame, different copy. Uses plain links so it works outside a router. */
-export function MessagePage({ host = location.host, icon: Icon, code, title, description, action }: MessagePageProps) {
+export function MessagePage({ host = location.host, icon: Icon, code, title, description, action, detail }: MessagePageProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4 text-sm">
@@ -30,6 +33,7 @@ export function MessagePage({ host = location.host, icon: Icon, code, title, des
             <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
             <p className="text-sm leading-relaxed text-pretty text-muted-foreground">{description}</p>
           </div>
+          {detail}
           {action && (
             <Button asChild>
               <a href={action.href}>{action.label}</a>

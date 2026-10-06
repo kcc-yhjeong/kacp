@@ -33,6 +33,7 @@ export const config = {
   dataVolume: process.env.DATA_VOLUME ?? 'kacp-data',
   /** Bind mode only: sandbox image and the per-team sandbox socket proxy image (05 §6). */
   sandboxImage: process.env.SANDBOX_IMAGE ?? 'openclaw-sandbox:bookworm-slim',
+  appRuntimeTag: process.env.APP_RUNTIME_TAG ?? '1',
   socketProxyImage: process.env.SOCKET_PROXY_IMAGE ?? 'tecnativa/docker-socket-proxy:v0.5.0',
 };
 
@@ -41,6 +42,11 @@ export const STATE_DIR = '/home/node/.openclaw';
 export const OPENCLAW_UID = 1000;
 
 export const GWAGENT_PORT = 18800;
+/** OpenClaw sandbox listener (HTML previews, Canvas; MCP Apps if ever enabled). */
+export const SANDBOX_LISTENER_PORT = 18790;
+/** `{team}--sbx.{base}`: a separate origin for that listener ("sbx" is a reserved name — 05 §2). */
+export const sandboxHost = (team: string) => `${team}--sbx.${config.baseDomain}`;
+export const sandboxOrigin = (team: string) => `${config.scheme}://${sandboxHost(team)}`;
 
 export const teamContainer = (team: string) => `kacp-team-${team}`;
 export const gwagentContainer = (team: string) => `kacp-gwagent-${team}`;

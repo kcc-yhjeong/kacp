@@ -149,9 +149,36 @@ services:
     restart: unless-stopped
     networks: [kacp-edge]
 
+  # Shared MCP for every team (docs/README.md 5단계): team Gateways reach it on kacp-edge with their
+  # team MCP token; it forwards the token to the api over kacp-core.
+  platform-mcp:
+    build:
+      context: ../..
+      dockerfile: packages/platform-mcp/Dockerfile
+    image: kacp/platform-mcp:dev
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:3000
+    networks: [kacp-edge, kacp-core]
+
   # Build-only: the team Gateway image (deploy/openclaw-image). Containers are created by orchestrator.
   openclaw-image:
     profiles: [build]
     build:
       context: ../openclaw-image
     image: ${OPENCLAW_IMAGE}
+
+  # Build-only: app runtime images (deploy/app-runtime). Containers are created by orchestrator.
+  app-runtime-node:
+    profiles: [build]
+    build: { context: ../app-runtime, dockerfile: Dockerfile.node }
+    image: kacp/app-runtime-node:1
+  app-runtime-python:
+    profiles: [build]
+    build: { context: ../app-runtime, dockerfile: Dockerfile.python }
+    image: kacp/app-runtime-python:1
+  app-runtime-static:
+    profiles: [build]
+    build: { context: ../app-runtime, dockerfile: Dockerfile.static }
+    image: kacp/app-runtime-static:1
+

@@ -40,6 +40,11 @@ export const ERROR_MESSAGES = {
   DRIVE_EXISTS: '같은 이름이 이미 있어요.',
   DRIVE_QUOTA_EXCEEDED: '팀 드라이브 용량이 부족해요.',
   DRIVE_TOO_LARGE: '업로드하지 못했어요. 파일이 500MB를 넘어요.',
+  APP_NOT_FOUND: '앱을 찾을 수 없어요.',
+  APP_STATE_CONFLICT: '지금 상태에서는 할 수 없어요.',
+  APP_NOT_PUBLIC: '공개된 앱이 아니에요.',
+  APP_ALREADY_PUBLIC: '이미 공개된 앱이에요.',
+  DEPLOY_ALREADY_PENDING: '이미 검토 중인 요청이 있어요.',
   ORCHESTRATOR_UNAVAILABLE: '지금은 팀 에이전트를 켤 수 없어요. 잠시 후 다시 시도하세요.',
   INTERNAL: '문제가 생겼어요. 잠시 후 다시 시도하세요.',
 } as const;

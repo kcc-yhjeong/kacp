@@ -1,4 +1,4 @@
-import { config, sandboxEnabled, TEAM_DRIVE_PATH, teamSharedDir } from './config.js';
+import { config, sandboxEnabled, SANDBOX_LISTENER_PORT, sandboxOrigin, TEAM_DRIVE_PATH, teamSharedDir } from './config.js';
 import { SANDBOX_PRUNE } from './apply-config.js';
 
 // openclaw.json seed (06-auth.md §6, spikes 01–04). Written once, before the first start, only if
@@ -40,6 +40,8 @@ export function seedConfig(team: string, adminEmails: string[]) {
       ...(sandboxEnabled() ? { sandbox: { tools: { alsoAllow: ['bundle-mcp'] } } } : {}),
     },
     plugins: { entries: { 'admin-http-rpc': { enabled: true } } },
+    // HTML previews / Canvas render on the separate sandbox listener (MCP Apps stay disabled).
+    mcp: { apps: { sandboxOrigin: sandboxOrigin(team), sandboxPort: SANDBOX_LISTENER_PORT } },
     ...(sandboxEnabled() ? { agents: { defaults: { sandbox: sandboxConfig(team) } } } : {}),
   };
 }

@@ -4,6 +4,7 @@ import { config, teamContainer } from './config.js';
 import { docker, type ContainerStats } from './docker.js';
 import { sendUsage } from './events.js';
 import { watchedTeams } from './teams.js';
+import { runningAppContainers } from './apps.js';
 
 // Usage collection (04-api.md §4, every minute): team containers via Docker stats, the VM via
 // /proc-backed os counters (shared with the host in a container) and statfs on the data disk.
@@ -49,6 +50,17 @@ async function collect() {
     samples.push({
       targetType: 'team',
       targetId: team,
+      cpuPct: containerCpuPct(s),
+      memBytes: (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
+      memLimitBytes: s.memory_stats.limit ?? null,
+    });
+  }
+  for (const c of await runningAppContainers().catch(() => [])) {
+    const s = await docker.stats(c.name).catch(() => null);
+    if (!s) continue;
+    samples.push({
+      targetType: 'app',
+      targetId: `${c.appId}:${c.copy}`,
       cpuPct: containerCpuPct(s),
       memBytes: (s.memory_stats.usage ?? 0) - (s.memory_stats.stats?.inactive_file ?? 0),
       memLimitBytes: s.memory_stats.limit ?? null,

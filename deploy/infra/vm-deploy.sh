@@ -53,9 +53,9 @@ for n in kacp-edge kacp-core; do
   fi
 done
 
-log "build (team Gateway, sandbox, api, orchestrator, web)"
-$C --profile build build openclaw-image sandbox-image
-$C build api orchestrator web
+log "build (team Gateway, sandbox, app runtimes, api, orchestrator, web, platform-mcp)"
+$C --profile build build openclaw-image sandbox-image app-runtime-node app-runtime-python app-runtime-static
+$C build api orchestrator web platform-mcp
 
 log "up"
 $C up -d

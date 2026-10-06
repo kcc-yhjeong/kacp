@@ -208,6 +208,39 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - 메모: Control UI Model Setup에서 키를 넣고 실패한 뒤 다시 넣으면 "공유 인증 정보" 계정이 하나씩 쌓인다(지우면 됨). 권장 경로는 A-10 플랫폼 API 키(→ 팀 컨테이너 환경변수).
 - v2 로드맵 후보로 남긴 것: 에이전트의 "내 드라이브" 접근(사람별 OAuth MCP, `06-auth.md` §8).
 
+## 5단계 통과 조건 (앱 배포)
+
+목표: 데모 장면 3 — **에이전트가 만든 웹 앱이 작업본(`앱--팀`)으로 바로 뜨고, 관리자 승인을 받으면 공개본(`앱.kacp…`)이 따로 생긴다.** 두 사본은 잠들었다가 접속하면 깨어난다. 장소는 로컬, 마지막에 VM.
+
+범위 밖: 알림(C-06, 7단계 — "팀에 알림"은 활동 기록만), 앱 롤백(v1.1), 사람이 만든 앱(v2).
+
+결정(문서 반영):
+- **platform-mcp는 공용 서비스 하나**(`packages/platform-mcp`, compose 서비스 `platform-mcp`, `kacp-edge`+`kacp-core`). 팀은 **팀 MCP 토큰**(`{team}.{HMAC(INTERNAL_TOKEN, "mcp:"+team)}`, 저장 없음)으로 구분하고, platform-mcp는 토큰을 그대로 api `/internal/mcp/*`에 넘긴다(권한 판단은 api 한 곳 — `04` §6). 팀 Gateway `mcp.servers.platform`은 orchestrator가 apply-config로 넣는다(프로비저닝 `default_mcp` 단계). 도구 하나 = 파일 하나.
+- **앱 실행 방식**: 원본 폴더(팀 공유 드라이브)를 **`/src`에 읽기 전용**으로 붙이고, 런타임 이미지의 시작 스크립트가 `/app`(쓰기 가능)으로 복사 → 의존성 설치(`package.json`이면 `npm ci`/`npm install`, `requirements.txt`면 `pip install --target`) → 실행 명령. 그래서 원본은 절대 바뀌지 않고, 작업본은 **실행·재시작 시점의 원본**으로 돈다(정적 사이트는 `/src`를 바로 서빙해 즉시 반영). 데이터는 `/app-data`(`APP_DATA_DIR`). 런타임 `node`·`python`·`static`, 자동 판별(`package.json` → node, `requirements.txt`·`*.py` → python, 그 외 `index.html` → static).
+- **헬스**: orchestrator가 `kacp-edge`로 `http://{컨테이너}:{port}/`에 응답(상태 코드 무관)이 올 때까지 기다린다(최대 90초). Docker healthcheck·exec는 쓰지 않는다.
+- **라우트**: 작업본 `Host({slug}--{team}.{base})`, 공개본 `Host({name}.{base})`, 우선순위 60, 미들웨어 `secure-headers, strip-identity, kacp-auth, strip-session-cookie`. 잠들면 라우트가 사라지고 `fallback-web`이 C-04 "앱 깨우는 중"을 그린다.
+- **공개본 교체(무중단)**: 새 버전 컨테이너 `kacp-pub-{name}-v{n}`을 같은 라우터·서비스 라벨로 띄워 응답이 오면 이전 컨테이너를 지운다(Traefik이 같은 서비스로 묶음).
+- **스냅샷·차이 계산은 api**: api가 `/data`를 이미 마운트하므로 승인 때 원본 폴더 → `/data/apps/{id}/snapshots/{v}` 복사(최근 3개 보관)와 update 요청 때 파일 차이 계산을 api가 한다. orchestrator는 컨테이너만(`04` §3 `diff` 항목 대체).
+- **접속 기록·유휴 정지**: forward-auth가 앱 호스트 요청 때 `*_last_accessed_at`을 1분에 한 번 갱신, api 워커가 작업본 30분·공개본 120분 무접속이면 `idle`로 재운다. 팀 동시 실행 작업본 한도(기본 5)를 넘으면 가장 오래 안 쓴 작업본을 `limit`으로 재운다.
+
+- [x] 문서: 위 결정을 `03`(apps 컬럼 그대로, 실행 규칙), `04`(§3 내부 API·§5 도구, diff는 api), `05`(마운트 `/src` ro, 런타임 이미지, 라우트 라벨)에 반영
+- [x] 런타임 이미지 `kacp/app-runtime-{node,python,static}`(시작 스크립트: 복사·설치·실행, uid 1000)
+- [x] api: 스키마(`apps`·`deploy_requests`·`app_versions`), 내부 `/internal/mcp/apps/run|{id}/stop|{id}/public-request|list`, `/internal/mcp/drive/list|read|write`(actor `agent`), 앱 API(`GET /teams/{team}/apps` 필터·`memoryMb`, `GET /apps/{id}`, `work|public/{start|stop|restart}`, `DELETE`, `public-request` POST·DELETE, `unpublish`, `stats`·`logs`, `GET /app-hosts/{host}`·`wake`, `GET /public-apps`), 관리자 `deploy-requests`(목록·승인·반려), `admin/apps`·`force-stop`·`resume`, forward-auth 앱 호스트 처리(작업본 = 팀 멤버, 공개본 = 로그인, 접속 기록), 워커(앱 유휴 정지, 동시 실행 한도), 감사 기록
+- [x] orchestrator: 앱 컨테이너 run/stop/remove(작업본·공개본), 응답 대기, 무중단 교체, 로그·통계, apply-config에 `mcp.servers.platform`, 프로비저닝 `default_mcp`
+- [x] platform-mcp: `run_app`·`stop_app`·`deploy_app`·`list_apps`·`drive_list`·`drive_read`·`drive_write`(streamable HTTP, 팀 토큰), 에이전트 기본 지시문에 앱 규칙(`04` §5)
+- [x] web: U-02 앱 막대·미리보기 패널, U-03 공개 설정 모달(세 모습), U-07 목록, U-08 상세(사본 카드 두 장·탭 6개), A-09 배포 승인(요청·상세·공개 중인 앱·처리 이력), A-05 앱 탭, C-04 깨우는 중·앱 멈춤
+- [x] 테스트: 런타임 판별, 파일 차이 계산, 앱 상태·필터 파생, 공개 요청 규칙(앱당 대기 1개, publish/update 조건), 팀 토큰 검증
+- [x] 데모(브라우저, 사용자 확인): 에이전트에게 "팀 드라이브 lunch-vote 폴더에 점심 투표 웹앱 만들어서 띄워줘" → 앱 막대에 새 칩 → 작업본 미리보기(팀원만, 비멤버 403) → 공개 요청 → 관리자 승인 → `lunch-vote.kacp…`를 다른 팀 사원이 접속 → 작업본 수정 후 업데이트 요청 → 승인 → v2, 두 사본 데이터 분리 → 유휴 정지 후 접속하면 깨어남 → 강제 중지·해제 → 공개 중지(작업본 남음) → 앱 삭제
+- [ ] VM: 같은 흐름 https로 한 번(샌드박스에서 만든 앱 폴더)
+
+### 5단계 결과 (2026-10-06, 로컬 — VM 확인 전)
+
+- 검사: `pnpm -r typecheck` 통과, `pnpm -r test` 통과(shared 18, platform-mcp 1, orchestrator 11, api 48, web 78).
+- 스크립트: platform-mcp MCP 호출(`tools/list` 7개, `run_app`) → 작업본 기동, 팀원 접속·비멤버 `/forbidden`, 앱으로 `kacp_session` 안 넘어감, 공개 요청(중복 409) → 승인 → 공개본 v1, 다른 팀 접속, **작업본·공개본 데이터 분리**, 업데이트(파일 차이 `modified: server.js`) → v2 무중단 교체, 강제 중지(팀원 시작 409·사유 표시)·해제, 수동 중지는 깨우기 거부, 잠든 작업본 접속 → 2초 안에 깨어남, 공개 중지(팀원 403, 이름 반납).
+- 브라우저(사용자 확인): U-02·U-03·U-07·U-08·A-09·A-05 앱 탭·C-04, 에이전트가 `run_app`으로 앱 실행, 공개·업데이트·강제 중지·공개 중지·삭제.
+- 확인 중 고친 것: `package.json` 없는 Node 앱 판별, 앱 정지 10초 지연(`Init: true`), 공개본 스냅샷 소유자(root → uid 1000), 공개 중지 후 재공개 시 버전 중복(이력 최대값 + 1), 플랫폼 관리자의 작업본 열기(A-09 심사용, 06 §7), 채팅 파일 링크 "session file not found"(지시문: `team-drive/…` 경로로 안내), **HTML 미리보기 "연결 거부" → 팀별 샌드박스 출처 `{team}--sbx`**(05 §2, 예약어 `sbx`).
+- 메모: `mcp.apps.sandboxOrigin`은 Gateway 재시작이 필요한 키인데 OpenClaw가 in-process 재시작을 미뤄 둔다 → 기존 팀은 반영 후 관리자 화면에서 재시작. 템플릿 에이전트 모델 등은 apply-config가 템플릿 값으로 맞춘다(Control UI에서 바꾼 값은 덮어씀).
+
 ## 다음 단계와의 연결
 
 | 단계 | 이 문서 세트에서 쓰는 부분 |

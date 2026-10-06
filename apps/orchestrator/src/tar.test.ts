@@ -29,3 +29,18 @@ describe('tar', () => {
     expect(String.fromCharCode(t[512 + 156]!)).toBe('0');
   });
 });
+
+describe('demuxLogs', () => {
+  it('strips docker stream frame headers', async () => {
+    const { demuxLogs } = await import('./logs.js');
+    const frame = (stream: number, text: string) => {
+      const body = Buffer.from(text);
+      const h = Buffer.alloc(8);
+      h[0] = stream;
+      h.writeUInt32BE(body.length, 4);
+      return Buffer.concat([h, body]);
+    };
+    expect(demuxLogs(Buffer.concat([frame(1, 'hello\n'), frame(2, '에러\n')]))).toBe('hello\n에러\n');
+    expect(demuxLogs(Buffer.from('plain text'))).toBe('plain text');
+  });
+});

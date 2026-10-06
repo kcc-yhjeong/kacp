@@ -73,6 +73,14 @@ describe('forward-auth decide', () => {
     if (d.status === 200) expect(d.headers['X-Forwarded-User']).toBeUndefined();
   });
 
+  it('lets platform admins open work copies but not team hosts', async () => {
+    const admin: SessionContext = { ...user('ops'), user: { ...user('ops').user, platformRole: 'admin' } };
+    const work = await decide(req({ host: 'calc--team1.kacp.cloud', session: admin }), deps);
+    expect(work.status === 200 && work.headers['X-KACP-Team-Role']).toBe('platform_admin');
+    expect(work.status === 200 && work.headers['X-Forwarded-User']).toBeUndefined();
+    expect((await decide(req({ host: 'team1.kacp.cloud', session: admin }), deps)).status).toBe(302);
+  });
+
   it('checks the team of a work copy host', async () => {
     expect((await decide(req({ host: 'calc--team1.kacp.cloud', session: user('lee') }), deps)).status).toBe(200);
     expect((await decide(req({ host: 'calc--team1.kacp.cloud', session: user('park'), accept: '*/*' }), deps)).status).toBe(403);

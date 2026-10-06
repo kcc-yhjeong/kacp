@@ -20,6 +20,8 @@ export const config = {
   encryptionKey: Buffer.from(required('APP_ENCRYPTION_KEY'), 'base64'),
   /** Data disk root (/data/teams/{team}/drive …). Locally the kacp-data volume. */
   dataRoot: process.env.DATA_ROOT ?? '/data',
+  /** platform-mcp as team Gateways reach it over kacp-edge. */
+  platformMcpUrl: process.env.PLATFORM_MCP_URL ?? 'http://platform-mcp:5000/mcp',
   orchestratorUrl: process.env.ORCHESTRATOR_URL ?? 'http://orchestrator:4000',
   logLevel: process.env.LOG_LEVEL ?? 'info',
 };

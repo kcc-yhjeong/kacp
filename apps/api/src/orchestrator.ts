@@ -30,6 +30,8 @@ export interface DesiredAgent {
 export interface DesiredConfig {
   agents: DesiredAgent[];
   adminEmails: string[];
+  /** platform-mcp for this team (`mcp.servers.platform`), docs/README.md 5단계. */
+  platformMcp: { url: string; token: string };
 }
 
 export interface TeamStats {
@@ -67,6 +69,23 @@ async function call(path: string, body?: unknown, method = 'POST', timeoutMs = 1
   return res.status === 204 ? null : res.json();
 }
 
+/** One app copy as the orchestrator runs it (docs/README.md 5단계). Paths are relative to the data root. */
+export interface AppCopySpec {
+  team: string;
+  slug: string;
+  copy: 'work' | 'public';
+  /** Public copies: the public name and version (container `kacp-pub-{name}-v{n}`). */
+  publicName?: string;
+  version?: number;
+  sourceRel: string;
+  dataRel: string;
+  runtime: 'node' | 'python' | 'static';
+  command: string;
+  port: number;
+  env: Record<string, string>;
+  limits: { cpu: number; memoryMb: number };
+}
+
 export const orchestrator = {
   /** 202: stages arrive as team.provision events. */
   provision: (team: string, spec: TeamRuntimeSpec) => call(`/internal/teams/${team}/provision`, spec),
@@ -79,4 +98,10 @@ export const orchestrator = {
   resources: (team: string, limits: TeamRuntimeSpec['resourceLimits']) => call(`/internal/teams/${team}/resources`, limits, 'PUT'),
   remove: (team: string) => call(`/internal/teams/${team}`, {}, 'DELETE', 90_000),
   stats: () => call('/internal/stats', undefined, 'GET') as Promise<{ teams: TeamStats[] }>,
+  /** 202; the outcome arrives as an app.status event. */
+  runApp: (appId: string, spec: AppCopySpec) => call(`/internal/apps/${appId}/${spec.copy}/run`, spec),
+  stopApp: (appId: string, copy: 'work' | 'public') => call(`/internal/apps/${appId}/${copy}/stop`),
+  removeApp: (appId: string, copy: 'work' | 'public') => call(`/internal/apps/${appId}/${copy}`, {}, 'DELETE', 60_000),
+  appLogs: (appId: string, copy: 'work' | 'public', tail: number) =>
+    call(`/internal/apps/${appId}/${copy}/logs?tail=${tail}`, undefined, 'GET') as Promise<{ lines: string[] }>,
 };

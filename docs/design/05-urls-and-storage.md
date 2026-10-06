@@ -52,7 +52,7 @@
 | `secure-headers` | 전체 | HSTS, `X-Content-Type-Options` |
 
 - 로컬 플러그인(`claw-frame`, `strip-session-cookie`)은 `apps/proxy`에 두고 Traefik `experimental.localPlugins`로 싣는다. 외부 플러그인 카탈로그에서 내려받지 않는다. spike 03 코드는 복사하지 않고 새로 짠다.
-- MCP Apps(대시보드 위젯·MCP 앱 HTML)는 **v1에서 끈다**(`mcp.apps.enabled` 기본값 false, 18790 listener 없음 — spike 03). doctor의 `sandboxOrigin` 경고는 켤 때를 위한 안내다. 켤 때의 안: `{team}.sbx.kacp.cloud` + 별도 와일드카드 인증서 `*.sbx.kacp.cloud`(DNS-01), forward-auth 없이 `strip-session-cookie`만 걸어 팀 컨테이너 18790으로. Control UI와 다른 origin이어야 하고 다른 인증 콘텐츠를 두지 않는다(OpenClaw `cli/mcp/apps.md`). 켜고 끌 때 Gateway 재시작.
+- **샌드박스 출처(5단계 결정)**: Control UI의 HTML 미리보기·Canvas는 OpenClaw 샌드박스 리스너(Gateway 포트+1 = `18790`)의 **별도 출처**에서 돈다(MCP Apps를 켜지 않아도 쓰인다 — OpenClaw `web/control-ui/chat.md`, `cli/mcp/apps.md`). 팀마다 `{team}--sbx.{base}` → 팀 컨테이너 `18790` 라우트(라벨 `team-sbx-{team}`, 우선순위 65)를 두고 `mcp.apps.sandboxOrigin`·`sandboxPort`를 시드·apply-config로 넣는다. 이 출처는 격리된 렌더러만 내보내고 인증 내용은 Gateway를 거치므로 **forward-auth를 걸지 않고** `strip-identity`·`strip-session-cookie`만 건다(OpenClaw 권고: 다른 인증 콘텐츠를 두지 않음). 두 단계 서브도메인 대신 한 단계 `--sbx`를 쓰고, 작업본 주소(`앱--팀`)와 겹치지 않게 **`sbx`를 예약어**로 둔다. `mcp.apps.enabled`(MCP Apps 자체)는 v1에서 끈 채로 둔다.
 
 ## 3. 이름 규칙 (팀·앱 공통)
 
@@ -60,7 +60,7 @@
 - 팀 이름과 **Public** 앱 이름은 `names` 테이블 하나에서 중복 검사
 - 작업본(Private) slug는 팀 안에서만 unique(`{slug}--{team}`이 전체에서 unique해지므로 `names`에 넣지 않음). 단 같은 규칙 적용
 - `{slug}--{team}` 전체 길이는 63자(DNS 라벨 한도) 이하 — slug 30 + 2 + team 30 = 62
-- 예약어(시드): `app` `admin` `api` `www` `auth` `login` `static` `assets` `cdn` `mail` `smtp` `ftp` `ns1` `ns2` `traefik` `proxy` `grafana` `prometheus` `status` `help` `docs` `kacp` `claw` `openclaw` `market` `community` `drive` `internal` `system` `root` `test` `dev` `staging`
+- 예약어(시드): `app` `admin` `api` `www` `auth` `login` `static` `assets` `cdn` `mail` `smtp` `ftp` `ns1` `ns2` `traefik` `proxy` `grafana` `prometheus` `status` `help` `docs` `kacp` `claw` `openclaw` `market` `community` `drive` `internal` `system` `root` `test` `dev` `staging` `sbx`
 - 플랫폼 설정 `names.reserved_extra`로 추가 가능
 
 ## 4. 웹 경로 (app.kacp.cloud)
@@ -127,9 +127,9 @@
 | 팀 컨테이너 | `teams/{team}/openclaw` → `/home/node/.openclaw` | rw, **bind mount**(named volume은 샌드박스 경로 변환에 못 씀). 모든 팀 컨테이너는 공식 이미지 기본 `node`(uid 1000)로 실행하고 폴더는 `1000:1000 0700`(spike 06 결정 — 팀별 UID도 `XDG_CACHE_HOME`을 상태 폴더 안으로 두면 가능하지만 v1은 쓰지 않는다). 엔트리포인트가 기동마다 doctor를 돌려 openclaw.json을 다시 쓰고 JSON5 주석을 지운다. orchestrator는 openclaw.json을 **프로비저닝 때 한 번만, 파일이 없을 때만 시드**하고, 이후 변경은 `config.patch`로 한다. 첫 기동 이후 파일을 통째로 바꾸면 OpenClaw가 백업(`openclaw.json.last-good`, `.bak*`)으로 되돌리는데, 그 백업이 최신이 아니어서 hot reload로 바꾼 최근 설정을 잃을 수 있다(spike 02·03). **로컬**(Windows Docker Desktop)은 bind mount chmod가 안 돼 named volume `kacp-team-{team}-state`를 쓴다(`STATE_MODE=volume`, 시드는 Engine API archive 업로드, `kacp/openclaw` 이미지에 상태 폴더를 `node:node 0700`으로 만들어 첫 마운트가 소유권을 물려받게 함) |
 | 팀 컨테이너 | `teams/{team}/drive/shared` → `/team-drive` **와** `/home/node/.openclaw/workspace/team-drive` | rw, 같은 원본을 두 곳에(4단계 결정). `/team-drive`는 모든 에이전트 공통 경로(템플릿 AGENTS.md에 안내), 워크스페이스 안 폴더는 기본 에이전트 `main`이 바로 보게. 개인 폴더(`personal/`)는 넣지 않는다(spike 05). 로컬은 named volume `kacp-data`의 subpath, VM은 bind |
 | 샌드박스 (VM만) | 에이전트 워크스페이스 → `/workspace`, 팀 공유 드라이브는 `docker.binds`로 `/team-drive`(`dangerouslyAllowExternalBindSources: true`, 원본은 호스트 경로 그대로) | 원본이 bind mount여야 샌드박스로 비춰진다(OpenClaw docker-backend 문서) — 로컬(named volume)에서는 샌드박스를 끈다. 유휴 샌드박스 정리는 `prune: {idleHours: 1, maxAgeDays: 1}`(OpenClaw 기본 24시간은 세션마다 1GB 한도 컨테이너가 하루씩 남아 과함 — VM 확인 중 발견, 기존 팀은 기동 때 `config.patch`로 맞춤). 팀 컨테이너 `TMPDIR`은 상태 폴더 안 `/home/node/.openclaw/tmp`로 둔다 — `mode: all`이면 Model Setup의 연결 확인도 샌드박스에서 돌고, OpenClaw가 `/tmp`에 만든 임시 작업 공간은 bind mount가 아니라 샌드박스로 넘길 수 없다(VM 확인 중 발견). OpenClaw가 에이전트 워크스페이스를 `/workspace`로 bind(rw) | Gateway 안 경로를 호스트 `/data/...` 경로로 OpenClaw가 바꿔 붙인다(spike 06 실측). 요청자 개인 폴더는 넣지 않는다. 설정: `agents.defaults.sandbox = {mode: "all", backend: "docker", scope: "session", workspaceAccess: "rw", docker: {image: "openclaw-sandbox:bookworm-slim", containerPrefix: "kacp-sbx-{team}-", network: "none", user: "1000:1000", readOnlyRoot: true, capDrop: ["ALL"], pidsLimit: 256, memory: "1g", cpus: 1}}` |
-| 작업본 컨테이너 | 원본 폴더 → `/app` | ro |
+| 작업본 컨테이너 | 원본 폴더(팀 공유 드라이브) → `/src` | ro. 시작 스크립트가 `/app`(쓰기 가능)으로 복사해 의존성 설치 후 실행(5단계 결정, `deploy/app-runtime`). 원본은 바뀌지 않는다. 정적 사이트는 `/src`를 바로 서빙 |
 | 작업본 컨테이너 | `apps/{appId}/work-data` → `/app-data` | rw (`APP_DATA_DIR`) |
-| 공개본 컨테이너 | `apps/{appId}/snapshots/{version}` → `/app` | ro |
+| 공개본 컨테이너 | `apps/{appId}/snapshots/{version}` → `/src` | ro (작업본과 같은 실행 방식) |
 | 공개본 컨테이너 | `apps/{appId}/public-data` → `/app-data` | rw (`APP_DATA_DIR`) |
 | MCP 컨테이너 | 없음(기본). 필요 시 `teams/{team}/mcp/{server_key}` | rw |
 | api | `teams/*/drive`, `teams/*/.trash` | rw (드라이브 API). 로컬은 `kacp-data` 볼륨 전체를 `/data`로. 소유권: 팀 공유 `1000:{linux_gid}` 폴더 `2770`·파일 `0660`, 개인 `{linux_uid}` `0700`. 경로는 `realpath`가 공간 루트 안일 때만, 심볼릭 링크는 따라가지 않음 |
@@ -145,7 +145,7 @@
 | MCP 컨테이너 | `kacp-mcp-{package}--{team}` |
 | Gateway 사이드카 | `kacp-gwagent-{team}` — 팀 컨테이너와 네트워크 네임스페이스 공유(`network_mode: container:kacp-team-{team}`), orchestrator의 admin RPC 창구(`06-auth.md` §6, spike 04). 팀 컨테이너와 함께 기동·정지 |
 | MCP 이미지 | `kacp/mcp-{package}:{version}` |
-| 앱 기본 이미지 | `kacp/app-runtime-node:{v}`, `kacp/app-runtime-python:{v}`, `kacp/app-runtime-static:{v}` |
+| 앱 기본 이미지 | `kacp/app-runtime-node:1`, `kacp/app-runtime-python:1`, `kacp/app-runtime-static:1` — uid 1000, `Init: true`(tini가 SIGTERM 전달), `CapDrop ALL`, `no-new-privileges`, `PidsLimit 256` |
 | OpenClaw 이미지 | `kacp/openclaw:{openclaw버전}-{빌드번호}` |
 
 모든 동적 컨테이너 라벨: `kacp.kind=team|app-work|app-public|mcp|sandbox`, `kacp.team={team}`, `kacp.id={uuid}` — orchestrator는 라벨로 자기 컨테이너만 조회·정리한다.

@@ -22,6 +22,13 @@
       "when": 1790921780161,
       "tag": "0002_stage4_drive",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790929601359,
+      "tag": "0003_stage5_apps",
+      "breakpoints": true
     }
   ]
 }

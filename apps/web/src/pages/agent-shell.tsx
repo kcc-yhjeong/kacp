@@ -1,6 +1,7 @@
 import type { TeamRole, TeamStatus } from '@kacp/shared';
 import { Loader2, MessageSquarePlus, RotateCw, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AppBarDialogs, AppChips, PreviewPanel, useShellApps } from '@/components/apps/app-bar';
 import { AppHeader } from '@/components/app-header';
 import { NotFoundPage } from '@/components/message-page';
 import { TeamStatusBadge } from '@/components/status';
@@ -39,7 +40,7 @@ export function AgentShellPage({ team }: { team: string }) {
     <div className="flex h-full flex-col">
       <AppHeader currentTeam={team} currentStatus={status?.status} active="agent" />
       {running && detail.data ? (
-        <RunningShell noAgents={detail.data.agents.length === 0} />
+        <RunningShell team={team} noAgents={detail.data.agents.length === 0} />
       ) : (
         <main className="flex flex-1 items-center justify-center p-6">
           <ShellState
@@ -55,15 +56,16 @@ export function AgentShellPage({ team }: { team: string }) {
   );
 }
 
-function RunningShell({ noAgents }: { noAgents: boolean }) {
+function RunningShell({ team, noAgents }: { team: string; noAgents: boolean }) {
   const [frame, setFrame] = useState({ src: CLAW_HOME, key: 0 });
+  const apps = useShellApps(team);
 
   return (
     <>
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-[13px]">
-        {/* U-02 app chips go here (stage 5). */}
-        <div className="ml-auto flex min-w-0 items-center gap-2">
-          <span className="truncate text-xs text-muted-foreground">개인 대화는 새 세션에서 초안을 고르세요</span>
+      <div className="flex h-9 shrink-0 items-center gap-2 border-b pr-3 pl-4 text-[13px]">
+        <AppChips s={apps} />
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-2">
+          <span className="hidden truncate text-xs text-muted-foreground xl:inline">개인 대화는 새 세션에서 초안을 고르세요</span>
           <Button
             variant="outline"
             size="sm"
@@ -80,7 +82,11 @@ function RunningShell({ noAgents }: { noAgents: boolean }) {
           <span className="text-muted-foreground">· 플랫폼 관리자가 할당하면 바로 쓸 수 있어요</span>
         </div>
       )}
-      <iframe key={frame.key} src={frame.src} title="팀 채팅" className="w-full flex-1 border-0" />
+      <div className="flex min-h-0 flex-1">
+        <iframe key={frame.key} src={frame.src} title="팀 채팅" className="h-full min-w-0 flex-1 border-0" />
+        {apps.preview && <PreviewPanel key={apps.preview.id} app={apps.preview} s={apps} />}
+      </div>
+      <AppBarDialogs s={apps} />
     </>
   );
 }

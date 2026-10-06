@@ -27,4 +27,7 @@ export const notifyTeamStatus = (team: string, status: TeamContainerStatus, deta
 export const notifyProvision = (team: string, stage: 'storage' | 'container' | 'default_mcp' | 'done' | 'failed', detail?: string) =>
   post('/internal/events', { type: 'team.provision', id: team, stage, detail: detail ?? null });
 
+export const notifyApp = (appId: string, copy: 'work' | 'public', status: 'running' | 'stopped' | 'error', stopReason: string | null = null, detail?: string) =>
+  post('/internal/events', { type: 'app.status', id: appId, copy, status, stopReason, detail: detail ?? null });
+
 export const sendUsage = (samples: unknown[]) => post('/internal/usage', { samples }, 1);

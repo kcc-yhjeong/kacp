@@ -5,6 +5,8 @@ import { agentTemplates, memberships, teamAgents, teamPresence, teams, users } f
 import { decrypt } from '../lib/crypto.js';
 import { orchestrator, type DesiredAgent, type TeamRuntimeSpec } from '../orchestrator.js';
 import { getApiKeys, getSetting } from '../settings.js';
+import { config } from '../config.js';
+import { mcpToken } from '../apps/logic.js';
 import type { AgentSpec } from '../agents/spec.js';
 
 // Team container lifecycle as seen from the api (03-data-model.md 상태 전이 — 팀 컨테이너).
@@ -157,7 +159,11 @@ async function applyTeamConfig(teamName: string) {
   if (!team || team.deletedAt || team.containerStatus !== 'running') return;
   const { agents, versions } = await desiredAgents(team.id);
   try {
-    await orchestrator.applyConfig(team.name, { agents, adminEmails: await adminEmails(team.id) });
+    await orchestrator.applyConfig(team.name, {
+      agents,
+      adminEmails: await adminEmails(team.id),
+      platformMcp: { url: config.platformMcpUrl, token: mcpToken(config.internalToken, team.name) },
+    });
     for (const [templateId, version] of versions) {
       await db.update(teamAgents)
         .set({ applyStatus: 'applied', appliedVersion: version, applyError: null, appliedAt: sql`now()` })

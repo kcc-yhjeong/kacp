@@ -1,0 +1,6 @@
+# kacp/app-runtime-static — static sites served straight from /src (busybox httpd). uid 1000.
+FROM busybox:1.36
+COPY entrypoint.sh /usr/local/bin/kacp-entrypoint
+RUN chmod 755 /usr/local/bin/kacp-entrypoint && mkdir -p /app /app-data && chown 1000:1000 /app /app-data
+USER 1000:1000
+ENTRYPOINT ["/usr/local/bin/kacp-entrypoint"]

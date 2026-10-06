@@ -72,3 +72,28 @@ describe('sandbox prune', () => {
     expect(computePatch({ agents: { defaults: { sandbox: { prune: { maxAgeDays: 1, idleHours: 1 } } } } }, empty, { sandbox: true })).toBeNull();
   });
 });
+
+describe('platform mcp', () => {
+  it('adds mcp.servers.platform with the team token and leaves it once present', async () => {
+    const { computePatch } = await import('./apply-config.js');
+    const desired = { agents: [], adminEmails: [], platformMcp: { url: 'http://platform-mcp:5000/mcp', token: 'team1.abcdefghijklmnopqrstuvwxyz' } };
+    const plan = computePatch({}, desired);
+    expect(plan?.patch).toEqual({ mcp: { servers: { platform: {
+      url: 'http://platform-mcp:5000/mcp', transport: 'streamable-http', headers: { Authorization: 'Bearer team1.abcdefghijklmnopqrstuvwxyz' },
+    } } } });
+    expect(plan?.replacePaths).toEqual(['mcp.servers.platform']);
+    const current = { mcp: { servers: { platform: { url: 'http://platform-mcp:5000/mcp', transport: 'streamable-http', headers: { Authorization: '***' } } } } };
+    expect(computePatch(current, desired)).toBeNull();
+  });
+});
+
+describe('sandbox origin', () => {
+  it('sets mcp.apps.sandboxOrigin next to the platform server and is idempotent', async () => {
+    const { computePatch } = await import('./apply-config.js');
+    const desired = { agents: [], adminEmails: [] };
+    const plan = computePatch({}, desired, { sandboxOrigin: 'http://team1--sbx.kacp.localhost' });
+    expect(plan?.patch).toEqual({ mcp: { apps: { sandboxOrigin: 'http://team1--sbx.kacp.localhost', sandboxPort: 18790 } } });
+    const current = { mcp: { apps: { sandboxOrigin: 'http://team1--sbx.kacp.localhost', sandboxPort: 18790 } } };
+    expect(computePatch(current, desired, { sandboxOrigin: 'http://team1--sbx.kacp.localhost' })).toBeNull();
+  });
+});

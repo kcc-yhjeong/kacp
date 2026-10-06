@@ -85,6 +85,37 @@ const driveRootRoute = createRoute({
   },
 });
 
+// ── /t/{team}/apps (U-07 · U-08). Own lazy chunks.
+
+const AppsPage = lazy(() => import('@/pages/apps/apps-page').then((m) => ({ default: m.AppsPage })));
+const AppDetailPage = lazy(() => import('@/pages/apps/app-detail-page').then((m) => ({ default: m.AppDetailPage })));
+
+const appsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/apps',
+  component: function AppsRoute() {
+    const { team } = appsRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AppsPage team={team} />
+      </Suspense>
+    );
+  },
+});
+
+const appDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/apps/$appId',
+  component: function AppDetailRoute() {
+    const { team, appId } = appDetailRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AppDetailPage key={appId} team={team} appId={appId} />
+      </Suspense>
+    );
+  },
+});
+
 // ── /admin (A-*). Every screen is its own lazy chunk so the employee shell does not load admin code.
 
 const adminRoute = createRoute({
@@ -121,6 +152,13 @@ const adminAgentNewRoute = createRoute({
 const adminAgentRoute = adminChild('/agents/$templateId', () => import('@/pages/admin/agent-editor'), 'AgentEditPage');
 const adminSettingsRoute = adminChild('/settings', () => import('@/pages/admin/settings'), 'SettingsPage');
 const adminAuditRoute = adminChild('/audit', () => import('@/pages/admin/audit'), 'AuditPage');
+const adminDeployRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/deploy',
+  validateSearch: (search: Record<string, unknown>): { tab?: 'requests' | 'public' | 'history' } =>
+    search.tab === 'public' || search.tab === 'history' || search.tab === 'requests' ? { tab: search.tab } : {},
+  component: lazyRouteComponent(() => import('@/pages/admin/deploy'), 'DeployPage'),
+});
 
 const routeTree = rootRoute.addChildren([
   adminRoute.addChildren([
@@ -137,6 +175,7 @@ const routeTree = rootRoute.addChildren([
     adminAgentRoute,
     adminSettingsRoute,
     adminAuditRoute,
+    adminDeployRoute,
   ]),
   homeRoute,
   loginRoute,
@@ -147,6 +186,8 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
   driveRootRoute,
   driveRoute,
+  appsRoute,
+  appDetailRoute,
 ]);
 
 export const appRouter = createRouter({ routeTree });
