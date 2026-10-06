@@ -17,6 +17,7 @@ import {
   requestRestart, requestStart, requestStop, scheduleApply, teamStatus,
 } from '../teams/runtime.js';
 import { createTeam } from './service.js';
+import { ensureInstalled } from '../mcp/service.js';
 
 // A-04 / A-05 team administration (04-api.md 관리자).
 
@@ -195,6 +196,10 @@ export async function adminTeamRoutes(app: FastifyInstance) {
         .onConflictDoNothing().returning();
       if (added.length) await audit({ actorId: actor(req), action: 'agent.assign', targetType: 'template', targetId: templateId, teamId: t.id });
     }
+    // Template default MCPs (A-06) are installed into the team if missing (docs/README.md 6단계).
+    const specs = await db.select({ spec: agentTemplates.spec }).from(agentTemplates).where(inArray(agentTemplates.id, templateIds));
+    const defaultMcp = [...new Set(specs.flatMap((s) => (s.spec as { defaultMcp?: string[] }).defaultMcp ?? []))];
+    if (defaultMcp.length) await ensureInstalled(t, defaultMcp).catch((err) => req.log.warn({ err }, 'template default mcp'));
     void scheduleApply(t.name);
     return reply.code(202).send({ items: await teamAgentList(t.id) });
   });

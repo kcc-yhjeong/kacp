@@ -371,8 +371,8 @@ erDiagram
 |---|---|---|
 | id | uuid PK | |
 | name | text unique | 매니페스트 이름 |
-| owner_id | uuid FK users | 처음 올린 사람 |
-| display_name, summary, category, icon | text | 최신 게시 버전 매니페스트에서 복사 |
+| owner_id | uuid FK users, nullable | 처음 올린 사람. null = platform-mcp(시드) |
+| display_name, summary, category, icon | text | 최신 게시 버전 매니페스트에서 복사(게시 전에는 최근 업로드) |
 | status | text | `active` \| `suspended` |
 | is_default | bool | 전사 기본 MCP(새 팀 자동 설치) |
 | is_platform | bool | platform-mcp(제거 불가) |
@@ -388,16 +388,21 @@ erDiagram
 | version | text | semver. unique(package_id, version) |
 | uploaded_by | uuid | |
 | status | text | `uploaded` → `validating` → `building` → `scanning` → `testing` → `in_review` → `published`, 또는 `failed` / `rejected` / `superseded` |
-| failed_stage | text | 실패한 단계: `validate` \| `build` \| `scan` \| `test`. 02 MCP 버전 스테퍼의 검증·빌드·보안 스캔·테스트 단계에 1:1 대응 |
+| failed_stage | text | 실패한 단계: `validate` \| `build` \| `scan` \| `test`. 02 MCP 버전 스테퍼의 검증·빌드·보안 스캔·테스트 단계에 1:1 대응. v1 검증 실패는 업로드 `422`로 끝나 행이 생기지 않는다 |
+| status_detail | text | 실패 원인(한국어) |
+| stage_at | timestamptz | 현재 단계 시작 시각(25분 넘게 멈추면 failed) |
 | manifest | jsonb | `platform-plugin.yaml` 파싱 결과 |
 | readme | text | |
 | tools | jsonb | 테스트에서 추출한 `tools/list` |
 | scan_summary | jsonb | `{critical, high, medium, low}` |
-| scan_report_path, build_log_path, test_log_path, source_zip_path | text | `/data/mcp/...` |
+| scan_findings | jsonb | 심각한 순 최대 200개 `[{severity, pkg, id, title}]` |
+| published_at | timestamptz | |
+
+파일 경로는 저장하지 않고 이름·버전으로 정한다: `/data/mcp/{pkg}/{ver}/` 아래 `source.zip`(원본) · `src/`(풀어 둔 소스 = 빌드 컨텍스트) · `build.log` `scan.log` `test.log` · `scan.json`(Trivy 원본).
 | image_ref | text | 빌드된 이미지 태그 |
 | reviewed_by, reviewed_at, review_note | | |
 
-빌드 대기열 = `status='uploaded'`인 행을 `created_at` 순으로 한 번에 하나(`SELECT ... FOR UPDATE SKIP LOCKED`).
+빌드 대기열 = `status='uploaded'`인 행을 `created_at` 순으로 한 번에 하나(진행 중 단계가 없을 때 `uploaded → validating` 조건부 update로 하나만 잡는다). 새 버전이 게시되면 그 패키지의 모든 설치가 새 버전으로 바뀐다(비밀값 유지, 버전 고정은 v2).
 
 #### `mcp_installs`
 
@@ -411,7 +416,7 @@ erDiagram
 | server_key | text | 팀 `mcp.servers`의 키. unique(team_id, server_key) |
 | status | text | `installing` \| `installed` \| `error` \| `removing` |
 | status_detail | text | |
-| secret_names | text[] | 입력된 비밀값 **이름**만(값 없음) |
+| secret_names | text[] | 입력된 비밀값 **이름**만(값 없음). 직접 추가는 헤더 이름 |
 | installed_by | uuid, nullable | null = 시스템(전사 기본 MCP·platform-mcp 자동 설치). 화면 표시 "시스템" |
 | last_checked_at | timestamptz | Gateway 동기화 워커가 마지막으로 확인한 시각 |
 
@@ -450,7 +455,7 @@ Gateway 동기화 워커는 실행 중인 팀의 `config.get` 결과로 이 테�
 |---|---|---|
 | id | bigserial PK | |
 | actor_id | uuid | null = 시스템 |
-| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `settings.update` `template.create` `template.delete` `user.update` `department.unarchive` |
+| action | text | `user.create` `user.disable` `user.reset_password` `team.create` `team.delete` `membership.add` `membership.remove` `department.create` `department.update` `department.move` `department.archive` `user.department_change` `import.apply` `agent.assign` `agent.unassign` `template.update` `container.start` `container.stop` `container.restart` `resources.update` `deploy.approve` `deploy.reject` `app.force_stop` `app.force_resume` `team.update` `membership.role_change` `user.enable` `mcp.resume` `mcp.set_default` `mcp.approve` `mcp.reject` `mcp.suspend` `mcp.install` `mcp.remove` `mcp.manual_add` `mcp.secrets_update` `settings.update` `template.create` `template.delete` `user.update` `department.unarchive` |
 | target_type | text | `user` `department` `team` `app` `mcp_package` `mcp_version` `template` `settings` `import` |
 | target_id | text | |
 | team_id | uuid | 관련 팀(필터용) |

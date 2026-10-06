@@ -24,7 +24,7 @@
 
 ### 주요 오류 코드
 
-`AUTH_INVALID_CREDENTIALS` `AUTH_LOCKED` `AUTH_DISABLED` `AUTH_PASSWORD_CHANGE_REQUIRED` `AUTH_PASSWORD_POLICY` `CSRF_INVALID` `FORBIDDEN` `NAME_INVALID` `NAME_RESERVED` `NAME_TAKEN` `TEAM_NOT_FOUND` `TEAM_NOT_RUNNING` `APP_NOT_FOUND` `APP_STATE_CONFLICT` `APP_NOT_PUBLIC` `APP_ALREADY_PUBLIC` `APP_LIMIT_REACHED` `DEPLOY_ALREADY_PENDING` `DEPARTMENT_NOT_FOUND` `DEPARTMENT_CYCLE` `DEPARTMENT_TOO_DEEP` `DEPARTMENT_NOT_EMPTY` `IMPORT_STALE` `IMPORT_INVALID_CSV` `DRIVE_PATH_INVALID` `DRIVE_NOT_FOUND` `DRIVE_EXISTS` `DRIVE_QUOTA_EXCEEDED` `MCP_MANIFEST_INVALID` `MCP_VERSION_EXISTS` `MCP_SUSPENDED` `MCP_ALREADY_INSTALLED` `ORCHESTRATOR_UNAVAILABLE`
+`AUTH_INVALID_CREDENTIALS` `AUTH_LOCKED` `AUTH_DISABLED` `AUTH_PASSWORD_CHANGE_REQUIRED` `AUTH_PASSWORD_POLICY` `CSRF_INVALID` `FORBIDDEN` `NAME_INVALID` `NAME_RESERVED` `NAME_TAKEN` `TEAM_NOT_FOUND` `TEAM_NOT_RUNNING` `APP_NOT_FOUND` `APP_STATE_CONFLICT` `APP_NOT_PUBLIC` `APP_ALREADY_PUBLIC` `APP_LIMIT_REACHED` `DEPLOY_ALREADY_PENDING` `DEPARTMENT_NOT_FOUND` `DEPARTMENT_CYCLE` `DEPARTMENT_TOO_DEEP` `DEPARTMENT_NOT_EMPTY` `IMPORT_STALE` `IMPORT_INVALID_CSV` `DRIVE_PATH_INVALID` `DRIVE_NOT_FOUND` `DRIVE_EXISTS` `DRIVE_QUOTA_EXCEEDED` `MCP_NOT_FOUND` `MCP_MANIFEST_INVALID`(`details.problems[]`) `MCP_TOO_LARGE` `MCP_VERSION_EXISTS` `MCP_SUSPENDED` `MCP_ALREADY_INSTALLED` `MCP_NOT_PUBLISHED` `MCP_PLATFORM_LOCKED` `MCP_STATE_CONFLICT` `ORCHESTRATOR_UNAVAILABLE`
 
 ## 2. 외부 API 목록
 
@@ -134,13 +134,13 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 
 | 메서드 | 경로 | 권한 | 설명 | 화면 |
 |---|---|---|---|---|
-| GET | `/mcp/packages?q=&category=&sort=` | 로그인 | 게시된 패키지 | U-09 |
-| GET | `/mcp/packages/{pkg}` | 로그인 | 상세(README, 도구, 권한, 예시, 버전 이력) | U-10 |
-| GET | `/teams/{team}/mcp/installs` | 멤버 | 설치 목록(캐시) + `teamRunning`, `lastSyncedAt` | U-11 |
-| POST | `/teams/{team}/mcp/installs` | 팀관리 | `{packageName, version?, secrets: {NAME: value}}` → `202` | U-10 |
-| PUT | `/teams/{team}/mcp/installs/{id}/secrets` | 팀관리 | 비밀값 다시 입력 | U-11 |
-| DELETE | `/teams/{team}/mcp/installs/{id}` | 팀관리 | 제거 → `202` | U-11 |
-| POST | `/teams/{team}/mcp/manual` | 팀관리 | 직접 추가 `{name, url, headers?, secrets?}` | U-15 |
+| GET | `/mcp/packages?q=&category=&sort=popular\|recent&team=` | 로그인 | 게시된 패키지(+platform-mcp). `installedInTeam`은 `team`(본인 소속 팀만) 기준 | U-09 |
+| GET | `/mcp/packages/{pkg}?team=` | 로그인 | 상세(README, 매니페스트, 도구, 게시 이력) + `canInstallTeams`(설치할 수 있는 팀) | U-10 |
+| GET | `/teams/{team}/mcp/installs` | 멤버 | 설치 목록(맨 앞 platform-mcp 가상 행) + `teamRunning`, `lastSyncedAt`, `canManage` | U-11 |
+| POST | `/teams/{team}/mcp/installs` | 팀관리 | `{packageName, version?, secrets: {NAME: value}}` → `202`. 최신 게시 버전만. 필수 비밀값 누락 `422`(`details.missing`) | U-10 |
+| PUT | `/teams/{team}/mcp/installs/{id}/secrets` | 팀관리 | 비밀값 다시 입력 `{secrets}` — **채운 값만 바꾸고 빈 값은 기존 값 유지** → `202` | U-11 |
+| DELETE | `/teams/{team}/mcp/installs/{id}` | 팀관리 | 제거 → `202`. platform 행 `409 MCP_PLATFORM_LOCKED`. 직접 추가는 팀이 실행 중일 때만 | U-11 |
+| POST | `/teams/{team}/mcp/manual` | 팀관리 | 직접 추가 `{name, url, headers?}` → `201`. 팀 실행 중일 때만. 헤더 값은 Gateway로만 가고 DB엔 헤더 이름만 | U-15 |
 | POST | `/mcp/uploads` | 로그인 | zip 업로드(최대 50MB) → 새 버전 `201` | U-12 |
 | GET | `/me/mcp/packages` | 로그인 | 내가 올린 패키지·버전 | U-12 |
 | GET | `/mcp/packages/{pkg}/versions/{ver}` | 본인·관리자 | 버전 상태·스캔·도구 | U-12 |
@@ -199,6 +199,8 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 | POST | `/admin/mcp/packages/{pkg}/suspend` · `/resume` | 게시 중단 `{removeInstalls: boolean}` | A-08 |
 | PUT | `/admin/mcp/packages/{pkg}/default` | `{isDefault}` | A-08 |
 | GET | `/admin/mcp/installs?team=&source=` | 팀별 설치·직접 추가 목록 | A-08 |
+| DELETE | `/admin/mcp/installs/{id}` | 강제 제거 | A-05 |
+| GET | `/admin/mcp/versions/{id}/logs?stage=` | 단계 로그 | A-07 |
 | GET | `/admin/deploy-requests?status=` | Public 요청 | A-09 |
 | POST | `/admin/deploy-requests/{id}/approve` · `/reject` | `{note}` → 승인은 `202`(publish: 스냅샷 v1 + 이름 등록 + 공개본 기동 / update: 스냅샷 v+1 + 공개본 재시작) | A-09 |
 | GET | `/admin/apps?public=true&team=` | 앱 목록(공개 중만 필터) | A-05, A-09 |
@@ -243,8 +245,12 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | (헬스) | orchestrator가 `kacp-edge`로 `http://{컨테이너}:{port}/` 응답을 기다림(90초) |
 | (사용량) | 앱 컨테이너 Docker stats → `usage_samples` `target_type=app`, `target_id={appId}:{work\|public}` |
 | `GET /internal/apps/{appId}/{work\|public}/logs?tail=` | `{lines}` (Docker 로그 프레임 해석) |
-| `POST /internal/mcp/versions/{id}/build` | 빌드 대기열에 넣기 |
-| `POST /internal/teams/{team}/mcp/install` · `remove` · `secrets` | MCP 컨테이너 + 팀 Secret Store + `config.patch` |
+| `POST /internal/mcp/builds` | `{versionId, pkg, version, resources}` → 202. 대기열은 api가 정한다(한 번에 하나, `uploaded` 중 가장 오래된 것). 단계마다 `mcp.build` 이벤트 `{status: building\|scanning\|testing\|in_review\|failed, failedStage?, detail?, imageRef?, scanSummary?, findings?, tools?}`. 로그 `/data/mcp/{pkg}/{ver}/{build,scan,test}.log` |
+| `DELETE /internal/mcp/images/{pkg}/{version}` | 반려·대체된 버전 이미지 제거(실패한 버전은 orchestrator가 바로 지움) |
+| `PUT /internal/teams/{team}/mcp/{key}` | 설치·업그레이드 `{pkg, version, network, resources, secrets\|null}` → 202. Secret Store에 쓰고(`null`이면 유지) MCP 컨테이너·egress 프록시를 다시 만든 뒤 팀이 실행 중이면 켠다. 결과 `mcp.install` 이벤트 `{id: team, key, status: installed\|error\|removed}` → api가 apply-config |
+| `PUT /internal/teams/{team}/mcp/{key}/secrets` · `DELETE /internal/teams/{team}/mcp/{key}` | 비밀값 병합 후 재생성 · 컨테이너와 Secret Store 제거 |
+| `PUT /internal/gateway/{team}/mcp-manual/{key}` | 직접 추가 `{server: {url, headers?}\|null}` → 실행 중 Gateway에 `config.patch` 한 항목(동기) |
+| (apply-config `mcpServers`) | 설치된 마켓·기본 MCP `[{key, url}]` → `mcp.servers.{key}`. URL이 `http://kacp-mcp-*:8080/mcp`인 관리 항목만 지운다(직접 추가·Control UI 항목은 건드리지 않음) |
 | `GET /internal/gateway/{team}/rpc` | api 대신 admin-http-rpc 호출(프록시) — `config.get` 등. 팀 Gateway 비밀번호를 쓰는 유일한 곳. 실제 호출은 팀 사이드카 `kacp-gwagent-{team}` → loopback(`06-auth.md` §6, spike 04). HTTP 허용 메서드만 된다(`config.*`, `agents.*`, `models.authStatus`, `health`, `status` 등. `users.*`·`session.*` 없음) |
 
 `config.patch` 규칙(spike 04): `config.get`의 `hash`를 `baseHash`로 보낸다. 400 "config changed since last load"면 다시 get. 삭제는 `null`(JSON merge patch). **배열 값을 가진 항목**(예: `identityScopes.{email}`)을 지우려면 `replacePaths: ["gateway.auth.identityScopes.{email}"]`가 필요하다. 응답에는 비밀값 평문이 없다(SecretRef만).
@@ -257,10 +263,11 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | 워커 | 위치 | 주기 | 하는 일 |
 |---|---|---|---|
 | 유휴 정지 | api | 1분 | presence 없고 `last_active_at` 초과한 running 팀 → orchestrator stop |
-| Gateway 동기화 | api | 5분 + 설치 직후 | running 팀만 orchestrator `/internal/gateway/{team}/rpc`로 `config.get` → `mcp_installs` 갱신, `last_checked_at`. **꺼진 팀은 건너뜀** |
+| Gateway 동기화 | api | 5분 | running 팀만 orchestrator `/internal/gateway/{team}/rpc`로 `config.get` → Gateway에만 있는 서버는 `manual`로 기록, 사라진 `manual` 행 삭제, 빠진 마켓 설치는 apply-config 다시, `last_checked_at`. **꺼진 팀은 건너뜀** |
+| MCP 빌드 배정 | api | 10초 + 업로드·빌드 종료 직후 | 진행 중 빌드가 없으면 가장 오래된 `uploaded`를 `validating`으로 바꾸고 orchestrator에 넘김. 25분 넘게 소식이 없는 단계는 `failed` |
 | 앱 유휴 정지 | api | 1분 | `*_last_accessed_at`이 설정값(작업본 30분·공개본 120분)을 넘은 running 사본 → stop(`idle`) |
 | 할당 반영 | api | 이벤트 + 팀 기동 시 | `team_agents.apply_status = pending`인 팀에 apply-config |
-| MCP 빌드 | orchestrator | 대기열(한 번에 하나) | validate → build → scan(Trivy 제안) → test(컨테이너 기동 후 `tools/list`) → `in_review` |
+| MCP 빌드 | orchestrator | 대기열(한 번에 하나) | build(빌드 socket-proxy `POST /build`, 플랫폼 Dockerfile) → scan(`aquasec/trivy:0.69.3` `trivy fs`, lock 파일 기준, Critical이면 실패) → test(`kacp-mcp-test`에서 `/healthz`·`initialize`·`tools/list`, 도구 0개면 실패) → `in_review`. 검증(매니페스트·레이아웃)은 api가 업로드 때 한다(실패 시 `422`) |
 | 사용량 수집 | orchestrator | 1분 | Docker stats + 호스트 CPU·메모리·디스크 → api `usage_samples` |
 | 휴지통 정리 | api | 1일 | `purge_after` 지난 항목 영구 삭제 |
 | 세션·기록 정리 | api | 1일 | 만료 세션, 30일 지난 login_attempts, 7일 지난 usage_samples |

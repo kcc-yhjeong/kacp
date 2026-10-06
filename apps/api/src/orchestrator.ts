@@ -32,6 +32,8 @@ export interface DesiredConfig {
   adminEmails: string[];
   /** platform-mcp for this team (`mcp.servers.platform`), docs/README.md 5단계. */
   platformMcp: { url: string; token: string };
+  /** Installed market/default MCP servers (`mcp.servers.{key}`), docs/README.md 6단계. */
+  mcpServers: { key: string; url: string }[];
 }
 
 export interface TeamStats {
@@ -104,4 +106,23 @@ export const orchestrator = {
   removeApp: (appId: string, copy: 'work' | 'public') => call(`/internal/apps/${appId}/${copy}`, {}, 'DELETE', 60_000),
   appLogs: (appId: string, copy: 'work' | 'public', tail: number) =>
     call(`/internal/apps/${appId}/${copy}/logs?tail=${tail}`, undefined, 'GET') as Promise<{ lines: string[] }>,
+
+  // ── MCP (docs/README.md 6단계) ──
+  /** 202; stages arrive as mcp.build events. */
+  mcpBuild: (job: { versionId: string; pkg: string; version: string; resources: McpResources }) => call('/internal/mcp/builds', job),
+  mcpRemoveImage: (pkg: string, version: string) => call(`/internal/mcp/images/${pkg}/${version}`, {}, 'DELETE'),
+  /** 202; `secrets: null` keeps the Secret Store (version upgrade). The outcome is an mcp.install event. */
+  mcpInstall: (team: string, key: string, spec: McpInstallSpec & { secrets: Record<string, string> | null }) =>
+    call(`/internal/teams/${team}/mcp/${key}`, spec, 'PUT'),
+  mcpSecrets: (team: string, key: string, spec: McpInstallSpec & { secrets: Record<string, string> }) =>
+    call(`/internal/teams/${team}/mcp/${key}/secrets`, spec, 'PUT'),
+  mcpRemove: (team: string, key: string) => call(`/internal/teams/${team}/mcp/${key}`, {}, 'DELETE'),
+  /** Synchronous Gateway patch for a "직접 추가" server (null = delete). */
+  mcpManual: (team: string, key: string, server: { url: string; headers?: Record<string, string> } | null) =>
+    call(`/internal/gateway/${team}/mcp-manual/${key}`, { server }, 'PUT', 60_000),
+  gatewayConfig: (team: string) =>
+    call(`/internal/gateway/${team}/rpc`, { method: 'config.get' }, 'POST', 30_000) as Promise<{ payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown> } }>,
 };
+
+export interface McpResources { cpu: number; memoryMb: number }
+export interface McpInstallSpec { pkg: string; version: string; network: string[]; resources: McpResources }

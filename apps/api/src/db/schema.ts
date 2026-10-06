@@ -311,3 +311,77 @@ export const appVersions = pgTable('app_versions', {
   approvedBy: uuid('approved_by'),
   approvedAt: timestamp('approved_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.appId, t.version] })]);
+
+// ── MCP market (03-data-model.md MCP, docs/README.md 6단계). Secret values are never stored. ──
+
+export const mcpPackages = pgTable('mcp_packages', {
+  id: uuid('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  /** null = platform-mcp (seeded). */
+  ownerId: uuid('owner_id').references(() => users.id),
+  displayName: text('display_name').notNull(),
+  summary: text('summary').notNull(),
+  category: text('category').notNull(),
+  icon: text('icon'),
+  status: text('status').notNull().default('active'),
+  isDefault: boolean('is_default').notNull().default(false),
+  isPlatform: boolean('is_platform').notNull().default(false),
+  latestVersionId: uuid('latest_version_id'),
+  installCount: integer('install_count').notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [check('mcp_packages_status_check', sql`${t.status} in ('active', 'suspended')`)]);
+
+export interface McpFinding { severity: string; pkg: string; id: string; title: string }
+export interface McpToolInfo { name: string; title?: string; description: string; inputSchema: unknown }
+
+export const mcpVersions = pgTable('mcp_versions', {
+  id: uuid('id').primaryKey(),
+  packageId: uuid('package_id').notNull().references(() => mcpPackages.id),
+  version: text('version').notNull(),
+  uploadedBy: uuid('uploaded_by'),
+  status: text('status').notNull().default('uploaded'),
+  failedStage: text('failed_stage'),
+  statusDetail: text('status_detail'),
+  /** When the current stage started: the dispatcher fails builds stuck longer than its timeout. */
+  stageAt: timestamp('stage_at', { withTimezone: true }).notNull().defaultNow(),
+  manifest: jsonb('manifest').notNull(),
+  readme: text('readme').notNull().default(''),
+  tools: jsonb('tools').$type<McpToolInfo[]>(),
+  scanSummary: jsonb('scan_summary').$type<{ critical: number; high: number; medium: number; low: number }>(),
+  scanFindings: jsonb('scan_findings').$type<McpFinding[]>(),
+  imageRef: text('image_ref'),
+  reviewedBy: uuid('reviewed_by'),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewNote: text('review_note'),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [
+  uniqueIndex('mcp_versions_package_version').on(t.packageId, t.version),
+  index('mcp_versions_status').on(t.status, t.createdAt),
+  check('mcp_versions_status_check', sql`${t.status} in ('uploaded', 'validating', 'building', 'scanning', 'testing', 'in_review', 'published', 'failed', 'rejected', 'superseded')`),
+  check('mcp_versions_failed_stage_check', sql`${t.failedStage} is null or ${t.failedStage} in ('validate', 'build', 'scan', 'test')`),
+]);
+
+export const mcpInstalls = pgTable('mcp_installs', {
+  id: uuid('id').primaryKey(),
+  teamId: uuid('team_id').notNull().references(() => teams.id),
+  source: text('source').notNull(),
+  packageId: uuid('package_id').references(() => mcpPackages.id),
+  versionId: uuid('version_id').references(() => mcpVersions.id),
+  manualName: text('manual_name'),
+  manualUrl: text('manual_url'),
+  serverKey: text('server_key').notNull(),
+  status: text('status').notNull().default('installing'),
+  statusDetail: text('status_detail'),
+  secretNames: text('secret_names').array().notNull().default(sql`'{}'::text[]`),
+  installedBy: uuid('installed_by'),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [
+  uniqueIndex('mcp_installs_team_key').on(t.teamId, t.serverKey),
+  index('mcp_installs_package').on(t.packageId),
+  check('mcp_installs_source_check', sql`${t.source} in ('default', 'market', 'manual')`),
+  check('mcp_installs_status_check', sql`${t.status} in ('installing', 'installed', 'error', 'removing')`),
+]);

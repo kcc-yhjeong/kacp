@@ -4,7 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { Check, ChevronRight, Loader2, Plus, Search, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminTeamStatusBadge } from '@/components/admin/badges';
-import { DepartmentBulkPicker } from '@/components/admin/department-bulk';
+import { DepartmentBulkPicker, type BulkUser } from '@/components/admin/department-bulk';
 import { EmptyState, Field, ListState, PageContainer, PageHeader } from '@/components/admin/page';
 import { useDebounced, UserChip, UserPicker } from '@/components/admin/user-picker';
 import { FormAlert } from '@/components/form-alert';
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { adminApi, adminKeys, useAdminSettings, useAdminTeams } from '@/lib/admin/api';
 import { formatLimits } from '@/lib/admin/format';
 import { PROVISION_STEPS } from '@/lib/admin/labels';
-import type { AdminTeam, AdminUser, ProvisionStage, ResourceLimits, UserRef } from '@/lib/admin/types';
+import type { AdminTeam, ProvisionStage, ResourceLimits, UserRef } from '@/lib/admin/types';
 import { errorMessage } from '@/lib/api';
 import { currentHost } from '@/lib/host';
 
@@ -179,7 +179,7 @@ function CreateTeamForm({ onCreated, onCancel }: { onCreated: (t: AdminTeam) => 
   const [displayName, setDisplayName] = useState('');
   const [admins, setAdmins] = useState<UserRef[]>([]);
   const [individuals, setIndividuals] = useState<UserRef[]>([]);
-  const [bulk, setBulk] = useState<AdminUser[]>([]);
+  const [bulk, setBulk] = useState<BulkUser[]>([]);
   const [customLimits, setCustomLimits] = useState<ResourceLimits | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

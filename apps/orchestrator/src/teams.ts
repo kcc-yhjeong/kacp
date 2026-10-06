@@ -9,6 +9,7 @@ import { notifyProvision, notifyTeamStatus } from './events.js';
 import { seedConfig } from './openclaw-config.js';
 import { agentsMd, computePatch, withPlatformBlock, workspaceFor, type DesiredConfig } from './apply-config.js';
 import { tar, tarFile } from './tar.js';
+import { removeTeamMcp, startTeamMcp, stopTeamMcp } from './mcp-runtime.js';
 
 // Team container lifecycle (04-api.md §3: provision / ensure-running / stop / restart / apply-config /
 // resources / delete, spike 06) plus the Gateway sidecar kacp-gwagent-{team} (spike 04).
@@ -321,6 +322,8 @@ async function bringUp(team: string, spec: TeamRuntimeSpec) {
   await startSandboxProxy(team);
   await startAndWait(team);
   await startSidecar(team, spec);
+  // Market MCP servers start with the team; a broken one shows as an install error, not a team error.
+  await startTeamMcp(team, (m) => console.error(m)).catch((err) => console.error(`mcp start ${team}: ${describe(err)}`));
   watched.add(team);
   await notifyTeamStatus(team, 'running');
 }
@@ -355,6 +358,7 @@ async function stopContainers(team: string) {
   await docker.stop(gwagentContainer(team), 5);
   await docker.stop(teamContainer(team));
   await stopSandboxes(team);
+  await stopTeamMcp(team).catch(() => undefined);
 }
 
 export function stop(team: string) {
@@ -433,6 +437,34 @@ export function applyConfig(team: string, desired: DesiredConfig) {
   });
 }
 
+/**
+ * "직접 추가" MCP (U-15): writes or deletes one `mcp.servers.{key}` entry on the running Gateway.
+ * Headers (tokens) go straight to the Gateway config and are never stored by the api.
+ */
+export function patchManualMcp(team: string, key: string, server: { url: string; headers?: Record<string, string> } | null) {
+  return serial(team, async () => {
+    const c = await docker.inspect(teamContainer(team));
+    if (c?.State.Status !== 'running') throw new Error('팀 에이전트가 꺼져 있어요.');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const got = await gatewayRpc(team, 'config.get') as { payload?: { hash?: string } };
+      const entry = server ? { url: server.url, transport: 'streamable-http', ...(server.headers && Object.keys(server.headers).length ? { headers: server.headers } : {}) } : null;
+      try {
+        await gatewayRpc(team, 'config.patch', {
+          raw: JSON.stringify({ mcp: { servers: { [key]: entry } } }),
+          baseHash: got.payload?.hash,
+          replacePaths: [`mcp.servers.${key}`],
+          note: 'kacp manual mcp',
+        });
+        return { changed: true };
+      } catch (err) {
+        if (attempt === 0 && /config changed since last load/i.test(String((err as Error).message))) continue;
+        throw err;
+      }
+    }
+    throw new Error('설정이 계속 바뀌고 있어 반영하지 못했어요.');
+  });
+}
+
 /** docker update on a running container (A-05 리소스). Stopped containers get the limits at next create. */
 export async function updateResources(team: string, limits: TeamRuntimeSpec['resourceLimits']) {
   const c = await docker.inspect(teamContainer(team));
@@ -450,6 +482,7 @@ export function removeTeam(team: string) {
     await stopContainers(team);
     await docker.remove(gwagentContainer(team));
     await docker.remove(teamContainer(team));
+    await removeTeamMcp(team).catch(() => undefined);
     if (sandboxEnabled()) {
       await docker.remove(sbxProxyContainer(team));
       await docker.networkRemove(sbxNetwork(team));

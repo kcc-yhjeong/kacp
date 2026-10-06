@@ -8,6 +8,7 @@ import { getApiKeys, getSetting } from '../settings.js';
 import { config } from '../config.js';
 import { mcpToken } from '../apps/logic.js';
 import type { AgentSpec } from '../agents/spec.js';
+import { desiredMcpServers } from '../mcp/service.js';
 
 // Team container lifecycle as seen from the api (03-data-model.md 상태 전이 — 팀 컨테이너).
 
@@ -163,6 +164,7 @@ async function applyTeamConfig(teamName: string) {
       agents,
       adminEmails: await adminEmails(team.id),
       platformMcp: { url: config.platformMcpUrl, token: mcpToken(config.internalToken, team.name) },
+      mcpServers: await desiredMcpServers(team.id, team.name),
     });
     for (const [templateId, version] of versions) {
       await db.update(teamAgents)

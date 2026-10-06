@@ -37,7 +37,7 @@ function host(s: AppCopySpec) {
   return s.copy === 'work' ? `${s.slug}--${s.team}.${config.baseDomain}` : `${s.publicName}.${config.baseDomain}`;
 }
 
-function mount(rel: string, target: string, readOnly: boolean) {
+export function dataMount(rel: string, target: string, readOnly: boolean) {
   return config.stateMode === 'bind'
     ? { Type: 'bind', Source: `${config.dataRoot}/${rel}`, Target: target, ReadOnly: readOnly }
     : { Type: 'volume', Source: config.dataVolume, Target: target, ReadOnly: readOnly, VolumeOptions: { Subpath: rel } };
@@ -71,7 +71,7 @@ export function appContainerSpec(appId: string, s: AppCopySpec) {
       [`traefik.http.services.${router}.loadbalancer.server.port`]: String(s.port),
     },
     HostConfig: {
-      Mounts: [mount(s.sourceRel, '/src', true), mount(s.dataRel, '/app-data', false)],
+      Mounts: [dataMount(s.sourceRel, '/src', true), dataMount(s.dataRel, '/app-data', false)],
       Memory: s.limits.memoryMb * 1024 * 1024,
       MemorySwap: s.limits.memoryMb * 1024 * 1024,
       NanoCpus: Math.round(s.limits.cpu * 1e9),

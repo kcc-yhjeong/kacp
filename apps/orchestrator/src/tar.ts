@@ -15,10 +15,21 @@ function header(entry: TarEntry, size: number, isDir: boolean): Buffer {
   const h = Buffer.alloc(512, 0);
   const field = (value: string, offset: number, length: number) => h.write(value, offset, length, 'ascii');
   const octal = (n: number, length: number) => `${n.toString(8).padStart(length - 1, '0')}\0`;
-  const name = isDir && !entry.name.endsWith('/') ? `${entry.name}/` : entry.name;
-  if (Buffer.byteLength(name) > 100) throw new Error(`tar name too long: ${name}`);
+  const full = isDir && !entry.name.endsWith('/') ? `${entry.name}/` : entry.name;
+  // ustar: names over 100 bytes are split at a '/' into prefix (≤155) + name (≤100).
+  let name = full;
+  let prefix = '';
+  if (Buffer.byteLength(full) > 100) {
+    const cut = full.slice(0, -1).lastIndexOf('/', 155);
+    if (cut <= 0 || Buffer.byteLength(full.slice(0, cut)) > 155 || Buffer.byteLength(full.slice(cut + 1)) > 100) {
+      throw new Error(`tar name too long: ${full}`);
+    }
+    prefix = full.slice(0, cut);
+    name = full.slice(cut + 1);
+  }
 
   field(name, 0, 100);
+  if (prefix) field(prefix, 345, 155);
   field(octal(entry.mode ?? (isDir ? 0o700 : 0o600), 8), 100, 8);
   field(octal(entry.uid ?? 0, 8), 108, 8);
   field(octal(entry.gid ?? 0, 8), 116, 8);

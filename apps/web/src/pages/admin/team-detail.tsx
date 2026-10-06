@@ -11,7 +11,6 @@ import {
   MemoryStick,
   Pencil,
   Play,
-  Plug,
   Plus,
   RotateCw,
   Search,
@@ -23,10 +22,11 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AdminTeamStatusBadge, ApplyStatusBadge, TeamRoleBadge } from '@/components/admin/badges';
-import { DepartmentBulkPicker } from '@/components/admin/department-bulk';
+import { DepartmentBulkPicker, type BulkUser } from '@/components/admin/department-bulk';
 import { EmptyState, ErrorState, Field, PageContainer, SectionCard } from '@/components/admin/page';
 import { UserPicker } from '@/components/admin/user-picker';
 import { TeamAppsTab } from '@/pages/admin/team-apps';
+import { TeamMcpTab } from '@/pages/admin/team-mcp';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageLoader } from '@/components/page-loader';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { adminApi, adminKeys, useAdminSettings, useTemplates } from '@/lib/admin/api';
 import { formatBytes, formatMb, formatPct } from '@/lib/admin/format';
-import type { AdminTeamDetail, AdminUser, ResourceLimits, TeamAgent } from '@/lib/admin/types';
+import type { AdminTeamDetail, ResourceLimits, TeamAgent } from '@/lib/admin/types';
 import { errorMessage } from '@/lib/api';
 import { formatTime } from '@/lib/format';
 import { currentHost } from '@/lib/host';
@@ -111,13 +111,7 @@ function TeamDetail({ team }: { team: AdminTeamDetail }) {
           <ResourcesTab team={team} />
         </TabsContent>
         <TabsContent value="mcp">
-          <div className="rounded-xl border">
-            {(team.mcpInstalls?.length ?? 0) === 0 ? (
-              <EmptyState icon={Plug} title="아직 설치된 MCP가 없어요" description="팀 관리자가 MCP 마켓에서 설치하면 여기에 보여요" />
-            ) : (
-              <div className="px-5 py-4 text-sm">설치된 MCP {team.mcpInstalls?.length}개</div>
-            )}
-          </div>
+          <TeamMcpTab team={team.name} />
         </TabsContent>
         <TabsContent value="apps">
           <TeamAppsTab team={team.name} />
@@ -271,7 +265,7 @@ function TeamHeader({ team }: { team: AdminTeamDetail }) {
 
 function MembersTab({ team }: { team: AdminTeamDetail }) {
   const refresh = useRefreshTeam(team.name);
-  const [bulk, setBulk] = useState<AdminUser[]>([]);
+  const [bulk, setBulk] = useState<BulkUser[]>([]);
   const [resetKey, setResetKey] = useState(0);
   const [pending, setPending] = useState(false);
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);

@@ -16,10 +16,6 @@ services:
       - ../../apps/proxy/traefik.vm.yml:/etc/traefik/traefik.yml:ro
       - /data/traefik:/data
 
-  docker-socket-proxy:
-    environment:
-      NETWORKS: 1   # per-team sandbox network kacp-sbx-{team} (create/connect/remove)
-
   postgres:
     volumes:
       - /data/postgres:/var/lib/postgresql/data

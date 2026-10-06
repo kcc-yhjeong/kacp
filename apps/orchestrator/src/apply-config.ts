@@ -26,7 +26,12 @@ export interface DesiredConfig {
   adminEmails: string[];
   /** Team-scoped platform-mcp (`mcp.servers.platform`). Optional only for older callers/tests. */
   platformMcp?: { url: string; token: string };
+  /** Installed market/default MCP servers (docs/README.md 6단계). Omitted = leave market keys alone. */
+  mcpServers?: { key: string; url: string }[];
 }
+
+/** Market MCP servers KACP runs (kacp-mcp-{key}--{team}). Only keys with such a URL are ever deleted. */
+export const MANAGED_MCP_URL = /^http:\/\/kacp-mcp-[a-z0-9-]+:8080\/mcp$/;
 
 export const MANAGED_PREFIX = 'kacp-';
 export const PLATFORM_MCP_NAME = 'platform';
@@ -119,6 +124,27 @@ export function computePatch(
   );
   if (mcpChanged) replacePaths.push(`mcp.servers.${PLATFORM_MCP_NAME}`);
 
+  // Market MCP servers: add/replace the desired ones, delete managed ones that are no longer installed.
+  // Servers added in the Control UI or with "직접 추가" have other URLs and are never touched here.
+  const servers: Record<string, unknown> = {};
+  if (desired.mcpServers) {
+    const currentServers = (current as { mcp?: { servers?: Record<string, { url?: string; transport?: string }> } }).mcp?.servers ?? {};
+    const want = new Map(desired.mcpServers.map((m) => [m.key, m.url]));
+    for (const [key, s] of Object.entries(currentServers)) {
+      if (key !== PLATFORM_MCP_NAME && !want.has(key) && MANAGED_MCP_URL.test(s?.url ?? '')) {
+        servers[key] = null;
+        replacePaths.push(`mcp.servers.${key}`);
+      }
+    }
+    for (const [key, url] of want) {
+      const cur = currentServers[key];
+      if (cur?.url !== url || cur?.transport !== 'streamable-http') {
+        servers[key] = { url, transport: 'streamable-http' };
+        replacePaths.push(`mcp.servers.${key}`);
+      }
+    }
+  }
+
   // Sandbox origin for HTML previews (05 §2). A restart-required key: OpenClaw restarts in-process.
   const currentApps = (current as { mcp?: { apps?: { sandboxOrigin?: string; sandboxPort?: number } } }).mcp?.apps;
   const appsChanged = !!opts.sandboxOrigin && (currentApps?.sandboxOrigin !== opts.sandboxOrigin || currentApps?.sandboxPort !== 18790);
@@ -127,15 +153,16 @@ export function computePatch(
   if (replacePaths.length === 0) return null;
   const patch: Record<string, unknown> = {};
   if (appsChanged) patch.mcp = { apps: { sandboxOrigin: opts.sandboxOrigin, sandboxPort: 18790 } };
-  if (mcpChanged) {
+  if (mcpChanged || Object.keys(servers).length) {
     patch.mcp = {
       ...(patch.mcp as object | undefined),
       servers: {
-        [PLATFORM_MCP_NAME]: {
+        ...servers,
+        ...(mcpChanged ? { [PLATFORM_MCP_NAME]: {
           url: desired.platformMcp!.url,
           transport: 'streamable-http',
           headers: { Authorization: `Bearer ${desired.platformMcp!.token}` },
-        },
+        } } : {}),
       },
     };
   }

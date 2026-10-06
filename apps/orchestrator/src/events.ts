@@ -30,4 +30,20 @@ export const notifyProvision = (team: string, stage: 'storage' | 'container' | '
 export const notifyApp = (appId: string, copy: 'work' | 'public', status: 'running' | 'stopped' | 'error', stopReason: string | null = null, detail?: string) =>
   post('/internal/events', { type: 'app.status', id: appId, copy, status, stopReason, detail: detail ?? null });
 
-export const sendUsage = (samples: unknown[]) => post('/internal/usage', { samples }, 1);
+export interface McpBuildEvent {
+  status: 'building' | 'scanning' | 'testing' | 'in_review' | 'failed';
+  failedStage?: 'validate' | 'build' | 'scan' | 'test';
+  detail?: string;
+  imageRef?: string;
+  scanSummary?: { critical: number; high: number; medium: number; low: number };
+  findings?: { severity: string; pkg: string; id: string; title: string }[];
+  tools?: { name: string; title?: string; description: string; inputSchema: unknown }[];
+}
+
+export const notifyMcpBuild = (versionId: string, ev: McpBuildEvent) =>
+  post('/internal/events', { type: 'mcp.build', id: versionId, ...ev });
+
+export const notifyMcpInstall = (team: string, key: string, status: 'installed' | 'error' | 'removed', detail?: string) =>
+  post('/internal/events', { type: 'mcp.install', id: team, key, status, detail: detail ?? null });
+
+export const sendUsage =(samples: unknown[]) => post('/internal/usage', { samples }, 1);

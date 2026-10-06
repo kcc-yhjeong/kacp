@@ -26,7 +26,7 @@ interface AppHeaderProps {
   currentTeam?: string;
   /** Live status of the current team (the shell knows it better than /me/teams). */
   currentStatus?: TeamContainerStatus;
-  active?: 'agent' | 'drive' | 'apps';
+  active?: 'agent' | 'drive' | 'apps' | 'market';
   /** Where the team switcher goes for another team (drive pages keep the same drive page). Default: team root. */
   teamHref?: (team: MyTeam) => string;
 }
@@ -85,7 +85,13 @@ export function AppHeader({ variant = 'full', currentTeam, currentStatus, active
       <div className="flex items-center gap-1">
         <nav className="flex items-center justify-end gap-0.5">
           <ComingSoon>커뮤니티</ComingSoon>
-          <ComingSoon>MCP 마켓</ComingSoon>
+          <a
+            href={scopeTeam ? `${appOrigin}/market?team=${encodeURIComponent(scopeTeam.name)}` : `${appOrigin}/market`}
+            className={navClass(active === 'market')}
+            aria-current={active === 'market' ? 'page' : undefined}
+          >
+            MCP 마켓
+          </a>
         </nav>
         <Separator orientation="vertical" className="mx-2" />
         <Tooltip>
@@ -149,16 +155,20 @@ function TeamSwitcher({
         {current?.teamRole === 'team_admin' && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem onSelect={() => location.assign(teamSettingsUrl(current.name))}>
               <Settings className="text-muted-foreground" strokeWidth={1.75} />
               팀 설정
-              <span className="ml-auto text-xs text-muted-foreground">준비 중</span>
             </DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+/** U-15 on the app host. */
+export function teamSettingsUrl(team: string, tab: 'members' | 'mcp' | 'info' = 'members'): string {
+  return `${appOrigin}/t/${encodeURIComponent(team)}/settings/${tab}`;
 }
 
 /** Profile menu. `admin` mode (inside /admin) swaps "관리자 화면" for "사원 화면으로" (C-00). */

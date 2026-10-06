@@ -23,6 +23,10 @@ networks:
   kacp-traefik-sock:
     name: kacp-traefik-sock
     internal: true
+  # Uploaded MCP images are tested here (no outside access); orchestrator joins to call tools/list.
+  kacp-mcp-test:
+    name: kacp-mcp-test
+    internal: true
 
 volumes:
   postgres-data:
@@ -60,7 +64,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [kacp-traefik-sock]
 
-  # orchestrator-only Docker access (spike 06). No images, volumes, networks, exec.
+  # orchestrator-only Docker access (spike 06). No images, volumes, exec.
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:v0.5.0
     restart: unless-stopped
@@ -70,6 +74,19 @@ services:
       ALLOW_START: 1
       ALLOW_STOP: 1
       ALLOW_RESTARTS: 1
+      NETWORKS: 1   # per-team MCP network kacp-mcpnet-{team}, kacp-egress (and kacp-sbx-{team} on the VM)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [kacp-core]
+
+  # orchestrator-only, for MCP builds (docs/README.md 6단계): image build, pull, inspect, remove.
+  docker-build-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: unless-stopped
+    environment:
+      BUILD: 1
+      IMAGES: 1
+      POST: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [kacp-core]
@@ -115,9 +132,10 @@ services:
       dockerfile: apps/orchestrator/Dockerfile
     image: kacp/orchestrator:dev
     restart: unless-stopped
-    depends_on: [docker-socket-proxy]
+    depends_on: [docker-socket-proxy, docker-build-proxy]
     environment:
       DOCKER_URL: http://docker-socket-proxy:2375
+      DOCKER_BUILD_URL: http://docker-build-proxy:2375
       OPENCLAW_IMAGE: ${OPENCLAW_IMAGE}
       STATE_MODE: volume
       EDGE_NETWORK: kacp-edge
@@ -140,6 +158,7 @@ services:
         aliases: [orchestrator-core]
       # outbound only: Gateway sidecars kacp-gwagent-{team}:18800 (06-auth.md §6)
       kacp-edge: {}
+      kacp-mcp-test: {}
 
   web:
     build:

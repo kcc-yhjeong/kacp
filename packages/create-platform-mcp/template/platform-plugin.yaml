@@ -1,0 +1,47 @@
+# KACP MCP 매니페스트. 업로드할 때 플랫폼이 이 파일로 검증하고, 마켓 화면에 그대로 보여 줘요.
+# 확인: npx create-platform-mcp validate
+
+# 패키지 이름. 소문자·숫자·하이픈 3~30자, `--` 금지. package.json의 name과 같아야 해요.
+name: example-mcp
+
+# 버전(semver, 예: 1.0.0). package.json의 version과 같아야 하고, 새로 올릴 때마다 높여야 해요.
+version: 0.1.0
+
+# 마켓에 보이는 이름(60자 이내).
+displayName: 예제 MCP
+
+# 한 줄 소개(200자 이내).
+summary: 인사하고 날씨를 알려 주는 예제 MCP예요.
+
+# 분류: 문서 · 데이터 · 메신저 · 일정 · 개발 · 업무 · 기타
+category: 기타
+
+# (선택) 마켓 카드 아이콘. 이모지 하나 정도.
+icon: "🌤️"
+
+# 비밀값(API 키 등). 설치하는 팀 관리자가 입력하고, 서버에는 같은 이름의 환경변수로 들어와요.
+# 코드에서는 getSecret("이름")으로 읽어요. 값은 DB·로그에 남지 않아요.
+# 팀 범위만 써요. 사람별 비밀값(scope: user)은 아직 지원하지 않아 검증에서 거부돼요.
+secrets:
+  - name: EXAMPLE_API_KEY        # 대문자·숫자·밑줄
+    description: 외부 서비스 API 키 자리(예제의 wttr.in은 키가 필요 없어 아무 값이나 넣어도 돼요)
+    required: true               # true면 값을 입력해야 설치돼요
+  - name: EXAMPLE_LANG
+    description: 날씨 설명 언어(비우면 ko)
+    required: false
+
+# 서버가 접속할 수 있는 외부 도메인. 여기에 없는 곳은 플랫폼 프록시가 막아요(403).
+# 도메인만 적어요(https://, 포트, 경로 없이). `*.example.com`은 하위 도메인만 허용해요.
+network:
+  - wttr.in
+
+# (선택) 실행 자원. cpu는 코어 수(최대 2), memoryMb는 64~2048.
+resources:
+  cpu: 0.25
+  memoryMb: 256
+
+# 마켓 상세 화면에 보이는 사용 예시 문장(에이전트에게 이렇게 말해 보세요).
+examples:
+  - 김철수 님에게 인사해 줘
+  - 서울 날씨 알려 줘
+  - https://wttr.in/Busan?format=3 내용을 가져와 줘

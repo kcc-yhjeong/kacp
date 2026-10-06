@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { adminApi, adminKeys, useAdminSettings } from '@/lib/admin/api';
 import { REASONING_LABEL } from '@/lib/admin/labels';
+import { DefaultMcpPicker } from '@/components/mcp/default-mcp-picker';
 import type { AgentSkill, AgentTemplate, AgentTemplateInput, Reasoning } from '@/lib/admin/types';
 import { errorMessage } from '@/lib/api';
 import { formatTime } from '@/lib/format';
@@ -93,6 +94,7 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
   const [skills, setSkills] = useState<AgentSkill[]>(initial.spec.skills ?? []);
   const [allow, setAllow] = useState<string[]>(initial.spec.tools?.allow ?? []);
   const [deny, setDeny] = useState<string[]>(initial.spec.tools?.deny ?? []);
+  const [defaultMcp, setDefaultMcp] = useState<string[]>(initial.spec.defaultMcp ?? []);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -109,8 +111,7 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
       model: { id: effectiveModel, reasoning },
       instructions,
       skills,
-      // Default MCP is installed from stage 6; keep whatever is stored.
-      defaultMcp: initial.spec.defaultMcp ?? [],
+      defaultMcp,
       tools: { allow, deny },
     },
   });
@@ -279,11 +280,9 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
             <span className="text-xs text-muted-foreground">OpenClaw 번들 스킬 중 허용된 이름만 저장돼요.</span>
           </SectionCard>
 
-          <SectionCard icon={Plug} title="기본 MCP" actions={<span className="text-xs text-muted-foreground">준비 중</span>} bodyClassName="p-5">
-            <div className="flex flex-col gap-2 opacity-60">
-              <TagInput value={initial.spec.defaultMcp ?? []} onChange={() => undefined} disabled ariaLabel="기본 MCP" placeholder="MCP 마켓이 열리면 고를 수 있어요" />
-              <span className="text-xs text-muted-foreground">platform-mcp는 모든 팀에 항상 들어 있어요</span>
-            </div>
+          <SectionCard icon={Plug} title="기본 MCP" bodyClassName="flex flex-col gap-2 p-5">
+            <DefaultMcpPicker value={defaultMcp} onChange={setDefaultMcp} />
+            <span className="text-xs text-muted-foreground">할당하면 팀에 함께 설치돼요. platform-mcp는 모든 팀에 항상 들어 있어요</span>
           </SectionCard>
 
           <SectionCard icon={ShieldCheck} title="도구 권한" bodyClassName="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">

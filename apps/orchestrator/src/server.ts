@@ -2,10 +2,12 @@ import Fastify from 'fastify';
 import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { NAME_PATTERN } from '@kacp/shared';
-import { config } from './config.js';
+import { config, mcpImage } from './config.js';
 import {
-  adoptRunning, applyConfig, ensureRunning, gatewayRpc, provision, removeTeam, restart, startHealthWatch, stop, updateResources,
+  adoptRunning, applyConfig, ensureRunning, gatewayRpc, patchManualMcp, provision, removeTeam, restart, startHealthWatch, stop, updateResources,
 } from './teams.js';
+import { enqueueBuild, removeVersionImage } from './mcp-build.js';
+import { installMcp, removeMcp, updateMcpSecrets } from './mcp-runtime.js';
 import { startUsageCollector } from './usage.js';
 import { appLogs, removeApp, runApp, stopApp } from './apps.js';
 
@@ -34,6 +36,7 @@ const Desired = z.object({
   agents: z.array(Agent),
   adminEmails: z.array(z.string()),
   platformMcp: z.object({ url: z.url(), token: z.string().min(20) }).optional(),
+  mcpServers: z.array(z.object({ key: z.string().regex(NAME_PATTERN), url: z.url() })).optional(),
 });
 const TeamParams = z.object({ team: z.string().regex(NAME_PATTERN) });
 
@@ -145,6 +148,61 @@ app.get('/internal/apps/:appId/:copy/logs', async (req) => {
   const { appId, copy } = AppParams.parse(req.params);
   const { tail } = z.object({ tail: z.coerce.number().int().min(1).max(2000).default(500) }).parse(req.query);
   return appLogs(appId, copy, tail);
+});
+
+// ── MCP (docs/README.md 6단계) ──
+
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const Resources = z.object({ cpu: z.number().positive().max(2), memoryMb: z.number().int().min(64).max(2048) });
+const SecretValues = z.record(z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/), z.string().max(8192));
+const McpParams = z.object({ team: z.string().regex(NAME_PATTERN), key: z.string().regex(NAME_PATTERN) });
+const InstallSpec = z.object({
+  pkg: z.string().regex(NAME_PATTERN),
+  version: z.string().regex(SEMVER),
+  network: z.array(z.string().max(253)).max(50),
+  resources: Resources,
+});
+const installSpec = (b: z.infer<typeof InstallSpec>) => ({ ...b, image: mcpImage(b.pkg, b.version) });
+
+app.post('/internal/mcp/builds', async (req, reply) => {
+  const job = z.object({ versionId: z.uuid(), pkg: z.string().regex(NAME_PATTERN), version: z.string().regex(SEMVER), resources: Resources }).parse(req.body);
+  void enqueueBuild(job);
+  return reply.code(202).send({ accepted: true });
+});
+
+app.delete('/internal/mcp/images/:pkg/:version', async (req, reply) => {
+  const p = z.object({ pkg: z.string().regex(NAME_PATTERN), version: z.string().regex(SEMVER) }).parse(req.params);
+  await removeVersionImage(p.pkg, p.version);
+  return reply.code(204).send();
+});
+
+app.put('/internal/teams/:team/mcp/:key', async (req, reply) => {
+  const { team, key } = McpParams.parse(req.params);
+  const body = InstallSpec.extend({ secrets: SecretValues.nullable() }).parse(req.body);
+  void installMcp(team, key, installSpec(body), body.secrets);
+  return reply.code(202).send({ accepted: true });
+});
+
+app.put('/internal/teams/:team/mcp/:key/secrets', async (req, reply) => {
+  const { team, key } = McpParams.parse(req.params);
+  const body = InstallSpec.extend({ secrets: SecretValues }).parse(req.body);
+  void updateMcpSecrets(team, key, installSpec(body), body.secrets);
+  return reply.code(202).send({ accepted: true });
+});
+
+app.delete('/internal/teams/:team/mcp/:key', async (req, reply) => {
+  const { team, key } = McpParams.parse(req.params);
+  void removeMcp(team, key);
+  return reply.code(202).send({ accepted: true });
+});
+
+// "직접 추가" (U-15): one Gateway entry, values go straight to the Gateway config.
+app.put('/internal/gateway/:team/mcp-manual/:key', async (req) => {
+  const { team, key } = McpParams.parse(req.params);
+  const body = z.object({
+    server: z.object({ url: z.url().refine((u) => /^https?:/.test(u)), headers: z.record(z.string(), z.string().max(4096)).optional() }).nullable(),
+  }).parse(req.body);
+  return patchManualMcp(team, key, body.server);
 });
 
 await adoptRunning().catch((err) => app.log.warn({ err }, 'adopt running teams failed'));

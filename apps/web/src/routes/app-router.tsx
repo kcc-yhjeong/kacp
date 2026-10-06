@@ -116,6 +116,116 @@ const appDetailRoute = createRoute({
   },
 });
 
+// ── /market (U-09 ~ U-12). Own lazy chunks. `?team=` = the team the market works for (installed badge, install target).
+
+const MarketPage = lazy(() => import('@/pages/market/market-page').then((m) => ({ default: m.MarketPage })));
+const PackagePage = lazy(() => import('@/pages/market/package-page').then((m) => ({ default: m.PackagePage })));
+const InstalledPage = lazy(() => import('@/pages/market/installed-page').then((m) => ({ default: m.InstalledPage })));
+const MinePage = lazy(() => import('@/pages/market/mine-page').then((m) => ({ default: m.MinePage })));
+const VersionPage = lazy(() => import('@/pages/market/version-page').then((m) => ({ default: m.VersionPage })));
+
+const teamSearch = (search: Record<string, unknown>): { team?: string } =>
+  typeof search.team === 'string' && search.team ? { team: search.team } : {};
+
+const marketRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/market',
+  validateSearch: teamSearch,
+  component: function MarketRoute() {
+    const { team } = marketRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <MarketPage team={team} />
+      </Suspense>
+    );
+  },
+});
+
+const marketInstalledRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/market/installed',
+  validateSearch: teamSearch,
+  component: function MarketInstalledRoute() {
+    const { team } = marketInstalledRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <InstalledPage team={team} />
+      </Suspense>
+    );
+  },
+});
+
+const marketMineRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/market/mine',
+  validateSearch: teamSearch,
+  component: function MarketMineRoute() {
+    const { team } = marketMineRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <MinePage team={team} />
+      </Suspense>
+    );
+  },
+});
+
+const marketVersionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/market/mine/$pkg/$ver',
+  component: function MarketVersionRoute() {
+    const { pkg, ver } = marketVersionRoute.useParams();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <VersionPage key={`${pkg}@${ver}`} pkg={pkg} ver={ver} />
+      </Suspense>
+    );
+  },
+});
+
+const marketPackageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/market/$pkg',
+  validateSearch: teamSearch,
+  component: function MarketPackageRoute() {
+    const { pkg } = marketPackageRoute.useParams();
+    const { team } = marketPackageRoute.useSearch();
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PackagePage key={pkg} pkg={pkg} team={team} />
+      </Suspense>
+    );
+  },
+});
+
+// ── /t/{team}/settings/{members|mcp|info} (U-15). Own lazy chunk.
+
+const TeamSettingsPage = lazy(() => import('@/pages/team-settings/team-settings-page').then((m) => ({ default: m.TeamSettingsPage })));
+
+const teamSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/settings/$tab',
+  component: function TeamSettingsRoute() {
+    const { team, tab } = teamSettingsRoute.useParams();
+    if (tab !== 'members' && tab !== 'mcp' && tab !== 'info') {
+      return <Navigate to="/t/$team/settings/$tab" params={{ team, tab: 'members' }} replace />;
+    }
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <TeamSettingsPage team={team} tab={tab} />
+      </Suspense>
+    );
+  },
+});
+
+const teamSettingsRootRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/t/$team/settings',
+  component: function TeamSettingsRootRoute() {
+    const { team } = teamSettingsRootRoute.useParams();
+    return <Navigate to="/t/$team/settings/$tab" params={{ team, tab: 'members' }} replace />;
+  },
+});
+
 // ── /admin (A-*). Every screen is its own lazy chunk so the employee shell does not load admin code.
 
 const adminRoute = createRoute({
@@ -160,6 +270,16 @@ const adminDeployRoute = createRoute({
   component: lazyRouteComponent(() => import('@/pages/admin/deploy'), 'DeployPage'),
 });
 
+const adminMcpReviewsRoute = adminChild('/mcp/reviews', () => import('@/pages/admin/mcp-reviews'), 'McpReviewsPage');
+const adminMcpReviewRoute = adminChild('/mcp/reviews/$versionId', () => import('@/pages/admin/mcp-reviews'), 'McpReviewDetailPage');
+const adminMcpRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/mcp',
+  validateSearch: (search: Record<string, unknown>): { tab?: 'packages' | 'installs' | 'manual' } =>
+    search.tab === 'installs' || search.tab === 'manual' || search.tab === 'packages' ? { tab: search.tab } : {},
+  component: lazyRouteComponent(() => import('@/pages/admin/mcp'), 'McpAdminPage'),
+});
+
 const routeTree = rootRoute.addChildren([
   adminRoute.addChildren([
     adminDashboardRoute,
@@ -176,7 +296,17 @@ const routeTree = rootRoute.addChildren([
     adminSettingsRoute,
     adminAuditRoute,
     adminDeployRoute,
+    adminMcpRoute,
+    adminMcpReviewsRoute,
+    adminMcpReviewRoute,
   ]),
+  marketRoute,
+  marketInstalledRoute,
+  marketMineRoute,
+  marketVersionRoute,
+  marketPackageRoute,
+  teamSettingsRootRoute,
+  teamSettingsRoute,
   homeRoute,
   loginRoute,
   passwordSetupRoute,

@@ -12,7 +12,7 @@ export class DockerError extends Error {
   }
 }
 
-async function request(method: string, path: string, init: { json?: unknown; tar?: Buffer } = {}) {
+async function request(method: string, path: string, init: { json?: unknown; tar?: Buffer; base?: string; timeoutMs?: number } = {}) {
   const headers: Record<string, string> = {};
   let body: BodyInit | undefined;
   if (init.json !== undefined) {
@@ -22,7 +22,9 @@ async function request(method: string, path: string, init: { json?: unknown; tar
     headers['content-type'] = 'application/x-tar';
     body = new Uint8Array(init.tar);
   }
-  const res = await fetch(`${config.dockerUrl}${API}${path}`, { method, headers, body });
+  const res = await fetch(`${init.base ?? config.dockerUrl}${API}${path}`, {
+    method, headers, body, ...(init.timeoutMs ? { signal: AbortSignal.timeout(init.timeoutMs) } : {}),
+  });
   const text = await res.text();
   let parsed: unknown = text;
   try {
@@ -91,10 +93,10 @@ export const docker = {
   },
 
   // Networks (bind/VM mode only: per-team sandbox network). Needs NETWORKS=1 on the socket proxy.
-  async networkEnsure(name: string, internal: boolean) {
+  async networkEnsure(name: string, internal: boolean, kind = 'sbx-network') {
     const r = await request('GET', `/networks/${name}`);
     if (r.status === 200) return;
-    const c = await request('POST', '/networks/create', { json: { Name: name, Internal: internal, Labels: { 'kacp.kind': 'sbx-network' } } });
+    const c = await request('POST', '/networks/create', { json: { Name: name, Internal: internal, Labels: { 'kacp.kind': kind } } });
     if (c.status !== 201 && c.status !== 409) throw new DockerError(c.status, c.body, 'network create');
   },
 
@@ -132,14 +134,64 @@ export const docker = {
   },
 
   /** Last log lines (stdout+stderr, multiplexed frames stripped). */
-  async logsTail(name: string, lines = 50): Promise<string> {
+  async logsTail(name: string, lines: number | 'all' = 50): Promise<string> {
     const res = await fetch(`${config.dockerUrl}${API}/containers/${name}/logs?stdout=1&stderr=1&timestamps=0&tail=${lines}`);
     if (res.status !== 200) return '';
     return demuxLogs(Buffer.from(await res.arrayBuffer()));
   },
 
-  async listByLabel(label: string): Promise<{ Names: string[]; State: string; Labels: Record<string, string> }[]> {
-    const filters = encodeURIComponent(JSON.stringify({ label: [label] }));
+  /** Blocks until the container exits; returns its exit code. */
+  async wait(name: string, timeoutMs: number): Promise<number> {
+    const r = await request('POST', `/containers/${name}/wait`, { timeoutMs });
+    if (r.status !== 200) throw new DockerError(r.status, r.body, 'wait');
+    return (r.body as { StatusCode: number }).StatusCode;
+  },
+
+  // ── build socket proxy (BUILD IMAGES POST) ──
+
+  async imageExists(ref: string): Promise<boolean> {
+    const r = await request('GET', `/images/${encodeURIComponent(ref)}/json`, { base: config.buildDockerUrl });
+    return r.status === 200;
+  },
+
+  async pull(ref: string) {
+    const i = ref.lastIndexOf(':');
+    const q = `fromImage=${encodeURIComponent(ref.slice(0, i))}&tag=${encodeURIComponent(ref.slice(i + 1))}`;
+    const r = await request('POST', `/images/create?${q}`, { base: config.buildDockerUrl, timeoutMs: 10 * 60_000 });
+    if (r.status !== 200 || /"error"/.test(r.text)) throw new DockerError(r.status, r.text.slice(-300), 'pull');
+  },
+
+  /**
+   * POST /build with a tar context. Returns the build output (stream lines joined) and the error, if any.
+   * The classic builder runs RUN steps on the default bridge, so `npm ci` reaches the registry.
+   */
+  async build(context: Buffer, tag: string, opts: { memoryMb: number; labels: Record<string, string> }): Promise<{ log: string; error: string | null }> {
+    const q = new URLSearchParams({
+      t: tag, rm: '1', forcerm: '1', pull: '1', memory: String(opts.memoryMb * 1024 * 1024), labels: JSON.stringify(opts.labels),
+    });
+    const r = await request('POST', `/build?${q}`, { tar: context, base: config.buildDockerUrl, timeoutMs: 15 * 60_000 });
+    let log = '';
+    let error: string | null = r.status === 200 ? null : `Docker 오류 (${r.status})`;
+    for (const line of r.text.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const m = JSON.parse(line) as { stream?: string; status?: string; error?: string };
+        if (m.stream) log += m.stream;
+        else if (m.status) log += `${m.status}\n`;
+        if (m.error) error = m.error;
+      } catch {
+        log += `${line}\n`;
+      }
+    }
+    return { log, error };
+  },
+
+  async removeImage(ref: string) {
+    await request('DELETE', `/images/${encodeURIComponent(ref)}?force=1`, { base: config.buildDockerUrl });
+  },
+
+  async listByLabel(label: string | string[]): Promise<{ Names: string[]; State: string; Labels: Record<string, string> }[]> {
+    const filters = encodeURIComponent(JSON.stringify({ label: Array.isArray(label) ? label : [label] }));
     const r = await request('GET', `/containers/json?all=1&filters=${filters}`);
     if (r.status !== 200) throw new DockerError(r.status, r.body, 'list');
     return r.body as { Names: string[]; State: string; Labels: Record<string, string> }[];

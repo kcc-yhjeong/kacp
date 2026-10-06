@@ -208,7 +208,7 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - 메모: Control UI Model Setup에서 키를 넣고 실패한 뒤 다시 넣으면 "공유 인증 정보" 계정이 하나씩 쌓인다(지우면 됨). 권장 경로는 A-10 플랫폼 API 키(→ 팀 컨테이너 환경변수).
 - v2 로드맵 후보로 남긴 것: 에이전트의 "내 드라이브" 접근(사람별 OAuth MCP, `06-auth.md` §8).
 
-## 5단계 통과 조건 (앱 배포)
+## 5단계 통과 조건 (앱 배포) — 완료 2026-10-06
 
 목표: 데모 장면 3 — **에이전트가 만든 웹 앱이 작업본(`앱--팀`)으로 바로 뜨고, 관리자 승인을 받으면 공개본(`앱.kacp…`)이 따로 생긴다.** 두 사본은 잠들었다가 접속하면 깨어난다. 장소는 로컬, 마지막에 VM.
 
@@ -231,15 +231,42 @@ spike 목록·장소의 원본은 `plan.md` "1단계 진행 방식"이다.
 - [x] web: U-02 앱 막대·미리보기 패널, U-03 공개 설정 모달(세 모습), U-07 목록, U-08 상세(사본 카드 두 장·탭 6개), A-09 배포 승인(요청·상세·공개 중인 앱·처리 이력), A-05 앱 탭, C-04 깨우는 중·앱 멈춤
 - [x] 테스트: 런타임 판별, 파일 차이 계산, 앱 상태·필터 파생, 공개 요청 규칙(앱당 대기 1개, publish/update 조건), 팀 토큰 검증
 - [x] 데모(브라우저, 사용자 확인): 에이전트에게 "팀 드라이브 lunch-vote 폴더에 점심 투표 웹앱 만들어서 띄워줘" → 앱 막대에 새 칩 → 작업본 미리보기(팀원만, 비멤버 403) → 공개 요청 → 관리자 승인 → `lunch-vote.kacp…`를 다른 팀 사원이 접속 → 작업본 수정 후 업데이트 요청 → 승인 → v2, 두 사본 데이터 분리 → 유휴 정지 후 접속하면 깨어남 → 강제 중지·해제 → 공개 중지(작업본 남음) → 앱 삭제
-- [ ] VM: 같은 흐름 https로 한 번(샌드박스에서 만든 앱 폴더)
+- [x] VM: 같은 흐름 https로 한 번(샌드박스에서 만든 앱 폴더) — 2026-10-06 사용자 확인(작업본·공개 승인·다른 팀 접속·HTML 미리보기)
 
-### 5단계 결과 (2026-10-06, 로컬 — VM 확인 전)
+### 5단계 결과 (2026-10-06, 로컬 + VM)
 
 - 검사: `pnpm -r typecheck` 통과, `pnpm -r test` 통과(shared 18, platform-mcp 1, orchestrator 11, api 48, web 78).
 - 스크립트: platform-mcp MCP 호출(`tools/list` 7개, `run_app`) → 작업본 기동, 팀원 접속·비멤버 `/forbidden`, 앱으로 `kacp_session` 안 넘어감, 공개 요청(중복 409) → 승인 → 공개본 v1, 다른 팀 접속, **작업본·공개본 데이터 분리**, 업데이트(파일 차이 `modified: server.js`) → v2 무중단 교체, 강제 중지(팀원 시작 409·사유 표시)·해제, 수동 중지는 깨우기 거부, 잠든 작업본 접속 → 2초 안에 깨어남, 공개 중지(팀원 403, 이름 반납).
 - 브라우저(사용자 확인): U-02·U-03·U-07·U-08·A-09·A-05 앱 탭·C-04, 에이전트가 `run_app`으로 앱 실행, 공개·업데이트·강제 중지·공개 중지·삭제.
 - 확인 중 고친 것: `package.json` 없는 Node 앱 판별, 앱 정지 10초 지연(`Init: true`), 공개본 스냅샷 소유자(root → uid 1000), 공개 중지 후 재공개 시 버전 중복(이력 최대값 + 1), 플랫폼 관리자의 작업본 열기(A-09 심사용, 06 §7), 채팅 파일 링크 "session file not found"(지시문: `team-drive/…` 경로로 안내), **HTML 미리보기 "연결 거부" → 팀별 샌드박스 출처 `{team}--sbx`**(05 §2, 예약어 `sbx`).
 - 메모: `mcp.apps.sandboxOrigin`은 Gateway 재시작이 필요한 키인데 OpenClaw가 in-process 재시작을 미뤄 둔다 → 기존 팀은 반영 후 관리자 화면에서 재시작. 템플릿 에이전트 모델 등은 apply-config가 템플릿 값으로 맞춘다(Control UI에서 바꾼 값은 덮어씀).
+
+## 6단계 통과 조건 (MCP 마켓)
+
+목표: 데모 장면 4 — **개발자가 스캐폴딩으로 만든 MCP를 올리면 관리자 심사 후 다른 팀이 마켓에서 설치해 쓴다.** 장소는 로컬, 마지막에 VM.
+
+범위 밖: 커뮤니티 "MCP 공유 글에서 바로 설치"(7단계), Python 템플릿·버전 고정·롤백·사람별 OAuth(v2, `plan.md`).
+
+결정(문서 반영):
+- **매니페스트** `platform-plugin.yaml`: `name`(이름 규칙과 같음) `version`(semver) `displayName` `summary` `category` `icon?` `secrets[{name, description, required}]`(**팀 범위만** — `scope: user`는 검증에서 거부, spike 05) `network[]`(허용 도메인, `*.example.com` 허용) `resources{cpu, memoryMb}` `examples[]`. 스키마(zod)는 `packages/shared` 하나를 서버와 CLI가 같이 쓴다.
+- **스캐폴딩** `packages/create-platform-mcp`: `create`(TypeScript 템플릿 — 고정 영역 `src/platform/`: streamable HTTP `/mcp`·`/healthz`·`getSecret`·프록시를 따르는 `fetch`, 개발자 영역 `src/tools/` 도구 하나 = 파일 하나) · `validate`(서버와 같은 규칙) · `pack`(zip). 개발자 Dockerfile은 **쓰지 않는다** — 플랫폼 표준 Dockerfile로 빌드(`npm ci` → `npm run build` → `node dist/server.js`, uid 1000, 포트 8080).
+- **빌드 파이프라인(orchestrator, 한 번에 하나)**: 검증(api가 업로드 때) → 빌드(Docker `POST /build`, orchestrator 전용 **빌드 socket-proxy** `BUILD IMAGES POST`만, `kacp-core`) → 보안 스캔(`aquasec/trivy` 컨테이너로 **소스 의존성** `trivy fs`, Critical이면 실패) → 테스트(내부 네트워크 `kacp-mcp-test`에서 컨테이너를 띄워 `tools/list` 추출) → 심사 대기. 단계 로그는 `/data/mcp/{pkg}/{ver}/`.
+- **실행(팀별 MCP 컨테이너)** `kacp-mcp-{pkg}--{team}`: 팀 내부 네트워크 `kacp-mcpnet-{team}`(`internal`, 팀 컨테이너도 붙음)에만 붙고, Gateway는 `http://kacp-mcp-{pkg}--{team}:8080/mcp`로 부른다. 팀 컨테이너와 함께 켜지고 꺼진다.
+- **⚠️ 해소 — 네트워크 대상 제한**: MCP 컨테이너는 인터넷에 직접 못 나간다(내부 네트워크). 설치마다 **egress 프록시** `kacp-mcpproxy-{pkg}--{team}`(orchestrator 이미지의 `egress-proxy.js`, 바깥 브리지 `kacp-egress`, HTTP CONNECT·HTTP를 매니페스트 `network` 도메인에만 허용)를 붙이고 `HTTPS_PROXY`·`HTTP_PROXY`로 알려 준다. 템플릿의 `fetch`는 이 환경변수를 따른다.
+- **비밀값**: DB·로그·감사 기록에 값 없음(이름만). api는 요청 본문 값을 그대로 orchestrator로 넘기고, orchestrator가 **팀 Secret Store** = `/data/teams/{team}/mcp/{server_key}/secrets.json`(root 0600, 팀 컨테이너에 안 붙임)에 쓴 뒤 MCP 컨테이너 환경변수로 넣는다.
+- **팀 Gateway 반영**: apply-config가 설치된 MCP를 `mcp.servers.{server_key}`로 넣고, 제거된 KACP 관리 키만 지운다(Control UI에서 직접 넣은 서버는 건드리지 않음). Gateway 동기화 워커(5분)가 실행 중인 팀의 `config.get`으로 `mcp_installs`를 맞추고, Gateway에만 있는 서버는 `manual`로 기록한다.
+- **기본 제공**: platform-mcp는 `mcp_packages`에 `is_platform`으로 시드(빌드 없음)되고 모든 팀에 `source=default` 설치로 보인다(제거 불가). 전사 기본 MCP(`is_default`)는 새 팀 프로비저닝 `default_mcp` 단계에서 자동 설치.
+
+- [x] 문서: 위 결정을 `03`(mcp_* 세부), `04`(§3 내부 API·빌드), `05`(§6 네트워크·컨테이너·빌드 프록시, ⚠️ egress 해소), `openapi.yaml`(`scope` = team만)에 반영
+- [x] shared: 매니페스트 zod 스키마 + 테스트
+- [x] create-platform-mcp: `create`·`validate`·`pack`, 템플릿(고정 영역·도구 예시 2개·README), 템플릿으로 만든 예제가 실제 빌드·테스트를 통과
+- [x] api: `mcp_packages`·`mcp_versions`·`mcp_installs` 스키마, 업로드(zip 50MB, 매니페스트 검증, 버전 중복 409), 내 패키지·버전·로그, 마켓 목록·상세(도구·권한·예시·이력), 설치·비밀값 다시 입력·제거·직접 추가, 심사(목록·상세·이전 버전 차이·소스 zip·승인/반려), 게시 중단·재개·기본 지정, 팀별 설치 현황, Gateway 동기화 워커, platform-mcp 시드, 감사 기록
+- [x] orchestrator: 빌드 대기열(빌드·스캔·테스트, 단계 이벤트 `mcp.build`), 팀 내부 네트워크, MCP 컨테이너·egress 프록시 생성·기동·정지·제거, Secret Store, apply-config `mcp.servers`, 팀 기동·정지와 연동
+- [x] egress 프록시(orchestrator 이미지 `egress-proxy.js`, 허용 도메인 외 CONNECT 403, 내부 주소 거절)
+- [x] web: U-09 마켓·U-10 상세+설치 모달·U-11 설치됨·U-12 내 배포(업로드·스테퍼·로그), U-15 팀 설정(멤버·MCP·직접 추가·정보), A-07 심사, A-08 MCP 관리, A-06 템플릿 기본 MCP 선택 켜기, 헤더 "MCP 마켓"·"팀 설정" 연결
+- [x] 테스트: 매니페스트 규칙, 버전 상태 전이, egress 허용 판정, apply-config `mcp.servers` 계산(관리 키만 삭제), 설치 권한(팀 관리자·플랫폼 관리자)
+- [ ] 데모(브라우저, 사용자 확인): `create-platform-mcp`로 예제 생성 → `pack` → U-12 업로드 → 단계 진행 → A-07 승인 → 다른 팀 관리자가 U-10에서 설치(비밀값 입력) → 에이전트가 새 도구 사용 → 허용 안 된 도메인 호출은 막힘 → 비밀값 다시 입력·제거 → 게시 중단
+- [ ] VM: 같은 흐름 한 번
 
 ## 다음 단계와의 연결
 

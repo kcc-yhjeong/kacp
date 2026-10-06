@@ -1,8 +1,17 @@
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { DepartmentSelect } from '@/components/admin/department-select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useDepartmentMembers } from '@/lib/admin/api';
-import type { AdminUser } from '@/lib/admin/types';
+import { adminApi, adminKeys, useDepartmentMembers } from '@/lib/admin/api';
+
+/** What the picker hands back (AdminUser from the admin source, UserRef from the search source). */
+export interface BulkUser {
+  id: string;
+  name: string;
+  email: string;
+  title?: string | null;
+  status?: string;
+}
 
 /**
  * Department bulk add (A-04, A-05 멤버): pick a department → its active users (descendants included)
@@ -12,16 +21,28 @@ export function DepartmentBulkPicker({
   excludeIds,
   onSelectionChange,
   resetKey,
+  source = 'admin',
 }: {
   excludeIds?: ReadonlySet<string>;
-  onSelectionChange: (users: AdminUser[]) => void;
+  onSelectionChange: (users: BulkUser[]) => void;
   /** Change to clear the picker (after adding). */
   resetKey?: number;
+  /**
+   * `admin` = /admin/departments/{id}/members (platform admins). `search` = /users/search?departmentId= (any logged-in
+   * user, active users only, max 20 — U-15 team admins).
+   */
+  source?: 'admin' | 'search';
 }) {
   const [deptId, setDeptId] = useState<string | null>(null);
   const [deptName, setDeptName] = useState('');
   const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
-  const members = useDepartmentMembers(deptId, true);
+  const adminMembers = useDepartmentMembers(source === 'admin' ? deptId : null, true);
+  const searchMembers = useQuery({
+    queryKey: adminKeys.userSearch('', deptId ?? ''),
+    queryFn: async () => (await adminApi.searchUsers('', deptId ?? '')).items,
+    enabled: source === 'search' && deptId !== null,
+  });
+  const members = source === 'admin' ? adminMembers : searchMembers;
 
   useEffect(() => {
     setDeptId(null);
@@ -29,7 +50,7 @@ export function DepartmentBulkPicker({
   }, [resetKey]);
 
   const candidates = useMemo(
-    () => (members.data ?? []).filter((u) => u.status === 'active' && !(excludeIds?.has(u.id) ?? false)),
+    () => ((members.data ?? []) as BulkUser[]).filter((u) => (u.status ?? 'active') === 'active' && !(excludeIds?.has(u.id) ?? false)),
     [members.data, excludeIds],
   );
   const chosen = useMemo(() => candidates.filter((u) => !unchecked.has(u.id)), [candidates, unchecked]);

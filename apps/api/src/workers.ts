@@ -6,6 +6,8 @@ import { stopCopy } from './apps/service.js';
 import { purgeExpiredTrash } from './drive/routes.js';
 import { getSetting } from './settings.js';
 import { requestStop, setStatus } from './teams/runtime.js';
+import { dispatchBuilds } from './mcp/service.js';
+import { syncGateways } from './mcp/sync.js';
 
 // Background workers (04-api.md §4). Stage 2: idle stop and stuck-start recovery.
 
@@ -75,4 +77,7 @@ export function startWorkers(log: FastifyBaseLogger) {
   };
   const timer = setInterval(tick, 60_000);
   timer.unref();
+  // MCP build queue (also kicked right after an upload and after each finished build).
+  setInterval(() => void dispatchBuilds().catch((err) => log.error({ err }, 'mcp dispatch failed')), 10_000).unref();
+  setInterval(() => void syncGateways(log).catch((err) => log.error({ err }, 'mcp sync failed')), 5 * 60_000).unref();
 }

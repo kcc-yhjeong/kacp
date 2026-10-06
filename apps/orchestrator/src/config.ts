@@ -35,7 +35,30 @@ export const config = {
   sandboxImage: process.env.SANDBOX_IMAGE ?? 'openclaw-sandbox:bookworm-slim',
   appRuntimeTag: process.env.APP_RUNTIME_TAG ?? '1',
   socketProxyImage: process.env.SOCKET_PROXY_IMAGE ?? 'tecnativa/docker-socket-proxy:v0.5.0',
+  /** Build-only socket proxy (BUILD IMAGES POST): MCP image builds and image pulls (05 §6). */
+  buildDockerUrl: process.env.DOCKER_BUILD_URL ?? 'http://docker-build-proxy:2375',
+  /** Dependency scanner for MCP sources. 0.69.3 predates the 2026-03 trivy release compromise. */
+  trivyImage: process.env.TRIVY_IMAGE ?? 'aquasec/trivy:0.69.3',
 };
+
+// ── MCP (docs/README.md 6단계, 05 §6) ──
+export const MCP_PORT = 8080;
+export const EGRESS_PORT = 3128;
+/** Internal network where uploaded MCP images are tested (this orchestrator is attached by compose). */
+export const MCP_TEST_NETWORK = 'kacp-mcp-test';
+/** Bridge network with outside access; only egress proxies sit on it. */
+export const EGRESS_NETWORK = 'kacp-egress';
+export const TRIVY_CACHE_VOLUME = 'kacp-trivy-cache';
+/** Per-team internal network: team container + its MCP containers + their egress proxies. */
+export const mcpNetwork = (team: string) => `kacp-mcpnet-${team}`;
+export const mcpContainer = (key: string, team: string) => `kacp-mcp-${key}--${team}`;
+export const mcpProxyContainer = (key: string, team: string) => `kacp-mcpproxy-${key}--${team}`;
+export const mcpServerUrl = (key: string, team: string) => `http://${mcpContainer(key, team)}:${MCP_PORT}/mcp`;
+export const mcpImage = (pkg: string, version: string) => `kacp-mcp/${pkg}:${version}`;
+/** Upload, logs and scan report of one version, relative to the data root. */
+export const mcpVersionRel = (pkg: string, version: string) => `mcp/${pkg}/${version}`;
+/** Team Secret Store (root 0600, never mounted into the team container). */
+export const mcpSecretsDir = (team: string, key: string) => `${config.dataRoot}/teams/${team}/mcp/${key}`;
 
 export const GATEWAY_PORT = 18789;
 export const STATE_DIR = '/home/node/.openclaw';

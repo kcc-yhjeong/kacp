@@ -13,5 +13,7 @@ FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out .
+# Platform Dockerfile for uploaded MCP packages (docs/README.md 6단계), read by mcp-build.ts.
+COPY packages/create-platform-mcp/platform/Dockerfile /app/platform/Dockerfile
 EXPOSE 4000
 CMD ["node", "dist/server.js"]

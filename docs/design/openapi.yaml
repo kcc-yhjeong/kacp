@@ -2339,7 +2339,7 @@ components:
             type: object
             properties:
               name: { type: string }
-              scope: { type: string, enum: [team, user] }
+              scope: { type: string, enum: [team], description: v1은 팀 범위만(사람별은 v2, spike 05) }
               description: { type: string }
               required: { type: boolean }
         network:
@@ -2389,6 +2389,10 @@ components:
         version: { type: string }
         status: { $ref: '#/components/schemas/McpVersionStatus' }
         failedStage: { type: [string, 'null'], enum: [validate, build, scan, test, null] }
+        statusDetail: { type: [string, 'null'], description: 실패 원인 }
+        stageAt: { type: string, format: date-time }
+        reviewedAt: { type: [string, 'null'], format: date-time }
+        publishedAt: { type: [string, 'null'], format: date-time }
         uploadedBy: { $ref: '#/components/schemas/UserRef' }
         uploadedAt: { type: string, format: date-time }
         manifest: { $ref: '#/components/schemas/McpManifest' }
@@ -2416,6 +2420,8 @@ components:
         statusDetail: { type: [string, 'null'] }
         secretNames: { type: array, items: { type: string } }
         installedBy: { $ref: '#/components/schemas/UserRef' }
+        installedAt: { type: string, format: date-time }
+        serverKey: { type: string, description: 팀 Gateway mcp.servers 키 }
         lastCheckedAt: { type: [string, 'null'], format: date-time }
 
     PostInput:

@@ -17,6 +17,14 @@ describe('tarFile', () => {
     expect(header.reduce((a, b) => a + b, 0)).toBe(stored);
     expect(tar.subarray(512, 519).toString()).toBe('{"a":1}');
   });
+
+  it('splits long names into the ustar prefix field', () => {
+    const long = `${'a'.repeat(60)}/${'b'.repeat(60)}/file.txt`;
+    const t = tarFile({ name: long, content: 'x' });
+    expect(t.subarray(0, 8).toString()).toBe('file.txt');
+    expect(t.subarray(345, 345 + 121).toString()).toBe(`${'a'.repeat(60)}/${'b'.repeat(60)}`);
+    expect(() => tarFile({ name: 'c'.repeat(120), content: 'x' })).toThrow(/too long/);
+  });
 });
 
 describe('tar', () => {

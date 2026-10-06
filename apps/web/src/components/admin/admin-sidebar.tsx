@@ -16,6 +16,7 @@ import {
 import { Fragment } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePendingDeployRequests } from '@/lib/apps/api';
+import { usePendingMcpReviews } from '@/lib/mcp/api';
 import { cn } from '@/lib/utils';
 
 type AdminPath =
@@ -26,7 +27,9 @@ type AdminPath =
   | '/admin/agents'
   | '/admin/settings'
   | '/admin/audit'
-  | '/admin/deploy';
+  | '/admin/deploy'
+  | '/admin/mcp'
+  | '/admin/mcp/reviews';
 
 interface Item {
   label: string;
@@ -35,8 +38,10 @@ interface Item {
   to?: AdminPath;
   /** Extra path prefixes that count as this item (A-13 belongs to 조직). */
   also?: string[];
+  /** Path prefixes that belong to another item (MCP 관리 vs MCP 심사). */
+  not?: string[];
   /** Pending count badge (SidebarMenuBadge). */
-  badge?: 'deploy';
+  badge?: 'deploy' | 'mcp';
 }
 
 // Groups per 01-screens.md §5. Dashboard alone on top.
@@ -59,14 +64,14 @@ const GROUPS: { label: string | null; items: Item[] }[] = [
   {
     label: '심사·승인',
     items: [
-      { label: 'MCP 심사', icon: ShieldCheck },
+      { label: 'MCP 심사', icon: ShieldCheck, to: '/admin/mcp/reviews', badge: 'mcp' },
       { label: '배포 승인', icon: BadgeCheck, to: '/admin/deploy', badge: 'deploy' },
     ],
   },
   {
     label: '운영',
     items: [
-      { label: 'MCP 관리', icon: Plug },
+      { label: 'MCP 관리', icon: Plug, to: '/admin/mcp', not: ['/admin/mcp/reviews'] },
       { label: '플랫폼 설정', icon: Settings, to: '/admin/settings' },
       { label: '활동 기록', icon: History, to: '/admin/audit' },
     ],
@@ -77,6 +82,7 @@ function isActive(pathname: string, item: Item): boolean {
   if (!item.to) return false;
   const p = pathname.replace(/\/+$/, '') || '/';
   if (item.to === '/admin') return p === '/admin';
+  if (item.not?.some((prefix) => p === prefix || p.startsWith(`${prefix}/`))) return false;
   return [item.to, ...(item.also ?? [])].some((prefix) => p === prefix || p.startsWith(`${prefix}/`));
 }
 
@@ -84,6 +90,7 @@ function isActive(pathname: string, item: Item): boolean {
 export function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const deployPending = usePendingDeployRequests().data?.length ?? 0;
+  const mcpPending = usePendingMcpReviews().data?.length ?? 0;
 
   return (
     <aside
@@ -107,7 +114,7 @@ export function AdminSidebar({ collapsed, onToggle }: { collapsed: boolean; onTo
                 item={item}
                 active={isActive(pathname, item)}
                 collapsed={collapsed}
-                count={item.badge === 'deploy' ? deployPending : 0}
+                count={item.badge === 'deploy' ? deployPending : item.badge === 'mcp' ? mcpPending : 0}
               />
             ))}
           </Fragment>

@@ -87,6 +87,33 @@ describe('platform mcp', () => {
   });
 });
 
+describe('market mcp servers', () => {
+  it('adds installed servers and deletes only managed ones that are gone', async () => {
+    const { computePatch } = await import('./apply-config.js');
+    const current = { mcp: { servers: {
+      platform: { url: 'http://platform-mcp:5000/mcp', transport: 'streamable-http' },
+      'old-mcp': { url: 'http://kacp-mcp-old-mcp--team1:8080/mcp', transport: 'streamable-http' },
+      'mine': { url: 'https://mcp.example.com/mcp', transport: 'streamable-http' },
+      'notion-sync': { url: 'http://kacp-mcp-notion-sync--team1:8080/mcp', transport: 'streamable-http' },
+    } } };
+    const desired = {
+      agents: [], adminEmails: [],
+      mcpServers: [
+        { key: 'notion-sync', url: 'http://kacp-mcp-notion-sync--team1:8080/mcp' },
+        { key: 'weather', url: 'http://kacp-mcp-weather--team1:8080/mcp' },
+      ],
+    };
+    const plan = computePatch(current, desired);
+    expect(plan?.patch).toEqual({ mcp: { servers: {
+      'old-mcp': null,
+      weather: { url: 'http://kacp-mcp-weather--team1:8080/mcp', transport: 'streamable-http' },
+    } } });
+    expect(plan?.replacePaths).toEqual(['mcp.servers.old-mcp', 'mcp.servers.weather']);
+    // without mcpServers (older callers) market keys are left alone
+    expect(computePatch(current, { agents: [], adminEmails: [] })).toBeNull();
+  });
+});
+
 describe('sandbox origin', () => {
   it('sets mcp.apps.sandboxOrigin next to the platform server and is idempotent', async () => {
     const { computePatch } = await import('./apply-config.js');
