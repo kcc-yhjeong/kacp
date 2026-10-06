@@ -80,7 +80,11 @@ export function computePatch(
   opts: { sandbox?: boolean; sandboxOrigin?: string } = {},
 ): PatchPlan | null {
   const cur = current as {
-    agents?: { entries?: Record<string, unknown>; defaults?: { sandbox?: { prune?: unknown } } };
+    agents?: {
+      ownership?: string;
+      entries?: Record<string, unknown>;
+      defaults?: { sandbox?: { prune?: unknown }; heartbeat?: { agentId?: string }; systemAgent?: { agentId?: string } };
+    };
     gateway?: { auth?: { identityScopes?: Record<string, unknown> } };
   };
   const entries: Record<string, unknown> = {};
@@ -119,6 +123,20 @@ export function computePatch(
 
   const prune = opts.sandbox && stable(cur.agents?.defaults?.sandbox?.prune) !== stable(SANDBOX_PRUNE);
   if (prune) replacePaths.push('agents.defaults.sandbox.prune');
+
+  // Template agents next to `main` make a multi-agent roster: OpenClaw then requires
+  // agents.ownership="explicit" (doctor stamps it on later starts, a fresh team has none). `main` keeps
+  // the ambient owners (heartbeat, system agent) — the same values doctor writes. Never with a legacy
+  // `default: true` marker, and existing values are left alone.
+  const legacyDefault = Object.values(currentEntries).some((e) => (e as { default?: boolean } | null)?.default === true);
+  const ownership = desired.agents.length > 0 && cur.agents?.ownership !== 'explicit' && !legacyDefault;
+  const needMain = ownership && !('main' in currentEntries);
+  const needHeartbeat = ownership && !cur.agents?.defaults?.heartbeat?.agentId;
+  const needSystem = ownership && !cur.agents?.defaults?.systemAgent?.agentId;
+  if (ownership) replacePaths.push('agents.ownership');
+  if (needHeartbeat) replacePaths.push('agents.defaults.heartbeat.agentId');
+  if (needSystem) replacePaths.push('agents.defaults.systemAgent.agentId');
+  if (needMain) entries.main = {};
 
   // platform-mcp (docs/README.md 5단계). config.get may redact header values, so only url/transport
   // and the presence of Authorization decide whether to rewrite it.
@@ -181,10 +199,16 @@ export function computePatch(
       },
     };
   }
-  if (Object.keys(entries).length || prune) {
+  if (Object.keys(entries).length || prune || ownership) {
+    const defaults = {
+      ...(prune ? { sandbox: { prune: SANDBOX_PRUNE } } : {}),
+      ...(needHeartbeat ? { heartbeat: { agentId: 'main' } } : {}),
+      ...(needSystem ? { systemAgent: { agentId: 'main' } } : {}),
+    };
     patch.agents = {
+      ...(ownership ? { ownership: 'explicit' } : {}),
       ...(Object.keys(entries).length ? { entries } : {}),
-      ...(prune ? { defaults: { sandbox: { prune: SANDBOX_PRUNE } } } : {}),
+      ...(Object.keys(defaults).length ? { defaults } : {}),
     };
   }
   if (Object.keys(scopes).length) patch.gateway = { auth: { identityScopes: scopes } };
