@@ -8,6 +8,7 @@ import { departments, memberships, names, teams, users } from '../db/schema.js';
 import { ApiError } from '../lib/errors.js';
 import { getSetting } from '../settings.js';
 import { requestStart, teamStatus, touchPresence } from './runtime.js';
+import { teamAgentList } from '../admin/teams.js';
 
 /** `멤버` guard: the team's members only. Platform admins who are not members are refused here (06-auth.md §7). */
 async function memberOf(req: FastifyRequest<{ Params: { team: string } }>) {
@@ -32,7 +33,8 @@ export async function teamRoutes(app: FastifyInstance) {
       url: teamUrl(team.name),
       myRole: role,
       status: await teamStatus(team),
-      agents: [],
+      // Assigned templates (U-01 "no agents" bar, U-15 정보 tab).
+      agents: await teamAgentList(team.id),
       resourceLimits: team.resourceLimits ?? (await getSetting('limits.team_default')),
     };
   });
