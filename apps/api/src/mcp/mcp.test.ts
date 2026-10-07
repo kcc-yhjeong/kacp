@@ -91,11 +91,12 @@ describe('mcp rules', () => {
     expect(plan).toEqual({ addManual: [], dropManual: [], reapply: false });
   });
 
-  it('spots a Codex harness turned on after apply-config (MCP tools hidden behind tool search)', () => {
+  it('spots Codex tool loading that is not "direct" (MCP tools hidden behind tool search)', () => {
     expect(codexHidesTools({ plugins: { entries: { codex: { enabled: true } } } })).toBe(true);
     expect(codexHidesTools({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'searchable' } } } } })).toBe(true);
+    // The plugin is on by default, so no entry still means "searchable".
+    expect(codexHidesTools({ plugins: { entries: { 'admin-http-rpc': { enabled: true } } } })).toBe(true);
+    expect(codexHidesTools({})).toBe(true);
     expect(codexHidesTools({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'direct' } } } } })).toBe(false);
-    expect(codexHidesTools({ plugins: { entries: { 'admin-http-rpc': { enabled: true } } } })).toBe(false);
-    expect(codexHidesTools({})).toBe(false);
   });
 });

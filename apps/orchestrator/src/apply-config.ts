@@ -176,10 +176,11 @@ export function computePatch(
   const appsChanged = !!opts.sandboxOrigin && (currentApps?.sandboxOrigin !== opts.sandboxOrigin || currentApps?.sandboxPort !== 18790);
   if (appsChanged) replacePaths.push('mcp.apps.sandboxOrigin', 'mcp.apps.sandboxPort');
 
-  // Codex harness (enabled per team in the Control UI): its default "searchable" loading hides MCP tools
-  // behind Codex tool search, which small models skip ("도구가 노출되지 않았다"). Load them directly.
+  // Codex harness (OpenAI models): its default "searchable" loading hides MCP tools behind Codex tool
+  // search, which small models skip ("도구가 노출되지 않았다"). Load them directly. Every team gets it:
+  // the plugin is on by default, so a team using a template's OpenAI key has no `plugins.entries.codex`.
   const codex = (current as { plugins?: { entries?: { codex?: { config?: { codexDynamicToolsLoading?: string } } } } }).plugins?.entries?.codex;
-  const codexDirect = !!codex && codex.config?.codexDynamicToolsLoading !== 'direct';
+  const codexDirect = codex?.config?.codexDynamicToolsLoading !== 'direct';
   if (codexDirect) replacePaths.push('plugins.entries.codex.config.codexDynamicToolsLoading');
 
   if (replacePaths.length === 0) return null;
