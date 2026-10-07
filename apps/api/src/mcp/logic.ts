@@ -6,6 +6,17 @@ export type Servers = Record<string, { url?: string; command?: string } | null>;
 
 export interface SyncPlan { addManual: { key: string; url: string | null }[]; dropManual: string[]; reapply: boolean }
 
+/**
+ * Pure: the Codex harness was turned on after the last apply-config (the Control UI model setup adds
+ * `plugins.entries.codex` later), so its default "searchable" loading hides MCP tools such as run_app.
+ * apply-config sets it to "direct" — this tells the sync worker to run it again.
+ */
+export function codexHidesTools(config: unknown): boolean {
+  const codex = (config as { plugins?: { entries?: { codex?: { config?: { codexDynamicToolsLoading?: string } } } } } | null)
+    ?.plugins?.entries?.codex;
+  return !!codex && codex.config?.codexDynamicToolsLoading !== 'direct';
+}
+
 /** Pure: what to change for one team. `platform` is ours and never recorded. Gateway keys are `mcpGatewayKey(serverKey)`. */
 export function planSync(servers: Servers, rows: { serverKey: string; source: string; status: string }[]): SyncPlan {
   const known = new Map(rows.map((r) => [mcpGatewayKey(r.serverKey), r]));

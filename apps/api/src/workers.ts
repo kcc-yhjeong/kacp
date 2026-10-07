@@ -81,5 +81,5 @@ export function startWorkers(log: FastifyBaseLogger) {
   timer.unref();
   // MCP build queue (also kicked right after an upload and after each finished build).
   setInterval(() => void dispatchBuilds().catch((err) => log.error({ err }, 'mcp dispatch failed')), 10_000).unref();
-  setInterval(() => void syncGateways(log).catch((err) => log.error({ err }, 'mcp sync failed')), 5 * 60_000).unref();
+  setInterval(() => void syncGateways(log).catch((err) => log.error({ err }, 'mcp sync failed')), 60_000).unref();
 }

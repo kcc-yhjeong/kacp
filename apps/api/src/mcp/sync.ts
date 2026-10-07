@@ -4,12 +4,13 @@ import { mcpInstalls, teams } from '../db/schema.js';
 import { newId } from '../lib/crypto.js';
 import { orchestrator } from '../orchestrator.js';
 import { scheduleApply } from '../teams/runtime.js';
-import { planSync, type Servers } from './logic.js';
+import { codexHidesTools, planSync, type Servers } from './logic.js';
 
-// Gateway sync (03-data-model.md mcp_installs, every 5 min): running teams' `mcp.servers` vs the DB.
+// Gateway sync (03-data-model.md mcp_installs, every minute): running teams' `mcp.servers` vs the DB.
 // - a server only in the Gateway (added in the Control UI) → recorded as `manual`
 // - a manual row whose server is gone from the Gateway → dropped
 // - an installed market/default server missing from the Gateway → apply-config again
+// - the Codex harness turned on after apply-config (MCP tools hidden) → apply-config again
 
 
 export async function syncGateways(log: { warn: (o: object, m: string) => void }) {
@@ -31,7 +32,7 @@ export async function syncGateways(log: { warn: (o: object, m: string) => void }
         await db.delete(mcpInstalls).where(and(eq(mcpInstalls.teamId, t.id), eq(mcpInstalls.serverKey, key), eq(mcpInstalls.source, 'manual')));
       }
       await db.update(mcpInstalls).set({ lastCheckedAt: sql`now()` }).where(eq(mcpInstalls.teamId, t.id));
-      if (plan.reapply) void scheduleApply(t.name);
+      if (plan.reapply || codexHidesTools(cfg)) void scheduleApply(t.name);
     } catch (err) {
       log.warn({ err, team: t.name }, 'mcp gateway sync failed');
     }

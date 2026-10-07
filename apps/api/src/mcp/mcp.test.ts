@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { manifestProblems } from '@kacp/shared';
 import { checkPackage, safeEntryPath, stripWrapper, type PackageFile } from './package.js';
-import { manifestChanges, missingSecrets, planSync } from './logic.js';
+import { codexHidesTools, manifestChanges, missingSecrets, planSync } from './logic.js';
 
 const f = (path: string, text: string): PackageFile => ({ path, data: Buffer.from(text) });
 const manifest = `name: weather-demo
@@ -89,5 +89,13 @@ describe('mcp rules', () => {
       ],
     );
     expect(plan).toEqual({ addManual: [], dropManual: [], reapply: false });
+  });
+
+  it('spots a Codex harness turned on after apply-config (MCP tools hidden behind tool search)', () => {
+    expect(codexHidesTools({ plugins: { entries: { codex: { enabled: true } } } })).toBe(true);
+    expect(codexHidesTools({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'searchable' } } } } })).toBe(true);
+    expect(codexHidesTools({ plugins: { entries: { codex: { config: { codexDynamicToolsLoading: 'direct' } } } } })).toBe(false);
+    expect(codexHidesTools({ plugins: { entries: { 'admin-http-rpc': { enabled: true } } } })).toBe(false);
+    expect(codexHidesTools({})).toBe(false);
   });
 });

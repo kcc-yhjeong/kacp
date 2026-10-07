@@ -270,7 +270,7 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | 워커 | 위치 | 주기 | 하는 일 |
 |---|---|---|---|
 | 유휴 정지 | api | 1분 | presence 없고 `last_active_at` 초과한 running 팀 → orchestrator stop |
-| Gateway 동기화 | api | 5분 | running 팀만 orchestrator `/internal/gateway/{team}/rpc`로 `config.get` → Gateway에만 있는 서버는 `manual`로 기록, 사라진 `manual` 행 삭제, 빠진 마켓 설치는 apply-config 다시, `last_checked_at`. **꺼진 팀은 건너뜀** |
+| Gateway 동기화 | api | 1분 | running 팀만 orchestrator `/internal/gateway/{team}/rpc`로 `config.get` → Gateway에만 있는 서버는 `manual`로 기록, 사라진 `manual` 행 삭제, 빠진 마켓 설치는 apply-config 다시, `last_checked_at`. Codex 하네스가 apply-config 뒤에 켜진 팀(Control UI에서 OpenAI 연결 — `plugins.entries.codex`는 있는데 `codexDynamicToolsLoading`이 `direct`가 아님)도 apply-config 다시(그대로 두면 MCP 도구가 숨어 `run_app`을 못 씀). **꺼진 팀은 건너뜀** |
 | MCP 빌드 배정 | api | 10초 + 업로드·빌드 종료 직후 | 진행 중 빌드가 없으면 가장 오래된 `uploaded`를 `validating`으로 바꾸고 orchestrator에 넘김. 25분 넘게 소식이 없는 단계는 `failed` |
 | 앱 유휴 정지 | api | 1분 | `*_last_accessed_at`이 설정값(작업본 30분·공개본 120분)을 넘은 running 사본 → stop(`idle`) |
 | 할당 반영 | api | 이벤트 + 팀 기동 시 | `team_agents.apply_status = pending`인 팀에 apply-config |
