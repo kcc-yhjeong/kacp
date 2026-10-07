@@ -258,6 +258,8 @@ platform-mcp 인증: `Authorization: Bearer {팀 MCP 서비스 토큰}`만. api�
 | (apply-config `mcpServers`) | 설치된 마켓·기본 MCP `[{key, url}]` → `mcp.servers.{key}`. **Gateway 키는 패키지 이름의 `-`를 `_`로 바꾼 것**(`my-weather` → `my_weather`, shared `mcpGatewayKey`). OpenClaw 도구 이름이 `{key}__{tool}`이 되는데, 일부 모델(VM gpt-5.6-luna)은 하이픈이 든 함수 이름을 호출하지 못한다(6단계 VM 확인). 컨테이너·Secret Store·DB(`server_key`)는 패키지 이름 그대로. Codex 하네스를 켠 팀(`plugins.entries.codex` 있음)은 `codexDynamicToolsLoading: "direct"`로 맞춘다 — 기본 `searchable`은 MCP 도구를 Codex 도구 검색 뒤에 숨겨 작은 모델이 찾지 못한다(6단계 VM 확인). URL이 `http://kacp-mcp-*:8080/mcp`인 관리 항목만 지운다(직접 추가·Control UI 항목은 건드리지 않음) |
 | `GET /internal/gateway/{team}/rpc` | api 대신 admin-http-rpc 호출(프록시) — `config.get` 등. 팀 Gateway 비밀번호를 쓰는 유일한 곳. 실제 호출은 팀 사이드카 `kacp-gwagent-{team}` → loopback(`06-auth.md` §6, spike 04). HTTP 허용 메서드만 된다(`config.*`, `agents.*`, `models.authStatus`, `health`, `status` 등. `users.*`·`session.*` 없음) |
 
+**에이전트 해제는 `agents.delete`** `{agentId, deleteFiles: true}`로 한다(7단계 확인). OpenClaw는 `config.patch`로 에이전트 항목을 지우는 요청을 `UNAVAILABLE`로 끝내고(세션·작업 공간 연결을 가진 기록이라), 그 패치에 함께 있던 다른 변경도 반영되지 않는다. 사이드카 허용 메서드: `config.get` `config.patch` `health` `models.list` `agents.delete`. Gateway가 HTTP 200에 `ok:false`를 돌려줄 수 있으므로 그것도 실패로 처리한다.
+
 `config.patch` 규칙(spike 04): `config.get`의 `hash`를 `baseHash`로 보낸다. 400 "config changed since last load"면 다시 get. 삭제는 `null`(JSON merge patch). **배열 값을 가진 항목**(예: `identityScopes.{email}`)을 지우려면 `replacePaths: ["gateway.auth.identityScopes.{email}"]`가 필요하다. 응답에는 비밀값 평문이 없다(SecretRef만).
 | `GET /internal/stats` | 전체 사용량 스냅샷 |
 

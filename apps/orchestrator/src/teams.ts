@@ -7,7 +7,7 @@ import {
 import { docker, DockerError } from './docker.js';
 import { notifyProvision, notifyTeamStatus } from './events.js';
 import { seedConfig } from './openclaw-config.js';
-import { agentsMd, computePatch, withPlatformBlock, workspaceFor, type DesiredConfig } from './apply-config.js';
+import { agentsMd, computePatch, MANAGED_PREFIX, withPlatformBlock, workspaceFor, type DesiredConfig } from './apply-config.js';
 import { tar, tarFile } from './tar.js';
 import { attachTeamNetwork, readSecrets, secretHeaders } from './mcp-runtime.js';
 
@@ -300,7 +300,9 @@ export async function gatewayRpc(team: string, method: string, params: unknown =
         signal: AbortSignal.timeout(30_000),
       });
       const body = await r.json().catch(() => ({})) as Record<string, unknown>;
-      if (!r.ok) throw Object.assign(new Error(`rpc ${method} → ${r.status}: ${JSON.stringify(body).slice(0, 300)}`), { status: r.status, body });
+      if (!r.ok || body.ok === false) {
+        throw Object.assign(new Error(`rpc ${method} → ${r.status}: ${JSON.stringify(body).slice(0, 300)}`), { status: r.status || 502, body });
+      }
       return body;
     } catch (err) {
       last = err;
@@ -412,6 +414,15 @@ export function applyConfig(team: string, desired: DesiredConfig) {
         ];
       });
       await docker.putArchive(teamContainer(team), STATE_DIR, tar(entries));
+    }
+
+    // Unassigned template agents go through agents.delete: OpenClaw refuses to drop an agent with
+    // config.patch (it owns sessions and workspace wiring). Its files move to the Gateway's Trash.
+    {
+      const got = await gatewayRpc(team, 'config.get') as { payload?: { config?: { agents?: { entries?: Record<string, unknown> } } } };
+      const wanted = new Set(desired.agents.map((a) => a.id));
+      const stale = Object.keys(got.payload?.config?.agents?.entries ?? {}).filter((id) => id.startsWith(MANAGED_PREFIX) && !wanted.has(id));
+      for (const agentId of stale) await gatewayRpc(team, 'agents.delete', { agentId, deleteFiles: true });
     }
 
     // Market MCP entries carry this team's secrets (Secret Store → X-KACP-Secret-* headers).
