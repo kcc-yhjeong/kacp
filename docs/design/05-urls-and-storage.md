@@ -118,7 +118,7 @@
 │       ├── build.log, scan.json, test.log
 ├── backups/
 │   ├── postgres/                 # pg_dump 일일, 14일 보관
-│   └── deleted-teams/{team}-{date}/  # 삭제된 팀 데이터 30일 보관
+│   └── deleted-teams/{team}-{UTC 시각}/  # 삭제된 팀 데이터 30일 보관(같은 이름을 하루에 두 번 지워도 겹치지 않게 시각까지)
 └── logs/                         # 플랫폼 서비스 로그 (로테이션)
 ```
 

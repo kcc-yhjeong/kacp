@@ -57,6 +57,13 @@
       "when": 1791334926985,
       "tag": "0007_template_model_key",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791380000000,
+      "tag": "0008_free_deleted_team_names",
+      "breakpoints": true
     }
   ]
 }

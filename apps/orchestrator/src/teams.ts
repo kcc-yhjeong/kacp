@@ -509,7 +509,9 @@ export function removeTeam(team: string) {
     }
     if (config.stateMode === 'bind') {
       const src = `${config.dataRoot}/teams/${team}`;
-      const dst = `${config.dataRoot}/backups/deleted-teams/${team}-${new Date().toISOString().slice(0, 10)}`;
+      // Down to the second: the same name can be deleted, reused and deleted again on one day.
+      const at = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const dst = `${config.dataRoot}/backups/deleted-teams/${team}-${at}`;
       if (await stat(src).then(() => true, () => false)) {
         await mkdir(`${config.dataRoot}/backups/deleted-teams`, { recursive: true });
         await rename(src, dst);

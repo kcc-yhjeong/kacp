@@ -150,8 +150,11 @@ export async function adminTeamRoutes(app: FastifyInstance) {
     const t = await loadTeam(req.params.team);
     if (confirmName !== t.name) throw new ApiError(422, 'TEAM_CONFIRM_MISMATCH');
     await db.transaction(async (tx) => {
-      await tx.update(teams).set({ deletedAt: sql`now()`, containerStatus: 'stopping', containerStatusAt: sql`now()` }).where(eq(teams.id, t.id));
-      // Free the name for reuse (05 §3 namespace); the team row keeps its history.
+      // Free the name for reuse (05 §3 namespace); the team row keeps its history under `{name}~{id}`
+      // (teams.name is unique; the original name stays in the audit detail below).
+      await tx.update(teams).set({
+        name: `${t.name}~${t.id}`, deletedAt: sql`now()`, containerStatus: 'stopping', containerStatusAt: sql`now()`,
+      }).where(eq(teams.id, t.id));
       await tx.delete(names).where(and(eq(names.name, t.name), eq(names.kind, 'team')));
       await tx.delete(teamPresence).where(eq(teamPresence.teamId, t.id));
       await tx.delete(teamAgents).where(eq(teamAgents.teamId, t.id));

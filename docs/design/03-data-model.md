@@ -170,7 +170,7 @@ erDiagram
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | id | uuid PK | |
-| name | text unique | 서브도메인. `names`에 `team`으로 등록 |
+| name | text unique | 서브도메인. `names`에 `team`으로 등록. 삭제(`deleted_at`)하면 `{name}~{id}`로 바꿔 이름을 비운다 — 같은 이름으로 다시 만들 수 있게(원래 이름은 감사 기록 `team.delete`의 `detail.name`) |
 | display_name | text | 화면 표시 이름 |
 | container_status | text | `stopped` \| `starting` \| `running` \| `stopping` \| `error` |
 | provision_stage | text | `name` \| `storage` \| `container` \| `default_mcp` \| `done` \| `failed` — A-04 진행 표시(`team.provision` 이벤트로 갱신, 3단계 추가) |
