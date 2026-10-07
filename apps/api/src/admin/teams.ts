@@ -19,6 +19,7 @@ import {
 import { createTeam } from './service.js';
 import { ensureInstalled } from '../mcp/service.js';
 import { notify, teamMemberIds } from '../notify/service.js';
+import { restartTeamsForKeyChange } from '../teams/runtime.js';
 
 // A-04 / A-05 team administration (04-api.md 관리자).
 
@@ -198,23 +199,28 @@ export async function adminTeamRoutes(app: FastifyInstance) {
       if (added.length) await audit({ actorId: actor(req), action: 'agent.assign', targetType: 'template', targetId: templateId, teamId: t.id });
     }
     // Template default MCPs (A-06) are installed into the team if missing (docs/README.md 6단계).
-    const specs = await db.select({ spec: agentTemplates.spec }).from(agentTemplates).where(inArray(agentTemplates.id, templateIds));
+    const specs = await db.select({ id: agentTemplates.id, spec: agentTemplates.spec, keyEnc: agentTemplates.modelKeyEnc }).from(agentTemplates).where(inArray(agentTemplates.id, templateIds));
     const defaultMcp = [...new Set(specs.flatMap((s) => (s.spec as { defaultMcp?: string[] }).defaultMcp ?? []))];
     if (defaultMcp.length) await ensureInstalled(t, defaultMcp).catch((err) => req.log.warn({ err }, 'template default mcp'));
     void scheduleApply(t.name);
     void notify(await teamMemberIds(t.id), { type: 'agent_assignment_changed', title: `${t.name} 팀에 에이전트가 추가됐어요`, link: teamUrl(t.name) }, actor(req));
+    // A template key reaches the team as container env: restart once if any assigned template has one.
+    const keyed = specs.find((s) => s.keyEnc);
+    if (keyed) void restartTeamsForKeyChange(keyed.id, t.id);
     return reply.code(202).send({ items: await teamAgentList(t.id) });
   });
 
   app.delete('/api/v1/admin/teams/:team/agents/:templateId', { preHandler: requirePlatformAdmin },
     async (req: FastifyRequest<{ Params: { team: string; templateId: string } }>, reply) => {
       const t = await loadTeam(req.params.team);
+      const [tpl] = await db.select({ keyEnc: agentTemplates.modelKeyEnc }).from(agentTemplates).where(eq(agentTemplates.id, req.params.templateId));
       const removed = await db.delete(teamAgents)
         .where(and(eq(teamAgents.teamId, t.id), eq(teamAgents.templateId, req.params.templateId))).returning();
       if (removed.length === 0) throw new ApiError(404, 'TEMPLATE_NOT_FOUND');
       await audit({ actorId: actor(req), action: 'agent.unassign', targetType: 'template', targetId: req.params.templateId, teamId: t.id });
       void scheduleApply(t.name);
       void notify(await teamMemberIds(t.id), { type: 'agent_assignment_changed', title: `${t.name} 팀 에이전트 하나가 빠졌어요`, link: teamUrl(t.name) }, actor(req));
+      if (tpl?.keyEnc) void restartTeamsForKeyChange(req.params.templateId, t.id);
       return reply.code(202).send();
     });
 }

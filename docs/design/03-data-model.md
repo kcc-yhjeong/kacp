@@ -214,6 +214,7 @@ erDiagram
 | description | text | |
 | version | int | 저장할 때마다 +1 |
 | spec | jsonb | 아래 구조 |
+| model_key_enc | bytea, nullable | `spec.model.id` 제공자의 API 키(AES-256-GCM). 화면·API로 돌려주지 않고 `modelKeySet`만. 할당된 팀 컨테이너 환경변수 `<PROVIDER>_API_KEY`(한 제공자에 키가 여럿이면 `<PROVIDER>_API_KEYS`) |
 | created_by, updated_by | uuid | |
 
 `spec` 구조 (openclaw.json 변환은 orchestrator 담당, 아래 대응표 — spike 04):

@@ -151,7 +151,7 @@ export interface AgentSkill {
 }
 
 export interface AgentSpec {
-  /** No `model` = team defaults. `id` is legacy (pre-stage 7): shown read-only and dropped on save. */
+  /** No `model` = team defaults. `id` is a `provider/model` ref (e.g. `openai/gpt-5.4-mini`). */
   model?: { id?: string; reasoning?: Reasoning };
   instructions?: string;
   skills?: AgentSkill[];
@@ -164,13 +164,32 @@ export interface AgentTemplateInput {
   icon?: string;
   description?: string;
   spec: AgentSpec;
+  /** Provider key: string sets, null clears, absent keeps. Needs `spec.model.id` as `provider/model`. */
+  modelKey?: string | null;
 }
 
 export interface AgentTemplate extends AgentTemplateSummary {
   spec: AgentSpec;
+  /** A provider key is stored (the key itself is never returned). */
+  modelKeySet: boolean;
   assignedTeams: { name: string; applyStatus: ApplyStatus }[];
   updatedAt: string;
   updatedBy?: UserRef | null;
+}
+
+/** `GET /admin/models` item: a model some running team's Gateway can use. */
+export interface ModelOption {
+  ref: string;
+  name: string;
+  provider: string;
+}
+
+export interface ModelCatalog {
+  items: ModelOption[];
+  /** Running teams the catalog came from. */
+  teams: string[];
+  /** Cache time (epoch ms). */
+  at: number;
 }
 
 export type CapacityResource = 'cpu' | 'memory' | 'disk';

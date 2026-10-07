@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Copy, MoreHorizontal, Plus, Sparkles } from 'lucide-react';
 import { EmptyState, ListState, PageContainer, PageHeader } from '@/components/admin/page';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -55,6 +56,7 @@ export function AgentsPage() {
               <TableRow>
                 <TableHead>이름</TableHead>
                 <TableHead>설명</TableHead>
+                <TableHead>모델</TableHead>
                 <TableHead>추론 수준</TableHead>
                 <TableHead>할당 팀</TableHead>
                 <TableHead>수정</TableHead>
@@ -76,6 +78,16 @@ export function AgentsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="max-w-[320px] truncate text-muted-foreground">{t.description || '—'}</TableCell>
+                  <TableCell className="text-[13px]">
+                    <span className="flex items-center gap-1.5">
+                      {t.spec.model?.id ? (
+                        <span className="font-mono text-[12.5px]">{t.spec.model.id}</span>
+                      ) : (
+                        <span className="text-muted-foreground">팀 기본</span>
+                      )}
+                      {t.modelKeySet && <Badge variant="secondary">키</Badge>}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-[13px]">
                     {t.spec.model?.reasoning ? REASONING_LABEL[t.spec.model.reasoning] : <span className="text-muted-foreground">기본값</span>}
                   </TableCell>

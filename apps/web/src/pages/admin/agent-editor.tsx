@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
-import { ChevronRight, Copy, Info, Plug, ShieldCheck, Sparkles, Trash2, TriangleAlert, Upload } from 'lucide-react';
+import { ChevronRight, Copy, Info, KeyRound, Plug, ShieldCheck, Sparkles, Trash2, TriangleAlert, Upload } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ApplyStatusBadge } from '@/components/admin/badges';
@@ -19,7 +19,8 @@ import { joinDeny, joinSkills, SKILL_GROUPS, splitDeny, splitSkills, TOOL_BLOCKS
 import { adminApi, adminKeys } from '@/lib/admin/api';
 import { REASONING_LABEL } from '@/lib/admin/labels';
 import { DefaultMcpPicker } from '@/components/mcp/default-mcp-picker';
-import type { AgentTemplate, AgentTemplateInput, Reasoning } from '@/lib/admin/types';
+import { buildModelPayload, groupModels, keyEnvName, refProblem, refProvider, type KeyAction } from '@/lib/admin/template-model';
+import type { AgentTemplate, AgentTemplateInput, ModelCatalog, Reasoning } from '@/lib/admin/types';
 import { errorMessage } from '@/lib/api';
 import { formatTime } from '@/lib/format';
 
@@ -33,6 +34,8 @@ const identProblem = (t: string) => (IDENT.test(t) ? null : '소문자·숫자·
 /** Tool names also allow `:` (`group:web`) and `*` (wildcards). */
 const TOOL_IDENT = /^[a-z0-9][a-z0-9._:*-]{0,63}$/;
 const toolProblem = (t: string) => (TOOL_IDENT.test(t) ? null : '소문자·숫자·. _ - : *만 쓸 수 있어요.');
+/** Model select value for "직접 입력". */
+const CUSTOM = '__custom__';
 
 /** A-06 new template (optionally duplicated from `?from=`). */
 export function AgentNewPage() {
@@ -89,8 +92,12 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
   const [name, setName] = useState(initial.name);
   const [icon, setIcon] = useState(initial.icon || '🤖');
   const [description, setDescription] = useState(initial.description ?? '');
-  /** Legacy `spec.model.id` from before models were dropped: shown read-only, removed on save. */
-  const legacyModelId = initial.spec.model?.id;
+  const initialModelId = initial.spec.model?.id ?? '';
+  /** '' = team default, a catalog ref, or CUSTOM. A ref missing from the catalog shows as CUSTOM. */
+  const [picked, setPicked] = useState(initialModelId);
+  const [customRef, setCustomRef] = useState(initialModelId);
+  const keySet = template?.modelKeySet ?? false;
+  const [keyAction, setKeyAction] = useState<KeyAction>({ kind: 'keep' });
   const [reasoning, setReasoning] = useState<Reasoning | ''>(initial.spec.model?.reasoning ?? '');
   const [instructions, setInstructions] = useState(initial.spec.instructions ?? '');
   const [initialSkills] = useState(() => splitSkills(initial.spec.skills ?? []));
@@ -105,18 +112,27 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  const models = useQuery({ queryKey: adminKeys.models, queryFn: adminApi.models, staleTime: 60_000 });
+  const catalogRefs = new Set((models.data?.items ?? []).map((m) => m.ref));
+  const selectValue = picked === '' || picked === CUSTOM || catalogRefs.has(picked) ? picked : CUSTOM;
+  const modelId = selectValue === CUSTOM ? customRef.trim() : selectValue;
+  const customError = selectValue === CUSTOM ? refProblem(customRef) : null;
+  const provider = refProvider(modelId);
+
   const assigned = template?.assignedTeams ?? [];
-  const canSave = name.trim().length > 0 && !saving;
+  const canSave = name.trim().length > 0 && !saving && !models.isPending && !customError;
 
   const body = (): AgentTemplateInput => {
-    const { model: _legacy, ...rest } = initial.spec;
+    const { model: _model, ...rest } = initial.spec;
+    const { model, modelKey } = buildModelPayload({ modelId, reasoning, key: keyAction, keySet });
     return {
       name: name.trim(),
       icon,
       description: description.trim(),
+      ...(modelKey !== undefined ? { modelKey } : {}),
       spec: {
         ...rest,
-        ...(reasoning ? { model: { reasoning } } : {}),
+        ...(model ? { model } : {}),
         instructions,
         skills: joinSkills(knownSkills, customSkills, uploadedSkills),
         defaultMcp,
@@ -214,21 +230,17 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
             <Field id="a-desc" label="설명" className="col-span-2">
               <Input id="a-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
             </Field>
-            <Field
-              id="a-reasoning"
-              label="추론 수준 (선택)"
-              className="col-span-2 max-w-sm"
-              hint={
-                <>
-                  모델은 팀 기본 모델을 써요. 추론 수준이 높을수록 더 꼼꼼하지만 느려요.
-                  {legacyModelId && (
-                    <span className="mt-1 block">
-                      이전 설정: <span className="font-mono">{legacyModelId}</span> (저장하면 지워져요)
-                    </span>
-                  )}
-                </>
-              }
-            >
+            <ModelField
+              selectValue={selectValue}
+              onSelect={setPicked}
+              customRef={customRef}
+              onCustomRef={setCustomRef}
+              customError={customError}
+              models={models}
+              keyWillClear={keySet && !models.isPending && !provider}
+            />
+            {provider && <KeyField provider={provider} keySet={keySet} action={keyAction} onAction={setKeyAction} />}
+            <Field id="a-reasoning" label="추론 수준 (선택)" className="col-span-2 max-w-sm" hint="추론 수준이 높을수록 더 꼼꼼하지만 느려요.">
               <NativeSelect id="a-reasoning" value={reasoning} onChange={(e) => setReasoning(e.target.value as Reasoning | '')} className="w-full">
                 <option value="">기본값(팀 설정)</option>
                 {(['low', 'medium', 'high'] as const).map((r) => (
@@ -401,6 +413,178 @@ function AgentEditor({ template, initial }: { template?: AgentTemplate; initial:
         onConfirm={() => void remove()}
       />
     </PageContainer>
+  );
+}
+
+/** Template model: team default, a model from running teams' catalogs, or a typed `provider/model`. */
+function ModelField({
+  selectValue,
+  onSelect,
+  customRef,
+  onCustomRef,
+  customError,
+  models,
+  keyWillClear,
+}: {
+  selectValue: string;
+  onSelect: (v: string) => void;
+  customRef: string;
+  onCustomRef: (v: string) => void;
+  customError: string | null;
+  models: UseQueryResult<ModelCatalog>;
+  keyWillClear: boolean;
+}) {
+  const groups = groupModels(models.data?.items ?? []);
+  const selected = models.data?.items.find((m) => m.ref === selectValue);
+  return (
+    <Field id="a-model" label="모델 (선택)" className="col-span-2" hint="고르지 않으면 각 팀이 에이전트 화면에서 정한 기본 모델을 써요.">
+      <div className="flex max-w-xl flex-col gap-1.5">
+        <NativeSelect
+          id="a-model"
+          value={models.isPending ? '' : selectValue}
+          disabled={models.isPending}
+          onChange={(e) => onSelect(e.target.value)}
+          className="w-full"
+        >
+          {models.isPending ? (
+            <option value="">모델 목록을 불러오는 중…</option>
+          ) : (
+            <>
+              <option value="">팀 기본 모델(지정 안 함)</option>
+              {groups.map((g) => (
+                <optgroup key={g.provider} label={g.provider}>
+                  {g.items.map((m) => (
+                    <option key={m.ref} value={m.ref}>
+                      {m.name ? `${m.name} · ${m.ref}` : m.ref}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={CUSTOM}>직접 입력</option>
+            </>
+          )}
+        </NativeSelect>
+        {selected?.name && <span className="font-mono text-xs text-muted-foreground">{selected.ref}</span>}
+        {!models.isPending && selectValue === CUSTOM && (
+          <div className="flex flex-col gap-1">
+            <Input
+              aria-label="모델 직접 입력"
+              aria-invalid={!!customError}
+              value={customRef}
+              onChange={(e) => onCustomRef(e.target.value)}
+              placeholder="openai/gpt-5.4-mini"
+              className="font-mono text-[13px]"
+            />
+            {customError && <span className="text-xs text-destructive">{customError}</span>}
+          </div>
+        )}
+        {models.isError && <span className="text-xs text-muted-foreground">모델 목록을 불러오지 못했어요. 직접 입력해도 돼요.</span>}
+        {models.isSuccess && (
+          <span className="text-xs text-muted-foreground">
+            {models.data.items.length === 0
+              ? '켜져 있는 팀이 없어 목록을 못 불러왔어요. 팀을 하나 켜면 그 팀이 쓸 수 있는 모델이 보여요. 직접 입력해도 돼요.'
+              : `켜져 있는 팀(${models.data.teams.join(', ')})에서 쓸 수 있는 모델이에요.`}
+          </span>
+        )}
+        {keyWillClear && (
+          <p className="flex items-start gap-1.5 rounded-md border px-3 py-2 text-xs">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" strokeWidth={1.75} />
+            모델을 지정하지 않으면 저장할 때 키도 지워져요.
+          </p>
+        )}
+      </div>
+    </Field>
+  );
+}
+
+/** Optional provider key for the chosen model. The stored key is never shown. */
+function KeyField({
+  provider,
+  keySet,
+  action,
+  onAction,
+}: {
+  provider: string;
+  keySet: boolean;
+  action: KeyAction;
+  onAction: (a: KeyAction) => void;
+}) {
+  const env = keyEnvName(provider);
+  const [editing, setEditing] = useState(!keySet);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <Field
+      id="a-model-key"
+      label="API 키 (선택)"
+      className="col-span-2"
+      hint={
+        <>
+          <span className="block">
+            넣으면 이 템플릿이 할당된 팀에 {env}처럼 들어가요. 실행 중인 팀은 저장할 때 자동으로 다시 시작돼요(약 1분). 같은 팀의 다른 에이전트도 이 키를 같이 써요.
+          </span>
+          <span className="block">비워 두면 각 팀 관리자가 에이전트 화면에서 넣은 키를 써요.</span>
+        </>
+      }
+    >
+      <div className="flex max-w-xl flex-col gap-1.5">
+        {keySet && (
+          <div className="flex flex-wrap items-center gap-2">
+            {action.kind === 'clear' ? (
+              <>
+                <span className="text-[13px] text-muted-foreground">저장하면 키가 지워져요.</span>
+                <Button variant="ghost" size="sm" onClick={() => onAction({ kind: 'keep' })}>
+                  되돌리기
+                </Button>
+              </>
+            ) : confirming ? (
+              <>
+                <span className="text-[13px]">저장할 때 키를 지울까요?</span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    onAction({ kind: 'clear' });
+                    setConfirming(false);
+                    setEditing(false);
+                  }}
+                >
+                  지우기
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+                  취소
+                </Button>
+              </>
+            ) : (
+              <>
+                <Badge variant="secondary">
+                  <KeyRound strokeWidth={1.75} />
+                  입력됨
+                </Badge>
+                {!editing && (
+                  <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                    변경
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setConfirming(true)}>
+                  지우기
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+        {editing && action.kind !== 'clear' && (
+          <Input
+            id="a-model-key"
+            type="password"
+            autoComplete="new-password"
+            value={action.kind === 'set' ? action.value : ''}
+            onChange={(e) => onAction(e.target.value ? { kind: 'set', value: e.target.value } : { kind: 'keep' })}
+            placeholder={`${env} 값`}
+            className="font-mono text-[13px]"
+          />
+        )}
+      </div>
+    </Field>
   );
 }
 

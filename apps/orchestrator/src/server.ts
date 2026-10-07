@@ -106,7 +106,7 @@ app.delete('/internal/teams/:team', async (req, reply) => {
 // api → admin-http-rpc proxy (CLAUDE.md: the api never holds the Gateway password). Read-only methods only.
 app.post('/internal/gateway/:team/rpc', async (req) => {
   const { team } = TeamParams.parse(req.params);
-  const { method, params } = z.object({ method: z.enum(['config.get', 'health']), params: z.unknown().optional() }).parse(req.body);
+  const { method, params } = z.object({ method: z.enum(['config.get', 'health', 'models.list']), params: z.unknown().optional() }).parse(req.body);
   return gatewayRpc(team, method, params);
 });
 

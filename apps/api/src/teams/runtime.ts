@@ -7,7 +7,7 @@ import { orchestrator, type DesiredAgent, type TeamRuntimeSpec } from '../orches
 import { getSetting } from '../settings.js';
 import { config, teamUrl } from '../config.js';
 import { mcpToken } from '../apps/logic.js';
-import type { AgentSpec } from '../agents/spec.js';
+import { modelKeyEnv, providerOf, type AgentSpec } from '../agents/spec.js';
 import { desiredMcpServers } from '../mcp/service.js';
 import { isNewError } from '../notify/logic.js';
 import { notify, platformAdminIds, teamAdminIds } from '../notify/service.js';
@@ -44,10 +44,36 @@ export async function runtimeSpec(team: TeamRow): Promise<TeamRuntimeSpec> {
     gatewayPassword: decrypt(team.gatewayPasswordEnc),
     adminEmails: await adminEmails(team.id),
     resourceLimits: team.resourceLimits ?? (await getSetting('limits.team_default')),
-    // Model providers are configured per team in the agent screen (no platform-wide keys).
-    env: {},
+    // Keys entered on assigned templates (A-06); without one the team's own Control UI auth is used.
+    env: await templateKeyEnv(team.id),
     linuxGid: team.linuxGid,
   };
+}
+
+/** <PROVIDER>_API_KEY(S) from the keys of the team's assigned templates. */
+async function templateKeyEnv(teamId: string): Promise<Record<string, string>> {
+  const rows = await db.select({ spec: agentTemplates.spec, keyEnc: agentTemplates.modelKeyEnc }).from(teamAgents)
+    .innerJoin(agentTemplates, eq(agentTemplates.id, teamAgents.templateId)).where(eq(teamAgents.teamId, teamId));
+  const items = rows.flatMap((r) => {
+    const provider = providerOf((r.spec as AgentSpec).model?.id);
+    return provider && r.keyEnc ? [{ provider, key: decrypt(r.keyEnc) }] : [];
+  });
+  return modelKeyEnv(items);
+}
+
+/** Template key added, changed or removed: running teams that use it restart to get the new env. */
+export async function restartTeamsForKeyChange(templateId: string, onlyTeamId?: string) {
+  const rows = await db.select({ t: teams }).from(teamAgents).innerJoin(teams, eq(teams.id, teamAgents.teamId))
+    .where(eq(teamAgents.templateId, templateId));
+  const targets = rows.map((r) => r.t);
+  if (onlyTeamId) {
+    const [t] = await db.select().from(teams).where(eq(teams.id, onlyTeamId));
+    if (t && !targets.some((x) => x.id === t.id)) targets.push(t);
+  }
+  for (const t of targets) {
+    if ((onlyTeamId && t.id !== onlyTeamId) || t.containerStatus !== 'running') continue;
+    await requestRestart(t).catch(() => undefined);
+  }
 }
 
 /** Moves `stopped`/`error` → `starting` and asks the orchestrator. Only the caller that wins the update calls it. */

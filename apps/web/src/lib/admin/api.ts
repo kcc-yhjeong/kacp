@@ -19,6 +19,7 @@ import type {
   ImportJob,
   ImportKind,
   Member,
+  ModelCatalog,
   Page,
   PlatformSettings,
   ResourceLimits,
@@ -47,6 +48,7 @@ export const adminKeys = {
   team: (team: string) => ['admin', 'teams', 'detail', team] as const,
   templates: ['admin', 'templates'] as const,
   template: (id: string) => ['admin', 'templates', id] as const,
+  models: ['admin', 'models'] as const,
   settings: ['admin', 'settings'] as const,
   audit: (filters: AuditFilters) => ['admin', 'audit', filters] as const,
   auditAll: ['admin', 'audit'] as const,
@@ -139,6 +141,7 @@ export const adminApi = {
   createTemplate: (body: AgentTemplateInput) => api.post<AgentTemplate>('/admin/agent-templates', body),
   updateTemplate: (id: string, body: AgentTemplateInput) => api.put<AgentTemplate>(`/admin/agent-templates/${enc(id)}`, body),
   deleteTemplate: (id: string) => api.delete<void>(`/admin/agent-templates/${enc(id)}`),
+  models: () => api.get<ModelCatalog>('/admin/models'),
 
   settings: () => api.get<PlatformSettings>('/admin/settings'),
   saveSettings: (body: PlatformSettings) => api.put<PlatformSettings>('/admin/settings', body),

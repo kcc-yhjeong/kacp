@@ -213,6 +213,7 @@ v1 앱은 전부 에이전트가 만들므로(`creator` 없음) `본인` 권한�
 | POST | `/admin/apps/{appId}/public/resume` | 강제 중지 해제(공개본 다시 기동) `202` | A-09 |
 | GET | `/admin/settings` | 설정(API 키는 설정 여부만) | A-10 |
 | PUT | `/admin/settings` | 부분 수정 | A-10 |
+| GET | `/admin/models` | 템플릿 모델 고르기용 목록 `{items: [{ref, name, provider}], teams}` — 실행 중인 팀 Gateway `models.list`의 합(10분 캐시, 그 팀에 키가 있는 모델만) | A-06 |
 | GET | `/admin/audit-events?from=&to=&actor=&action=&targetType=&targetId=&team=` | 활동 기록. A-03 사용자 상세 "활동"은 `actor=`(그 사람이 한 일)와 `targetType=user&targetId=`(그 사람에게 일어난 일)를 합쳐 보여준다 | A-11, A-03 |
 
 ## 3. 내부 API (OpenAPI에 넣지 않음)

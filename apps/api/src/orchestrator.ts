@@ -123,6 +123,9 @@ export const orchestrator = {
   /** Synchronous Gateway patch for a "직접 추가" server (null = delete). */
   mcpManual: (team: string, key: string, server: { url: string; headers?: Record<string, string> } | null) =>
     call(`/internal/gateway/${team}/mcp-manual/${key}`, { server }, 'PUT', 60_000),
+  /** Gateway model catalog (models.list): the models this team has auth for. */
+  gatewayModels: (team: string) =>
+    call(`/internal/gateway/${team}/rpc`, { method: 'models.list', params: {} }, 'POST', 30_000) as Promise<{ payload?: { models?: { id: string; name?: string; provider?: string }[] } }>,
   gatewayConfig: (team: string) =>
     call(`/internal/gateway/${team}/rpc`, { method: 'config.get' }, 'POST', 30_000) as Promise<{ payload?: { config?: Record<string, unknown>; parsed?: Record<string, unknown> } }>,
 };

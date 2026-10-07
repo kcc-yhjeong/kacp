@@ -178,6 +178,8 @@ export const agentTemplates = pgTable('agent_templates', {
   description: text('description').notNull().default(''),
   version: integer('version').notNull().default(1),
   spec: jsonb('spec').notNull(),
+  /** Optional provider key for spec.model (AES-GCM, never returned). Team containers get it as <PROVIDER>_API_KEY. */
+  modelKeyEnc: bytea('model_key_enc'),
   createdBy: uuid('created_by'),
   updatedBy: uuid('updated_by'),
   createdAt: createdAt(),

@@ -9,7 +9,7 @@ const PORT = Number(process.env.GWAGENT_PORT ?? 18800);
 const TOKEN = process.env.GWAGENT_TOKEN ?? '';
 const PASSWORD = process.env.OPENCLAW_GATEWAY_PASSWORD ?? '';
 const GATEWAY = process.env.GATEWAY_URL ?? 'http://127.0.0.1:18789';
-const ALLOWED = new Set(['config.get', 'config.patch', 'health']);
+const ALLOWED = new Set(['config.get', 'config.patch', 'health', 'models.list']);
 
 if (TOKEN.length < 32 || PASSWORD.length < 16) {
   console.error('gwagent: GWAGENT_TOKEN and OPENCLAW_GATEWAY_PASSWORD are required');

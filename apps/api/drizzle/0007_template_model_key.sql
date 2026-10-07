@@ -1,0 +1,1 @@
+ALTER TABLE "agent_templates" ADD COLUMN "model_key_enc" "bytea";
